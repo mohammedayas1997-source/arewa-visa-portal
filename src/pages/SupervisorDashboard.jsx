@@ -90,7 +90,7 @@ const SupervisorDashboard = () => {
     "Security Training",
     "Caregiver - Nanny Course",
     "Cargo & Logistics Course",
-    "Travels and Tourism"
+    "Travels and Tourism",
   ];
 
   const libraryLinks = [
@@ -99,10 +99,10 @@ const SupervisorDashboard = () => {
       url: "https://www.iata.org/en/publications/manuals/",
       cat: "Aviation",
     },
-    { 
-      name: "UNWTO Tourism Hub", 
-      url: "https://www.unwto.org/", 
-      cat: "Tourism" 
+    {
+      name: "UNWTO Tourism Hub",
+      url: "https://www.unwto.org/",
+      cat: "Tourism",
     },
     {
       name: "Global Visa Protocols",
@@ -151,11 +151,12 @@ const SupervisorDashboard = () => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userRef = doc(db, "users", user.uid);
-        onSnapshot(userRef, (snap) => {
-          if (snap.exists())
-            setSupervisorData({ id: user.uid, ...snap.data() });
-        });
-        setAuthLoading(false);
+        // Maimakon onSnapshot a nan, yi amfani da getDoc don gudun fari fat idan snapshot ya makale
+        const snap = await getDoc(userRef);
+        if (snap.exists()) {
+          setSupervisorData({ id: user.uid, ...snap.data() });
+        }
+        setAuthLoading(false); // Dole ne ya dawo false anan
       } else {
         navigate("/admin-login");
       }
@@ -173,16 +174,30 @@ const SupervisorDashboard = () => {
       query(
         collection(db, "users"),
         where("role", "==", "student"),
-        where("selectedCourseId", "==", selectedCourse.toLowerCase().replace(/ /g, "_")),
+        where(
+          "selectedCourseId",
+          "==",
+          selectedCourse.toLowerCase().replace(/ /g, "_"),
+        ),
       ),
       (snap) =>
-        setStudents(snap.docs.map((doc) => ({ id: doc.id, ...doc.data(), studentName: doc.data().fullName }))),
+        setStudents(
+          snap.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+            studentName: doc.data().fullName,
+          })),
+        ),
     );
 
     const unsubForum = onSnapshot(
       query(
         collection(db, "forum_threads"),
-        where("courseId", "==", selectedCourse.toLowerCase().replace(/ /g, "_")),
+        where(
+          "courseId",
+          "==",
+          selectedCourse.toLowerCase().replace(/ /g, "_"),
+        ),
         orderBy("createdAt", "desc"),
       ),
       (snap) =>
@@ -194,7 +209,14 @@ const SupervisorDashboard = () => {
     const unsubLogs = onSnapshot(
       query(collection(db, "deployment_logs"), orderBy("timestamp", "desc")),
       (snap) =>
-        setSystemLogs(snap.docs.map((d) => ({ id: d.id, ...d.data(), action: d.data().action, details: d.data().title }))),
+        setSystemLogs(
+          snap.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+            action: d.data().action,
+            details: d.data().title,
+          })),
+        ),
     );
 
     return () => {
@@ -836,7 +858,11 @@ const SupervisorDashboard = () => {
                   {lib.name}
                 </h3>
                 <div className="flex items-center gap-2 text-[9px] lg:text-[10px] font-black uppercase text-slate-500 group">
-                  Open Library <ExternalLink size={12} className="group-hover:translate-x-1 transition-transform" />
+                  Open Library{" "}
+                  <ExternalLink
+                    size={12}
+                    className="group-hover:translate-x-1 transition-transform"
+                  />
                 </div>
               </a>
             ))}
