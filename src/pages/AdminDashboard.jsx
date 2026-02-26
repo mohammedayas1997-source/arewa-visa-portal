@@ -538,15 +538,22 @@ const GlobalAdminDashboard = () => {
             <span>Live Bookings</span>
           </button>
           <button
-            onClick={() => setActiveTab("visa_academy")}
-            className={`nav-link text-white d-flex align-items-center gap-3 p-3 rounded-3 border-0 bg-transparent w-100 ${
-              activeTab === "visa_academy" ? "bg-danger shadow" : ""
+            type="button"
+            onClick={() => {
+              console.log("Button clicked!"); // Duba wannan a Console
+              setActiveTab("visa_academy");
+            }}
+            className={`w-100 d-flex align-items-center gap-3 p-3 rounded-3 border-0 mb-2 transition-all ${
+              activeTab === "visa_academy"
+                ? "bg-danger text-white shadow"
+                : "bg-transparent text-white"
             }`}
+            style={{ cursor: "pointer", textAlign: "left" }}
           >
             <ShieldCheck size={20} />
-            Insurance & Clearance
+            <span className="fw-bold">Insurance & Clearance</span>
             <span className="badge bg-warning text-dark ms-auto">
-              {visaApps.length}
+              {visaApps?.length || 0}
             </span>
           </button>
           <button
@@ -1575,174 +1582,6 @@ const GlobalAdminDashboard = () => {
                   </button>
                 </div>
 
-                {/* TABBATAR WANNAN SUNAN 'visa_academy' YA DAIDAI DA NA BUTTON DIN SIDEBAR */}
-                {activeTab === "visa_academy" && (
-                  <div className="animate__animated animate__fadeIn">
-                    {/* Modal don nuna cikakken bayani */}
-                    {selectedApp && (
-                      <div
-                        className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center z-3"
-                        style={{
-                          background: "rgba(0,0,0,0.7)",
-                          backdropFilter: "blur(4px)",
-                        }}
-                      >
-                        <div
-                          className="card border-0 shadow-lg rounded-4 p-4 w-100 m-3"
-                          style={{ maxWidth: "500px" }}
-                        >
-                          <div className="d-flex justify-content-between align-items-center mb-3">
-                            <h5 className="fw-bold mb-0 text-primary">
-                              Application Details
-                            </h5>
-                            <button
-                              onClick={() => setSelectedApp(null)}
-                              className="btn-close"
-                            ></button>
-                          </div>
-                          <div className="small text-dark">
-                            <p className="mb-2">
-                              <strong>Full Name:</strong>{" "}
-                              {selectedApp.fullName || selectedApp.name}
-                            </p>
-                            <p className="mb-2">
-                              <strong>Passport:</strong>{" "}
-                              {selectedApp.passportNumber ||
-                                selectedApp.passportNo}
-                            </p>
-                            <p className="mb-2">
-                              <strong>Service:</strong> {selectedApp.service}
-                            </p>
-                            <p className="mb-2">
-                              <strong>Medical:</strong>{" "}
-                              {selectedApp.medicalAssessment || "None"}
-                            </p>
-                            <p className="mb-2">
-                              <strong>Insurance:</strong>{" "}
-                              {selectedApp.insuranceType || "Standard"}
-                            </p>
-                            <p className="mb-2">
-                              <strong>Clearance:</strong>{" "}
-                              {selectedApp.clearanceType || "Standard"}
-                            </p>
-                            <p className="mb-2">
-                              <strong>Phone:</strong>{" "}
-                              {selectedApp.phone || "N/A"}
-                            </p>
-                            <p className="mb-2">
-                              <strong>Reference:</strong> {selectedApp.refID}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => setSelectedApp(null)}
-                            className="btn btn-secondary w-100 rounded-pill mt-3 fw-bold"
-                          >
-                            Close View
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Babban Teburin Bayanai */}
-                    <div className="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
-                      <div className="p-4 border-bottom bg-light d-flex justify-content-between align-items-center">
-                        <div>
-                          <h5 className="fw-bold mb-0 text-dark">
-                            Insurance & Clearance Dashboard
-                          </h5>
-                          <small className="text-muted">
-                            Medical & Police Clearance Logs (₦300k Payments)
-                          </small>
-                        </div>
-                        <span className="badge bg-danger px-3 py-2 rounded-pill shadow-sm fw-bold">
-                          Total Apps: {visaApps?.length || 0}
-                        </span>
-                      </div>
-
-                      <div className="table-responsive">
-                        <table className="table table-hover align-middle mb-0">
-                          <thead className="table-light small text-uppercase text-secondary">
-                            <tr>
-                              <th className="ps-4">Applicant</th>
-                              <th>Service</th>
-                              <th>Ref ID</th>
-                              <th>Amount</th>
-                              <th>Status</th>
-                              <th>Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {visaApps && visaApps.length > 0 ? (
-                              visaApps.map((app) => (
-                                <tr key={app.id}>
-                                  <td className="ps-4">
-                                    <div className="fw-bold text-dark">
-                                      {app.fullName || app.name}
-                                    </div>
-                                    <div className="small text-muted">
-                                      {app.phone || "No Phone"}
-                                    </div>
-                                  </td>
-                                  <td>
-                                    <div className="small fw-bold text-primary">
-                                      {app.service}
-                                    </div>
-                                    <div
-                                      className="badge bg-secondary bg-opacity-10 text-dark border-0 px-2"
-                                      style={{ fontSize: "10px" }}
-                                    >
-                                      Passport:{" "}
-                                      {app.passportNumber ||
-                                        app.passportNo ||
-                                        "N/A"}
-                                    </div>
-                                  </td>
-                                  <td>
-                                    <code className="text-danger fw-bold">
-                                      {app.refID}
-                                    </code>
-                                  </td>
-                                  <td className="fw-bold text-success">
-                                    {app.amount || "₦300,000"}
-                                  </td>
-                                  <td>
-                                    <span
-                                      className={`badge rounded-pill px-3 ${
-                                        app.status?.includes("Approved")
-                                          ? "bg-success"
-                                          : "bg-warning text-dark"
-                                      }`}
-                                    >
-                                      {app.status || "Verification Pending"}
-                                    </span>
-                                  </td>
-                                  <td>
-                                    <button
-                                      onClick={() => setSelectedApp(app)}
-                                      className="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold"
-                                    >
-                                      View
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))
-                            ) : (
-                              <tr>
-                                <td
-                                  colSpan="6"
-                                  className="text-center py-5 text-muted"
-                                >
-                                  <div className="fs-2 mb-2">📁</div>
-                                  No Insurance & Clearance applications found.
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                )}
                 {/* 1. TICKET INVENTORY (MANAGEMENT) */}
                 {activeTab === "inventory" && (
                   <div className="animate__animated animate__fadeIn">
@@ -2175,6 +2014,169 @@ const GlobalAdminDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* TABBATAR WANNAN SUNAN 'visa_academy' YA DAIDAI DA NA BUTTON DIN SIDEBAR */}
+        {activeTab === "visa_academy" && (
+          <div className="animate__animated animate__fadeIn">
+            {/* Modal don nuna cikakken bayani */}
+            {selectedApp && (
+              <div
+                className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center z-3"
+                style={{
+                  background: "rgba(0,0,0,0.7)",
+                  backdropFilter: "blur(4px)",
+                }}
+              >
+                <div
+                  className="card border-0 shadow-lg rounded-4 p-4 w-100 m-3"
+                  style={{ maxWidth: "500px" }}
+                >
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h5 className="fw-bold mb-0 text-primary">
+                      Application Details
+                    </h5>
+                    <button
+                      onClick={() => setSelectedApp(null)}
+                      className="btn-close"
+                    ></button>
+                  </div>
+                  <div className="small text-dark">
+                    <p className="mb-2">
+                      <strong>Full Name:</strong>{" "}
+                      {selectedApp.fullName || selectedApp.name}
+                    </p>
+                    <p className="mb-2">
+                      <strong>Passport:</strong>{" "}
+                      {selectedApp.passportNumber || selectedApp.passportNo}
+                    </p>
+                    <p className="mb-2">
+                      <strong>Service:</strong> {selectedApp.service}
+                    </p>
+                    <p className="mb-2">
+                      <strong>Medical:</strong>{" "}
+                      {selectedApp.medicalAssessment || "None"}
+                    </p>
+                    <p className="mb-2">
+                      <strong>Insurance:</strong>{" "}
+                      {selectedApp.insuranceType || "Standard"}
+                    </p>
+                    <p className="mb-2">
+                      <strong>Clearance:</strong>{" "}
+                      {selectedApp.clearanceType || "Standard"}
+                    </p>
+                    <p className="mb-2">
+                      <strong>Phone:</strong> {selectedApp.phone || "N/A"}
+                    </p>
+                    <p className="mb-2">
+                      <strong>Reference:</strong> {selectedApp.refID}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedApp(null)}
+                    className="btn btn-secondary w-100 rounded-pill mt-3 fw-bold"
+                  >
+                    Close View
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Babban Teburin Bayanai */}
+            <div className="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+              <div className="p-4 border-bottom bg-light d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 className="fw-bold mb-0 text-dark">
+                    Insurance & Clearance Dashboard
+                  </h5>
+                  <small className="text-muted">
+                    Medical & Police Clearance Logs (₦300k Payments)
+                  </small>
+                </div>
+                <span className="badge bg-danger px-3 py-2 rounded-pill shadow-sm fw-bold">
+                  Total Apps: {visaApps?.length || 0}
+                </span>
+              </div>
+
+              <div className="table-responsive">
+                <table className="table table-hover align-middle mb-0">
+                  <thead className="table-light small text-uppercase text-secondary">
+                    <tr>
+                      <th className="ps-4">Applicant</th>
+                      <th>Service</th>
+                      <th>Ref ID</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visaApps && visaApps.length > 0 ? (
+                      visaApps.map((app) => (
+                        <tr key={app.id}>
+                          <td className="ps-4">
+                            <div className="fw-bold text-dark">
+                              {app.fullName || app.name}
+                            </div>
+                            <div className="small text-muted">
+                              {app.phone || "No Phone"}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="small fw-bold text-primary">
+                              {app.service}
+                            </div>
+                            <div
+                              className="badge bg-secondary bg-opacity-10 text-dark border-0 px-2"
+                              style={{ fontSize: "10px" }}
+                            >
+                              Passport:{" "}
+                              {app.passportNumber || app.passportNo || "N/A"}
+                            </div>
+                          </td>
+                          <td>
+                            <code className="text-danger fw-bold">
+                              {app.refID}
+                            </code>
+                          </td>
+                          <td className="fw-bold text-success">
+                            {app.amount || "₦300,000"}
+                          </td>
+                          <td>
+                            <span
+                              className={`badge rounded-pill px-3 ${
+                                app.status?.includes("Approved")
+                                  ? "bg-success"
+                                  : "bg-warning text-dark"
+                              }`}
+                            >
+                              {app.status || "Verification Pending"}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              onClick={() => setSelectedApp(app)}
+                              className="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold"
+                            >
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="6" className="text-center py-5 text-muted">
+                          <div className="fs-2 mb-2">📁</div>
+                          No Insurance & Clearance applications found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {selectedCBI && (
           <div
             className="modal d-block"
