@@ -8,7 +8,7 @@ import {
 } from "react-router-dom";
 import { auth, db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, updateDoc, serverTimestamp, setDoc } from "firebase/firestore";
 
 // --- EXTERNAL LIBRARIES ---
 import jsPDF from "jspdf";
@@ -37,9 +37,9 @@ import AdminContentManager from "./components/AdminContentManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AcademicExam from "./components/AcademicExam";
 
-// GYARA: Mun cire ./src/ domin imports suyi aiki madaidaici
-import AdmissionOfficerDashboard from "./pages/AdmissionOfficerDashboard";
-import RectorDashboard from "./pages/RectorDashboard";
+// GYARA NA KARSHE: Tabbatar sunan fayil din ya dace da folder pages
+import AdmissionOfficerDashboard from "./src/pages/AdmissionOfficerDashboard.jsx";
+import RectorDashboard from "./src/pages/RectorDashboard.jsx";
 
 import "./App.css";
 
@@ -55,20 +55,20 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // --- CERTIFICATE GENERATION LOGIC (AREWA VISA ACADEMY OFFICIAL) ---
+  // --- CERTIFICATE GENERATION LOGIC (AVA OFFICIAL) ---
   const approveAndSendCertificate = async (student) => {
     const completionDate = document.getElementById(`date-${student.id}`)?.value;
     const courseTitle = document.getElementById(`course-${student.id}`)?.value;
 
     if (!completionDate) {
-      alert("Error: Please select a Completion Date!");
+      alert("Kuskure: Zabi ranar kammalawa (Completion Date)!");
       return;
     }
 
     const certificateID = `AVA-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
     try {
-      // 1. Update Firestore
+      // 1. Update Firestore (AVA Issued Certificates)
       await setDoc(doc(db, "issuedCertificates", certificateID), {
         certificateID,
         studentId: student.id,
@@ -82,7 +82,7 @@ function App() {
       // 2. Generate PDF from DOM
       const input = document.getElementById(`cert-pdf-${student.id}`);
       if (!input) {
-        alert("Certificate template not found!");
+        alert("Ba a samu template din Certificate ba!");
         return;
       }
 
@@ -95,9 +95,9 @@ function App() {
       // 3. Download PDF
       pdf.save(`AVA-${student.fullName}-Certificate.pdf`);
 
-      alert(`Success! Certificate generated for ${student.fullName}.`);
+      alert(`Nasara! An samar da Certificate na ${student.fullName}.`);
     } catch (err) {
-      alert("Error generating certificate: " + err.message);
+      alert("Kuskure wajen samar da Certificate: " + err.message);
     }
   };
 
@@ -106,7 +106,7 @@ function App() {
       <div className="d-flex flex-column justify-content-center align-items-center vh-100 bg-dark">
         <div className="spinner-border text-primary mb-3" role="status"></div>
         <p className="text-primary font-black uppercase tracking-widest small">
-          AVA SYSTEM INITIALIZING...
+          AVA System Initializing...
         </p>
       </div>
     );
@@ -121,6 +121,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/about" element={<About />} />
+          <Route path="/gallery" element={<Gallery />} />
           <Route path="/login" element={<StudentLogin />} />
           <Route path="/student-login" element={<StudentLogin />} />
 
@@ -129,52 +130,18 @@ function App() {
             path="/admin-gateway"
             element={
               isAuthenticated ? (
-                /* Idan mutum yana login, ProtectedRoute zai kula da redirection dinsa dashboard din da ya dace */
-                <Navigate to="/rector-dashboard" replace />
+                <Navigate to="/rector-dashboard" />
               ) : (
                 <AdminLogin onLogin={setIsAuthenticated} />
               )
             }
           />
 
-          {/* STAFF & EXECUTIVE PROTECTED ROUTES */}
           <Route
             path="/rector-dashboard"
             element={
               <ProtectedRoute requiredRole="rector">
                 <RectorDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/rector"
-            element={
-              <ProtectedRoute requiredRole="rector">
-                <RectorDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin-dashboard"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <AdmissionOfficerDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <AdmissionOfficerDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/supervisor-dashboard"
-            element={
-              <ProtectedRoute requiredRole="supervisor">
-                <SupervisorDashboard />
               </ProtectedRoute>
             }
           />
@@ -228,8 +195,42 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/e-library"
+            element={
+              <ProtectedRoute requiredRole="student">
+                <Library />
+              </ProtectedRoute>
+            }
+          />
 
-          {/* LEGACY & MANAGEMENT ROUTES */}
+          {/* STAFF & EXECUTIVE ROUTES (AVA OFFICIAL) */}
+          <Route
+            path="/admin-dashboard"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdmissionOfficerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/supervisor-dashboard"
+            element={
+              <ProtectedRoute requiredRole="supervisor">
+                <SupervisorDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rector-dashboard"
+            element={
+              <ProtectedRoute requiredRole="rector">
+                <RectorDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* LEGACY ADMIN ROUTES (KEEPING FOR COMPATIBILITY) */}
           <Route
             path="/admin-manager"
             element={
@@ -310,5 +311,35 @@ const LeaderboardWrapper = () => {
     </div>
   );
 };
+
+// --- STATIC PAGES ---
+const Library = () => (
+  <div
+    className="container mt-5 pt-5 text-center"
+    style={{ minHeight: "80vh" }}
+  >
+    <h1 className="fw-black italic text-blue-600">AVA E-LIBRARY</h1>
+    <p className="font-bold text-muted">
+      Access our global travel and hospitality resources here.
+    </p>
+  </div>
+);
+
+const Gallery = () => (
+  <div className="container mt-5 pt-5" style={{ minHeight: "80vh" }}>
+    <h1 className="text-center mb-4 fw-black italic">AVA GALLERY</h1>
+    <div className="row g-3">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="col-md-4">
+          <img
+            src={`https://via.placeholder.com/300?text=AVA+Event+${i}`}
+            className="img-fluid rounded-4 shadow-sm"
+            alt="Gallery"
+          />
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 export default App;
