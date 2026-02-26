@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-// Tabbatar path din nan daidai ne zuwa file din firebase dinka
-import { db, auth } from "../firebase";
+import { auth, db } from "../firebase";
 import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
@@ -8,7 +7,15 @@ import {
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, ArrowRight, Loader2, UserCheck, X } from "lucide-react";
+import {
+  BookOpen,
+  ArrowRight,
+  Loader2,
+  UserCheck,
+  X,
+  Lock,
+  Mail,
+} from "lucide-react";
 
 const StudentLogin = () => {
   const [email, setEmail] = useState("");
@@ -16,25 +23,36 @@ const StudentLogin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // 1. Listen for Auth State
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists() && userSnap.data().role === "student") {
+          navigate("/student-portal");
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [navigate]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
-
-    // Tsaro: Idan db bai yi loading ba tun farko
-    if (!db) {
-      alert("SYSTEM ERROR: Firebase Database (db) not initialized properly.");
-      return;
-    }
+    if (loading) return;
 
     setLoading(true);
+    const cleanEmail = email.trim().toLowerCase();
 
     try {
+      // Step A: Firebase Auth Login
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        email.trim(),
+        cleanEmail,
         password,
       );
 
-      // ANAN NE MATSALAR TAKE: Tabbatar 'db' bashi da matsala
+      // Step B: Role Verification
       const userRef = doc(db, "users", userCredential.user.uid);
       const userSnap = await getDoc(userRef);
 
@@ -44,161 +62,174 @@ const StudentLogin = () => {
           navigate("/student-portal");
         } else {
           await signOut(auth);
-          alert("RESTRICTED: Students only.");
+          alert("RESTRICTED: Access denied. This portal is for students only.");
         }
       } else {
         await signOut(auth);
-        alert("DATABASE ERROR: No profile found in Firestore.");
+        alert("ERROR: No student record found in database.");
       }
     } catch (error) {
-      console.error("Login Error:", error);
-      alert("SYSTEM ERROR: " + error.message);
+      console.error("Login Error:", error.code);
+      if (
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/invalid-credential"
+      ) {
+        alert("INVALID CREDENTIALS: Duba Email ko Password dinka.");
+      } else {
+        alert("SYSTEM ERROR: " + error.message);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // UI STYLES (Inline CSS don tabbatar komai ya zauna madaidaici a waya)
-  const styles = {
-    main: {
-      minHeight: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "#020617",
-      padding: "20px",
-    },
-    card: {
-      backgroundColor: "#0f172a",
-      padding: "40px",
-      borderRadius: "30px",
-      border: "1px solid #1e293b",
-      width: "100%",
-      maxWidth: "400px",
-      textAlign: "center",
-      position: "relative",
-    },
-    input: {
-      width: "100%",
-      padding: "15px",
-      margin: "10px 0",
-      borderRadius: "15px",
-      backgroundColor: "#1e293b",
-      border: "1px solid #334155",
-      color: "#fff",
-      outline: "none",
-      boxSizing: "border-box",
-    },
-    button: {
-      width: "100%",
-      padding: "18px",
-      backgroundColor: "#2563eb",
-      color: "#fff",
-      border: "none",
-      borderRadius: "15px",
-      fontWeight: "900",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "10px",
-      marginTop: "10px",
-    },
+  // INLINE STYLES - Don tabbatar design bai sake wargajewa ba ko da Tailwind ya ki loading
+  const containerStyle = {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#020617",
+    padding: "20px",
+    fontFamily: "sans-serif",
+  };
+
+  const cardStyle = {
+    backgroundColor: "#0f172a",
+    padding: "40px",
+    borderRadius: "2rem",
+    width: "100%",
+    maxWidth: "400px",
+    border: "1px solid #1e293b",
+    textAlign: "center",
+    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+    position: "relative",
+  };
+
+  const inputStyle = {
+    width: "100%",
+    padding: "16px 16px 16px 48px",
+    backgroundColor: "#1e293b",
+    border: "2px solid #334155",
+    borderRadius: "1rem",
+    color: "white",
+    fontSize: "14px",
+    outline: "none",
+    boxSizing: "border-box",
+    transition: "0.3s",
   };
 
   return (
-    <div style={styles.main}>
-      <div style={styles.card}>
+    <div style={containerStyle}>
+      <div style={cardStyle}>
         <button
           onClick={() => navigate("/")}
           style={{
             position: "absolute",
             top: "20px",
             right: "20px",
-            border: "none",
             background: "none",
-            cursor: "pointer",
+            border: "none",
             color: "#64748b",
+            cursor: "pointer",
           }}
         >
           <X size={24} />
         </button>
 
-        <div style={{ marginBottom: "30px" }}>
+        <div style={{ marginBottom: "32px" }}>
           <div
             style={{
-              width: "60px",
-              height: "60px",
+              width: "64px",
+              height: "64px",
               backgroundColor: "#2563eb",
-              borderRadius: "20px",
+              borderRadius: "1.25rem",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              margin: "0 auto 15px",
-              boxShadow: "0 10px 20px rgba(37, 99, 235, 0.3)",
+              margin: "0 auto 16px",
             }}
           >
-            <BookOpen color="#fff" size={32} />
+            <BookOpen color="white" size={32} />
           </div>
-          <h2
+          <h1
             style={{
+              color: "white",
               fontSize: "24px",
               fontWeight: "900",
-              color: "#fff",
-              letterSpacing: "-1px",
+              margin: 0,
+              fontStyle: "italic",
             }}
           >
             AREWA <span style={{ color: "#2563eb" }}>ACADEMY</span>
-          </h2>
+          </h1>
           <p
             style={{
-              fontSize: "9px",
               color: "#64748b",
+              fontSize: "9px",
+              fontWeight: "bold",
               textTransform: "uppercase",
               letterSpacing: "3px",
-              marginTop: "5px",
+              marginTop: "8px",
             }}
           >
             Student Terminal Access
           </p>
         </div>
 
-        <form onSubmit={handleLogin}>
-          <div style={{ textAlign: "left" }}>
+        <form
+          onSubmit={handleLogin}
+          style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+        >
+          <div style={{ position: "relative", textAlign: "left" }}>
             <label
               style={{
                 fontSize: "9px",
-                fontWeight: "bold",
                 color: "#94a3b8",
-                marginLeft: "5px",
+                fontWeight: "900",
+                marginLeft: "10px",
+                marginBottom: "8px",
+                display: "block",
               }}
             >
               EMAIL ADDRESS
             </label>
+            <Mail
+              size={18}
+              color="#64748b"
+              style={{ position: "absolute", left: "16px", bottom: "16px" }}
+            />
             <input
               type="email"
-              style={styles.input}
-              placeholder="name@academy.com"
+              style={inputStyle}
+              placeholder="student@arewavacademy.edu.ng"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
 
-          <div style={{ textAlign: "left", marginTop: "15px" }}>
+          <div style={{ position: "relative", textAlign: "left" }}>
             <label
               style={{
                 fontSize: "9px",
-                fontWeight: "bold",
                 color: "#94a3b8",
-                marginLeft: "5px",
+                fontWeight: "900",
+                marginLeft: "10px",
+                marginBottom: "8px",
+                display: "block",
               }}
             >
-              SECURITY ACCESS KEY
+              SECURITY KEY
             </label>
+            <Lock
+              size={18}
+              color="#64748b"
+              style={{ position: "absolute", left: "16px", bottom: "16px" }}
+            />
             <input
               type="password"
-              style={styles.input}
+              style={inputStyle}
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -206,31 +237,58 @@ const StudentLogin = () => {
             />
           </div>
 
-          <button type="submit" style={styles.button} disabled={loading}>
+          <button
+            type="submit"
+            style={{
+              width: "100%",
+              padding: "18px",
+              backgroundColor: "#2563eb",
+              color: "white",
+              border: "none",
+              borderRadius: "1rem",
+              fontWeight: "900",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "10px",
+              textTransform: "uppercase",
+              fontSize: "12px",
+              letterSpacing: "1px",
+            }}
+            disabled={loading}
+          >
             {loading ? (
-              <Loader2 className="animate-spin" size={20} />
+              <Loader2 className="animate-spin" />
             ) : (
               <>
-                Enter Classroom <ArrowRight size={20} />
+                Enter Terminal <ArrowRight size={18} />
               </>
             )}
           </button>
         </form>
 
-        <p
+        <div
           style={{
-            marginTop: "30px",
-            fontSize: "9px",
-            color: "#475569",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "8px",
-            fontWeight: "800",
+            marginTop: "32px",
+            borderTop: "1px solid #1e293b",
+            paddingTop: "20px",
           }}
         >
-          <UserCheck size={14} color="#2563eb" /> SECURE AREWA SESSION
-        </p>
+          <p
+            style={{
+              color: "#475569",
+              fontSize: "9px",
+              fontWeight: "bold",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+            }}
+          >
+            <UserCheck size={14} color="#2563eb" /> SECURE AREWA SESSION
+          </p>
+        </div>
       </div>
     </div>
   );
