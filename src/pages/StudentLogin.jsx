@@ -23,18 +23,20 @@ const StudentLogin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // 1. AUTO-REDIRECT: Idan riga yana login, duba idan dalibi ne kafin a bar shi
+  // 1. AUTO-REDIRECT: Check if already logged in and verify role
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
 
-        if (userSnap.exists() && userSnap.data().role === "student") {
-          navigate("/student-portal");
-        } else if (userSnap.exists() && userSnap.data().role !== "student") {
-          // Idan ba dalibi ba ne, cire shi daga zaman (Logout)
-          await signOut(auth);
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          if (userData.role === "student") {
+            navigate("/student-portal");
+          } else {
+            await signOut(auth);
+          }
         }
       }
     });
@@ -49,7 +51,7 @@ const StudentLogin = () => {
     const emailValue = email.trim().toLowerCase();
 
     try {
-      // Step A: Yi login na Firebase Authentication
+      // Step A: Firebase Authentication Login
       const userCredential = await signInWithEmailAndPassword(
         auth,
         emailValue,
@@ -57,32 +59,35 @@ const StudentLogin = () => {
       );
       const user = userCredential.user;
 
-      // Step B: TANTANCE ROLE: Nemo bayanan sa a Firestore
+      // Step B: Role Verification via Firestore
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
         const userData = userSnap.data();
 
-        // DOKA: Idan role dinsa student ne kawai zai shiga
+        // Check if role is strictly 'student'
         if (userData.role === "student") {
           navigate("/student-portal");
         } else {
-          // Idan ma'aikaci ne ko wani daban, ba shi error sannan ka yi sign out
-          setError("ACCESS DENIED: Wannan terminal din na dalibai ne kawai.");
+          setError(
+            "ACCESS DENIED: This terminal is restricted to students only.",
+          );
           await signOut(auth);
         }
       } else {
-        setError("ERROR: Ba a samu bayanan ka a matsayin dalibi ba.");
+        setError("ERROR: Student record not found in the database.");
         await signOut(auth);
       }
     } catch (err) {
       console.error("Login Error:", err.code);
       if (err.code === "auth/user-not-found")
-        setError("Email din nan babu shi a system.");
+        setError("Email address not recognized.");
       else if (err.code === "auth/wrong-password")
-        setError("Security Access Key din ka ba daidai ba ne.");
-      else setError("Authentication Failed: Invalid Credentials.");
+        setError("Invalid Security Access Key.");
+      else if (err.code === "auth/invalid-credential")
+        setError("Invalid credentials provided.");
+      else setError("Authentication Failed: Please try again.");
     } finally {
       setLoading(false);
     }
