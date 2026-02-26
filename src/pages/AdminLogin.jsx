@@ -1,6 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { auth, db } from "../firebase";
-import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut,
+} from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { ShieldCheck, Loader2, ShieldAlert, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +15,26 @@ const StaffLogin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+
+  // 1. AUTH LISTENER: Wannan zai tabbatar mutum ya wuce idan an riga an yi login
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userRef);
+        if (userDoc.exists()) {
+          const role = userDoc.data().role;
+          // Redirection logic for existing session
+          if (role === "rector") navigate("/rector", { replace: true });
+          else if (role === "supervisor")
+            navigate("/supervisor-dashboard", { replace: true });
+          else if (role === "admin" || role === "admission-officer")
+            navigate("/admin-dashboard", { replace: true });
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -35,7 +59,6 @@ const StaffLogin = () => {
         const userData = userDoc.data();
         const userRole = userData.role;
 
-        // UPDATED: Added admission-officer to authorized staff
         const authorizedStaff = [
           "rector",
           "super-admin",
@@ -49,44 +72,37 @@ const StaffLogin = () => {
 
         if (!authorizedStaff.includes(userRole)) {
           await signOut(auth);
-          setError(
-            "ACCESS_DENIED: Unauthorized access. Staff credentials required.",
-          );
+          setError("ACCESS_DENIED: Staff credentials required.");
           setLoading(false);
           return;
         }
 
         if (userData.status === "suspended" || userData.status === "inactive") {
           await signOut(auth);
-          setError("ACCOUNT_REVOKED: This administrative account is inactive.");
+          setError("ACCOUNT_REVOKED: This account is inactive.");
           setLoading(false);
           return;
         }
 
-        // REDIRECTION PROTOCOL
+        // 2. IMMEDIATE REDIRECTION PROTOCOL
+        console.log("Login Successful. Role:", userRole);
+
         if (userRole === "rector") {
-          navigate("/rector", { replace: true });
-        } else if (userRole === "super-admin") {
-          navigate("/super-admin", { replace: true });
+          navigate("/rector-dashboard", { replace: true });
         } else if (userRole === "supervisor") {
           navigate("/supervisor-dashboard", { replace: true });
-        } else if (userRole === "AdminContentManager") {
-          navigate("/admin-secret-portal", { replace: true });
-        } else if (userRole === "admin") {
+        } else if (userRole === "admin" || userRole === "admission-officer") {
           navigate("/admin-dashboard", { replace: true });
-        } else if (userRole === "admission-officer") {
-          // NEW: Redirect to the Admission Officer Dashboard
-          navigate("/admin", { replace: true });
         } else {
-          navigate("/instructor-portal", { replace: true });
+          navigate("/instructor-hub", { replace: true });
         }
       } else {
         await signOut(auth);
-        setError("DATABASE_ERROR: No administrative profile found.");
+        setError("DATABASE_ERROR: Profile not found.");
       }
     } catch (err) {
-      console.error("Login Error:", err);
-      setError("AUTHENTICATION_FAILED: Invalid institutional credentials.");
+      console.error("Login Error:", err.code);
+      setError("AUTHENTICATION_FAILED: Invalid credentials.");
     } finally {
       setLoading(false);
     }
@@ -104,7 +120,6 @@ const StaffLogin = () => {
           strokeWidth={3}
           className="group-hover:rotate-90 transition-transform duration-300"
         />
-        <span className="sr-only">Close Portal</span>
       </button>
 
       <form
@@ -117,8 +132,8 @@ const StaffLogin = () => {
           </div>
         </div>
 
-        <h2 className="text-2xl font-black text-center mb-2 text-gray-900 uppercase tracking-tight">
-          AREWA Command Center
+        <h2 className="text-2xl font-black text-center mb-2 text-gray-900 uppercase tracking-tight italic">
+          AREWA <span className="text-red-600">COMMAND</span>
         </h2>
 
         {error && (
@@ -129,12 +144,12 @@ const StaffLogin = () => {
 
         <div className="space-y-4">
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase ml-2 text-slate-400">
+            <label className="text-[10px] font-bold uppercase ml-2 text-slate-400 tracking-widest">
               Institutional Email
             </label>
             <input
               type="email"
-              placeholder="admin@arewavacademy.edu.ng"
+              placeholder="staff@arewavacademy.edu.ng"
               className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-red-600 font-bold transition-all text-slate-900"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -143,7 +158,7 @@ const StaffLogin = () => {
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase ml-2 text-slate-400">
+            <label className="text-[10px] font-bold uppercase ml-2 text-slate-400 tracking-widest">
               Security Key
             </label>
             <input
@@ -164,7 +179,7 @@ const StaffLogin = () => {
             {loading ? (
               <Loader2 className="animate-spin" />
             ) : (
-              "Verify Credentials"
+              "Verify & Enter Portal"
             )}
           </button>
         </div>
