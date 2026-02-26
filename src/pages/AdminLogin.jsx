@@ -1,176 +1,118 @@
 import React, { useState } from "react";
-import { auth, db } from "../firebase";
-import { signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { ShieldCheck, Loader2, ShieldAlert, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { auth } from "../firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { Lock, User, ShieldAlert } from "lucide-react";
 
-const StaffLogin = () => {
-  const [email, setEmail] = useState("");
+const AdminLogin = ({ onLogin }) => {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (loading) return;
-
     setLoading(true);
     setError("");
 
     try {
-      const cleanEmail = email.trim().toLowerCase();
-      const userCredential = await signInWithEmailAndPassword(
+      // Using .trim() to remove any accidental spaces and .toLowerCase() for consistency
+      await signInWithEmailAndPassword(
         auth,
-        cleanEmail,
+        username.trim().toLowerCase(),
         password,
       );
-      const user = userCredential.user;
-
-      const userRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userRef);
-
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        const userRole = userData.role;
-
-        // UPDATED: Added admission-officer to authorized staff
-        const authorizedStaff = [
-          "rector",
-          "super-admin",
-          "admin",
-          "supervisor",
-          "AdminContentManager",
-          "instructor",
-          "staff",
-          "admission-officer",
-        ];
-
-        if (!authorizedStaff.includes(userRole)) {
-          await signOut(auth);
-          setError(
-            "ACCESS_DENIED: Unauthorized access. Staff credentials required.",
-          );
-          setLoading(false);
-          return;
-        }
-
-        if (userData.status === "suspended" || userData.status === "inactive") {
-          await signOut(auth);
-          setError("ACCOUNT_REVOKED: This administrative account is inactive.");
-          setLoading(false);
-          return;
-        }
-
-        // REDIRECTION PROTOCOL
-        if (userRole === "rector") {
-          navigate("/rector", { replace: true });
-        } else if (userRole === "super-admin") {
-          navigate("/super-admin", { replace: true });
-        } else if (userRole === "supervisor") {
-          navigate("/supervisor-dashboard", { replace: true });
-        } else if (userRole === "AdminContentManager") {
-          navigate("/admin-secret-portal", { replace: true });
-        } else if (userRole === "admin") {
-          navigate("/admin-dashboard", { replace: true });
-        } else if (userRole === "admission-officer") {
-          // NEW: Redirect to the Admission Officer Dashboard
-          navigate("/admin", { replace: true });
-        } else {
-          navigate("/instructor-portal", { replace: true });
-        }
-      } else {
-        await signOut(auth);
-        setError("DATABASE_ERROR: No administrative profile found.");
-      }
+      onLogin(true);
     } catch (err) {
-      console.error("Login Error:", err);
-      setError("AUTHENTICATION_FAILED: Invalid institutional credentials.");
+      console.error("Auth Error:", err.code);
+      // Detailed error messages based on Firebase error codes
+      if (
+        err.code === "auth/user-not-found" ||
+        err.code === "auth/wrong-password" ||
+        err.code === "auth/invalid-credential"
+      ) {
+        setError("Invalid email or password. Please try again.");
+      } else if (err.code === "auth/too-many-requests") {
+        setError(
+          "Access denied due to too many failed attempts. Try again later.",
+        );
+      } else {
+        setError(
+          "Authentication failed. Please check your network connection.",
+        );
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 px-6 font-sans relative">
-      <button
-        type="button"
-        onClick={() => navigate("/")}
-        className="absolute top-16 right-10 p-3 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-2xl transition-all duration-300 group z-50"
+    <div className="min-h-screen d-flex align-items-center justify-content-center bg-dark">
+      <div
+        className="card border-0 shadow-lg p-4 p-md-5"
+        style={{ maxWidth: "400px", borderRadius: "20px" }}
       >
-        <X
-          size={32}
-          strokeWidth={3}
-          className="group-hover:rotate-90 transition-transform duration-300"
-        />
-        <span className="sr-only">Close Portal</span>
-      </button>
-
-      <form
-        onSubmit={handleLogin}
-        className="bg-white p-10 rounded-[3rem] shadow-2xl max-w-md w-full border border-gray-100 relative"
-      >
-        <div className="flex justify-center mb-6">
-          <div className="p-4 bg-red-50 text-red-600 rounded-3xl animate-bounce">
-            <ShieldCheck size={40} />
+        <div className="text-center mb-4">
+          <div className="bg-danger text-white rounded-circle d-inline-block p-3 mb-3 shadow">
+            <Lock size={32} />
           </div>
+          <h4 className="fw-bold text-dark">AVA Admin Portal</h4>
+          <p className="text-muted small">Authorized Personnel Only</p>
         </div>
 
-        <h2 className="text-2xl font-black text-center mb-2 text-gray-900 uppercase tracking-tight">
-          AREWA Command Center
-        </h2>
-
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-[10px] font-black flex items-center gap-2 rounded-xl uppercase">
+          <div className="alert alert-danger d-flex align-items-center gap-2 py-2 small border-0 shadow-sm">
             <ShieldAlert size={16} /> {error}
           </div>
         )}
 
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase ml-2 text-slate-400">
-              Institutional Email
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label className="form-label small fw-bold text-muted mb-1">
+              OFFICIAL EMAIL
             </label>
-            <input
-              type="email"
-              placeholder="admin@arewavacademy.edu.ng"
-              className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-red-600 font-bold transition-all text-slate-900"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <div className="input-group">
+              <span className="input-group-text bg-light border-0">
+                <User size={18} />
+              </span>
+              <input
+                type="email"
+                placeholder="admin@arewavacademy.edu.ng"
+                className="form-control bg-light border-0 py-2"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
           </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase ml-2 text-slate-400">
-              Security Key
+          <div className="mb-4">
+            <label className="form-label small fw-bold text-muted mb-1">
+              PASSWORD
             </label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-red-600 font-bold transition-all text-slate-900"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="input-group">
+              <span className="input-group-text bg-light border-0">
+                <Lock size={18} />
+              </span>
+              <input
+                type="password"
+                placeholder="••••••••"
+                className="form-control bg-light border-0 py-2"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
           </div>
-
           <button
             type="submit"
+            className="btn btn-danger w-100 py-3 rounded-pill fw-bold shadow"
             disabled={loading}
-            className="w-full py-5 bg-red-600 text-white rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2 hover:bg-red-700 active:scale-95 transition-all shadow-lg shadow-red-900/20 disabled:opacity-50"
           >
-            {loading ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              "Verify Credentials"
-            )}
+            {loading ? "Authenticating..." : "SIGN IN"}
           </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };
 
-export default StaffLogin;
+export default AdminLogin;
