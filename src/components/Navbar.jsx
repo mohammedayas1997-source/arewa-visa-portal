@@ -39,7 +39,6 @@ export default function Navbar() {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        // Nemo matsayin (Role) mutum daga Firestore
         const userDoc = await getDoc(doc(db, "users", currentUser.uid));
         if (userDoc.exists()) {
           setUserRole(userDoc.data().role);
@@ -57,7 +56,6 @@ export default function Navbar() {
     navigate("/");
   };
 
-  // Logic na tura mutum inda ya dace dangane da matsayinsa
   const getDashboardLink = () => {
     switch (userRole) {
       case "student":
@@ -152,7 +150,6 @@ export default function Navbar() {
                 </Link>
               </li>
 
-              {/* WHAT WE DO DROPDOWN (KEEPING ALL YOUR ORIGINAL CONTENT) */}
               <li className="nav-item dropdown">
                 <button
                   className="nav-link dropdown-toggle btn btn-link text-dark p-0 border-0 fw-bold"
@@ -233,7 +230,6 @@ export default function Navbar() {
                       <span>CV & INTERVIEW PREP</span>
                     </a>
                   </li>
-
                   <li>
                     <hr className="dropdown-divider" />
                   </li>
@@ -262,7 +258,6 @@ export default function Navbar() {
                     <span>🇹🇭 Thailand</span> <span>🇭🇺 Hungary</span>
                     <span>🇿🇦 South Africa</span> <span>🇨🇦 Canada</span>
                   </div>
-
                   <li>
                     <hr className="dropdown-divider" />
                   </li>
@@ -322,7 +317,6 @@ export default function Navbar() {
                 </ul>
               </li>
 
-              {/* E-LIBRARY DROPDOWN */}
               <li className="nav-item dropdown">
                 <button
                   className="nav-link dropdown-toggle btn btn-link text-dark p-0 border-0 fw-bold"
@@ -398,7 +392,6 @@ export default function Navbar() {
                 </Link>
               </li>
 
-              {/* DYNAMIC PORTAL/LOGIN BUTTONS */}
               {!user ? (
                 <>
                   <li className="nav-item ms-lg-3">
@@ -419,47 +412,24 @@ export default function Navbar() {
                   </li>
                 </>
               ) : (
-                <li className="nav-item dropdown ms-lg-3">
-                  <button
-                    className="btn btn-primary rounded-pill px-4 fw-black text-uppercase small tracking-widest d-flex align-items-center gap-2 shadow-lg"
-                    data-bs-toggle="dropdown"
-                  >
-                    <User size={16} /> MY ACCOUNT <ChevronDown size={14} />
-                  </button>
-                  <ul className="dropdown-menu dropdown-menu-end shadow-2xl border-0 rounded-4 p-2 mt-2">
-                    <li className="px-3 py-2 border-bottom mb-2">
-                      <p className="small text-muted mb-0 fw-bold uppercase">
-                        Logged in as:
-                      </p>
-                      <p
-                        className="text-dark fw-black small text-truncate"
-                        style={{ maxWidth: "150px" }}
-                      >
-                        {user.email}
-                      </p>
-                    </li>
-                    <li>
-                      <Link
-                        className="dropdown-item d-flex align-items-center gap-2 py-3 rounded-3 fw-bold"
-                        to={getDashboardLink()}
-                      >
-                        <LayoutDashboard size={18} className="text-primary" />{" "}
-                        DASHBOARD
-                      </Link>
-                    </li>
-                    <li>
-                      <hr className="dropdown-divider" />
-                    </li>
-                    <li>
-                      <button
-                        onClick={handleLogout}
-                        className="dropdown-item d-flex align-items-center gap-2 py-3 rounded-3 fw-bold text-danger"
-                      >
-                        <LogOut size={18} /> LOGOUT SESSION
-                      </button>
-                    </li>
-                  </ul>
-                </li>
+                <>
+                  <li className="nav-item ms-lg-3">
+                    <Link
+                      to={getDashboardLink()}
+                      className="btn btn-primary rounded-pill px-4 fw-black text-uppercase small tracking-widest shadow-lg d-flex align-items-center gap-2"
+                    >
+                      DASHBOARD
+                    </Link>
+                  </li>
+                  <li className="nav-item">
+                    <button
+                      onClick={handleLogout}
+                      className="btn btn-outline-danger rounded-pill px-4 fw-black text-uppercase small tracking-widest d-flex align-items-center gap-2"
+                    >
+                      <LogOut size={16} /> LOGOUT
+                    </button>
+                  </li>
+                </>
               )}
             </ul>
           </div>
@@ -468,24 +438,3 @@ export default function Navbar() {
     </>
   );
 }
-
-// Sub-component don Lucide Icons (Idan baka da shi a imports)
-const LayoutDashboard = ({ size, className }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <rect width="7" height="9" x="3" y="3" rx="1" />
-    <rect width="7" height="5" x="14" y="3" rx="1" />
-    <rect width="7" height="9" x="14" y="12" rx="1" />
-    <rect width="7" height="5" x="3" y="15" rx="1" />
-  </svg>
-);
