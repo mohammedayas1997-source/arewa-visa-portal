@@ -1,6 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getDatabase } from "firebase/database"; // Mun dawo da wannan don kariya
+import { getFirestore } from "firebase/firestore"; // MUHIMMI: Mun canza zuwa Firestore
 import { getStorage } from "firebase/storage";
 import { getAuth } from "firebase/auth";
 
@@ -13,9 +12,10 @@ const firebaseConfig = {
   appId: "1:230984227020:web:4778678a0f6252fae98a69",
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
+// EXPORTS
+export const db = getFirestore(app); // Wannan shine zai ba ka damar kiran 'doc()' ba tare da error ba
 export const storage = getStorage(app);
-export const db = getFirestore(app); // Wannan shine na Idiris Bapetel (Firestore)
-export const rtdb = getDatabase(app); // Wannan zamu rika kiran sa 'rtdb' idan akwai bukatar sa
+export const auth = getAuth(app);
