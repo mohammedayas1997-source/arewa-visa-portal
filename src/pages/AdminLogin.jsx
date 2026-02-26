@@ -18,10 +18,20 @@ const AdminLogin = ({ onLogin }) => {
     setError("");
 
     try {
-      // 1. Yin Login na asali
+      // 1. Tace Email din (Trim, Lowercase, and Domain Check)
+      const emailValue = username.trim().toLowerCase();
+
+      if (!emailValue.endsWith("@arewavacademy.edu.ng")) {
+        setError(
+          "SECURITY BREACH: Only @arewavacademy.edu.ng IDs are authorized for staff access.",
+        );
+        setLoading(false);
+        return;
+      }
+
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        username.trim().toLowerCase(),
+        emailValue,
         password,
       );
 
@@ -34,44 +44,44 @@ const AdminLogin = ({ onLogin }) => {
       if (userSnap.exists()) {
         const userData = userSnap.data();
 
-        // AN KARA 'supervisor' A CIKIN ALLOWED ROLES
+        // Tantance Idan Role din yana cikin wadanda aka amincewa
         const allowedRoles = [
           "admin",
           "instructor",
           "SUPER_ADMIN",
           "authority",
-          "supervisor", // Role din Supervisor yanzu yana ciki
+          "supervisor",
         ];
 
         if (allowedRoles.includes(userData.role)) {
-          // Idan kaga dama zaka iya raba inda zasu tafi
+          onLogin(true); // Sanar da App.js cewa an yi login
+
+          // DYNAMIC REDIRECTION: Tura kowa gidansa
           if (userData.role === "supervisor") {
-            onLogin(true);
-            navigate("/supervisor-dashboard"); // Misali idan akwai wannan path din
-          } else {
-            onLogin(true); // Sauran admin su shiga babban panel
+            navigate("/supervisor-dashboard");
+          } else if (
+            userData.role === "authority" ||
+            userData.role === "SUPER_ADMIN"
+          ) {
+            navigate("/rector-dashboard");
+          } else if (
+            userData.role === "admin" ||
+            userData.role === "instructor"
+          ) {
+            navigate("/admin-dashboard");
           }
         } else {
           await signOut(auth);
-          setError("ACCESS DENIED: Wannan sashin na masu gudanarwa ne kawai.");
+          setError(
+            "ACCESS DENIED: Your role is not authorized for staff entry.",
+          );
         }
       } else {
         await signOut(auth);
-        setError("USER_NOT_FOUND: Ba a samu bayanan ka a matsayin Staff ba.");
+        setError("USER_NOT_FOUND: No staff profile linked to this ID.");
       }
     } catch (err) {
-      console.error("Auth Error:", err.code);
-      if (
-        err.code === "auth/user-not-found" ||
-        err.code === "auth/wrong-password" ||
-        err.code === "auth/invalid-credential"
-      ) {
-        setError("Invalid email or password. Please try again.");
-      } else if (err.code === "auth/too-many-requests") {
-        setError("Access denied due to too many failed attempts.");
-      } else {
-        setError("Authentication failed. Check your network.");
-      }
+      setError(err.message || "LOGIN FAILED: Authentication error occurred.");
     } finally {
       setLoading(false);
     }
