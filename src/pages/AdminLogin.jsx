@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { auth, db } from "../firebase"; // Tabbatar wannan path din daidai ne
+import { auth, db } from "../firebase";
 import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
@@ -16,30 +16,8 @@ const StaffLogin = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // 1. AUTH LISTENER: Tabbatar mutum ya wuce idan yana riga da login
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userRef = doc(db, "users", user.uid);
-          const userDoc = await getDoc(userRef);
-          if (userDoc.exists()) {
-            const role = userDoc.data().role;
-            // Redirection logic
-            if (role === "rector")
-              navigate("/rector-dashboard", { replace: true });
-            else if (role === "supervisor")
-              navigate("/supervisor-dashboard", { replace: true });
-            else if (role === "admin" || role === "admission-officer")
-              navigate("/admin-dashboard", { replace: true });
-          }
-        } catch (err) {
-          console.error("Staff session sync error:", err);
-        }
-      }
-    });
-    return () => unsubscribe();
-  }, [navigate]);
+  // MUHIMMI: Mun cire onAuthStateChanged a nan domin kada ya yi rikici da handleLogin
+  // Idan mutum yana so ya shigo, handleLogin ne kawai zai tura shi.
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -51,7 +29,7 @@ const StaffLogin = () => {
     try {
       const cleanEmail = email.trim().toLowerCase();
 
-      // Step A: Firebase Auth Login
+      // 1. Firebase Auth Login
       const userCredential = await signInWithEmailAndPassword(
         auth,
         cleanEmail,
@@ -59,14 +37,15 @@ const StaffLogin = () => {
       );
       const user = userCredential.user;
 
-      // Step B: Firestore Role Verification
+      // 2. Firestore Role Verification
       const userRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userRef);
+      const userSnap = await getDoc(userRef);
 
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
         const userRole = userData.role;
 
+        // Jerin Roles din da aka yarda su shiga nan
         const authorizedStaff = [
           "rector",
           "super-admin",
@@ -80,38 +59,42 @@ const StaffLogin = () => {
 
         if (!authorizedStaff.includes(userRole)) {
           await signOut(auth);
-          setError("ACCESS_DENIED: Staff credentials required.");
+          setError("ACCESS_DENIED: Wannan ofishin ma'aikata ne kawai.");
           setLoading(false);
           return;
         }
 
         if (userData.status === "suspended" || userData.status === "inactive") {
           await signOut(auth);
-          setError("ACCOUNT_REVOKED: This account is inactive.");
+          setError("ACCOUNT_REVOKED: An dakatar da wannan account din.");
           setLoading(false);
           return;
         }
 
-        // REDIRECTION PROTOCOL
+        // 3. REDIRECTION PROTOCOL (Madaidaitan Paths kamar yadda suke a App.js)
+        console.log("Login Successful for:", userRole);
+
         if (userRole === "rector") {
           navigate("/rector-dashboard", { replace: true });
         } else if (userRole === "supervisor") {
           navigate("/supervisor-dashboard", { replace: true });
         } else if (userRole === "admin" || userRole === "admission-officer") {
+          // Tabbatar anan yana tura shi admin-dashboard kamar yadda App.js yake so
           navigate("/admin-dashboard", { replace: true });
         } else {
           navigate("/instructor-hub", { replace: true });
         }
       } else {
         await signOut(auth);
-        setError("DATABASE_ERROR: Profile not found in records.");
+        setError("DATABASE_ERROR: Ba'a samu profile dinka a Firestore ba.");
       }
     } catch (err) {
       console.error("Staff Login Error:", err.code);
-      if (err.code === "auth/wrong-password") setError("Invalid Security Key.");
+      if (err.code === "auth/invalid-credential")
+        setError("Email ko Password ba daidai ba.");
       else if (err.code === "auth/user-not-found")
-        setError("Email not registered.");
-      else setError("AUTHENTICATION_FAILED: Please try again.");
+        setError("Ba'a yi rajista da wannan Email din ba.");
+      else setError("AUTHENTICATION_FAILED: Duba network dinka.");
     } finally {
       setLoading(false);
     }
@@ -119,7 +102,6 @@ const StaffLogin = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 px-6 font-sans relative overflow-x-hidden">
-      {/* CLOSE BUTTON */}
       <button
         type="button"
         onClick={() => navigate("/")}
@@ -195,12 +177,6 @@ const StaffLogin = () => {
                 "Verify & Enter Portal"
               )}
             </button>
-          </div>
-
-          <div className="text-center pt-4 border-t border-gray-50">
-            <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">
-              Secure Staff Encrypted Session
-            </p>
           </div>
         </form>
       </div>
