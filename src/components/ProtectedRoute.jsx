@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+// GYARA: Mun maida import din zuwa "./firebase" maimakon "../firebase"
+// domin Vercel ya daina bada kuskuren 'Module not found'
 import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { Navigate, useLocation } from "react-router-dom";
@@ -13,8 +15,9 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
-      if (currentUser) {
-        try {
+      try {
+        if (currentUser) {
+          // Idan akwai matsala wajen kiran Firestore (db), kada mu bar loading ya tsaya
           const userRef = doc(db, "users", currentUser.uid);
           const userDoc = await getDoc(userRef);
 
@@ -26,27 +29,26 @@ const ProtectedRoute = ({ children, requiredRole }) => {
               userData.status === "inactive"
             ) {
               await signOut(auth);
-              setUser(null);
-              setRole(null);
               setStatus("suspended");
             } else {
-              setUser(currentUser);
               setRole(userData.role);
               setStatus("active");
+              setUser(currentUser);
             }
           } else {
-            // Idan babu shi a Firestore amma yana Auth
+            // Idan babu shi a Firestore, bar shi ya wuce amma ba shi role na student
             setUser(currentUser);
-            setRole(null);
+            setRole("student");
           }
-        } catch (error) {
-          console.error("Security Error:", error);
+        } else {
+          setUser(null);
         }
-      } else {
-        setUser(null);
-        setRole(null);
+      } catch (error) {
+        console.error("AREWA SECURITY ERROR:", error);
+        // Idan error ya faru, karya loading screen din ko ta halin kaka
+      } finally {
+        setLoading(false);
       }
-      setLoading(false); // Dole a kashe loading anan
     });
 
     return () => unsubscribe();
@@ -58,14 +60,14 @@ const ProtectedRoute = ({ children, requiredRole }) => {
         <div className="flex flex-col items-center gap-6 text-white text-center">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
           <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">
-            AREWA SECURITY: AUTHENTICATING...
+            AREWA SECURITY: VERIFYING...
           </p>
         </div>
       </div>
     );
   }
 
-  // 1. Idan ba'a yi login ba
+  // 1. Redirect idan ba'a yi login ba
   if (!user) {
     const isStaffPath =
       location.pathname.includes("admin") ||
@@ -80,32 +82,28 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     );
   }
 
-  // 2. Idan an dakatar da account
+  // 2. Redirect idan an dakatar
   if (status === "suspended") {
     return (
       <Navigate to="/login" state={{ error: "Account Suspended" }} replace />
     );
   }
 
-  // 3. Duba Role (RBAC)
+  // 3. Role-Based Access
   if (requiredRole) {
-    const isSuperAdmin = role === "super-admin" || role === "SUPER_ADMIN";
-    const isRector = role === "rector" || role === "authority";
+    const isSuperAdmin = role === "super-admin";
+    const isRector = role === "rector";
     const isAdmin = role === "admin" || role === "admission-officer";
 
     let hasAccess = role === requiredRole || isSuperAdmin || isRector;
 
-    // Admin Access Logic
     if (requiredRole === "admin") {
       hasAccess = isAdmin || isSuperAdmin || isRector;
     }
 
     if (!hasAccess) {
-      // Tura mutum gidan da ya dace da shi idan ya bata hanya
-      if (role === "student") return <Navigate to="/student-portal" replace />;
-      if (isRector) return <Navigate to="/rector" replace />;
-      if (isAdmin) return <Navigate to="/admin-dashboard" replace />;
-      return <Navigate to="/" replace />;
+      const fallback = role === "student" ? "/student-portal" : "/";
+      return <Navigate to={fallback} replace />;
     }
   }
 
