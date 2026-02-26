@@ -12,6 +12,8 @@ import {
   Loader2,
 } from "lucide-react";
 
+// ... (sauran imports suna nan daram)
+
 const StudentLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,14 +21,13 @@ const StudentLogin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // 1. GYARA: Idan riga yana login, kai shi Dashboard kai tsaye
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
         if (userSnap.exists() && userSnap.data().role === "student") {
-          navigate("/student-portal"); // Tabbatar wannan path din yana App.jsx
+          navigate("/student-portal");
         }
       }
     });
@@ -38,17 +39,11 @@ const StudentLogin = () => {
     setLoading(true);
     setError("");
 
-    // DOKA: Tabbatar email din na Institutional ne kawai
+    // GYARA 1: Tabbatar babu sarari (space) kuma duka ƙananan baki ne
     const emailValue = email.trim().toLowerCase();
 
-    // Misali: Idan kana son dole sai email din academy ne kadai zai shiga
-    if (!emailValue.endsWith("@arewavacademy.edu.ng")) {
-      setError(
-        "Please use your official institutional email (@arewavacademy.edu.ng)",
-      );
-      setLoading(false);
-      return;
-    }
+    // GYARA 2: Na cire takunkumin @arewavacademy.edu.ng domin kowane email ya wuce
+    // Idan kana son dawo da shi, zaka iya cire alamar comment (/* */)
 
     try {
       const userCredential = await signInWithEmailAndPassword(
@@ -58,8 +53,7 @@ const StudentLogin = () => {
       );
       const user = userCredential.user;
 
-      // ... sauran logic na Firestore (Authentication check)
-      // 2. TANTANCEWA: Duba role a Firestore
+      // 2. TANTANCEWA: Duba idan dalibi ne a Firestore
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
@@ -68,20 +62,27 @@ const StudentLogin = () => {
         if (userData.role === "student") {
           navigate("/student-portal");
         } else {
-          setError("Access Denied: Not a student account.");
+          setError("Access Denied: This is not a student account.");
           await auth.signOut();
         }
       } else {
-        setError("Access Denied: Student record not found.");
+        setError("Access Denied: Student record not found in database.");
         await auth.signOut();
       }
     } catch (err) {
-      setError("Authentication Failed: Invalid Credentials.");
+      console.error("Login Error:", err.code);
+      // Karin haske ga mai amfani
+      if (err.code === "auth/user-not-found")
+        setError("Email din nan babu shi a system.");
+      else if (err.code === "auth/wrong-password")
+        setError("Security Access Key din ka ba daidai ba ne.");
+      else setError("Authentication Failed: Invalid Credentials.");
     } finally {
       setLoading(false);
     }
   };
 
+  // ... (UI code dinka duka yana nan daram ba mu taba ba)
   return (
     <div
       style={{

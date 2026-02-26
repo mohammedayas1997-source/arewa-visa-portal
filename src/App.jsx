@@ -136,14 +136,6 @@ function App() {
               )
             }
           />
-          <Route
-            path="/admin-dashboard"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <AdmissionOfficerDashboard />
-              </ProtectedRoute>
-            }
-          />
 
           <Route
             path="/rector-dashboard"

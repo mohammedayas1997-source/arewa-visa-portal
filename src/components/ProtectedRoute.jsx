@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { auth, db } from "../firebase"; // Adjusted to your standard path
+import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { Navigate, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
@@ -21,7 +21,6 @@ const ProtectedRoute = ({ children, requiredRole }) => {
           if (userDoc.exists()) {
             const userData = userDoc.data();
 
-            // SECURITY CHECK: Suspension Protocols
             if (
               userData.status === "suspended" ||
               userData.status === "inactive"
@@ -36,7 +35,6 @@ const ProtectedRoute = ({ children, requiredRole }) => {
               setUser(currentUser);
             }
           } else {
-            // No profile found in Firestore
             setUser(currentUser);
             setRole(null);
           }
@@ -67,58 +65,59 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     );
   }
 
-  // Handle Suspended Accounts
   if (status === "suspended") {
     return (
+      <Navigate to="/login" state={{ error: "Account Suspended" }} replace />
+    );
+  }
+
+  if (!user) {
+    // Idan ba a yi login ba, duba ko shafin ma'aikata ne ko na dalibai
+    const isStaffRoute =
+      location.pathname.includes("admin") ||
+      location.pathname.includes("rector") ||
+      location.pathname.includes("supervisor");
+    return (
       <Navigate
-        to="/login"
-        state={{ error: "Account Suspended by AVA Authority" }}
+        to={isStaffRoute ? "/admin-gateway" : "/login"}
+        state={{ from: location }}
         replace
       />
     );
   }
 
-  // Handle Unauthenticated Users
-  if (!user) {
-    const isStaffRoute =
-      location.pathname.includes("admin") ||
-      location.pathname.includes("super") ||
-      location.pathname.includes("supervisor") ||
-      location.pathname.includes("rector");
-
-    const loginPath = isStaffRoute ? "/admin-login" : "/login";
-    return <Navigate to={loginPath} state={{ from: location }} replace />;
-  }
-
-  // --- ROLE BASED ACCESS CONTROL (RBAC) ---
   if (requiredRole) {
-    const isSuperAdmin = role === "SUPER_ADMIN" || role === "super-admin";
+    // Tabbatar muna duba roles din daidai
+    const isAdmin =
+      role === "admin" ||
+      role === "admission-officer" ||
+      role === "super-admin";
     const isRector = role === "rector" || role === "authority";
     const isSupervisor = role === "supervisor";
-    const isAdmissionOfficer = role === "admission-officer" || role === "admin"; // Admission officer sau tari role dinsa 'admin' ne a Firestore
     const isStudent = role === "student";
 
-    // Access Logic:
-    const hasAccess =
-      isSuperAdmin ||
-      isRector ||
-      (requiredRole === "student" && isStudent) || // Tabbatar dalibi zai iya shiga student routes
-      (requiredRole === "admin" &&
-        (isAdmissionOfficer || isSupervisor || isRector)) ||
-      role === requiredRole;
+    // 1. Master access ga Rector da Admin a wasu shafukan
+    let hasAccess = role === requiredRole;
+
+    if (requiredRole === "admin") {
+      hasAccess = isAdmin || isRector || isSupervisor;
+    }
+
+    if (requiredRole === "student") {
+      hasAccess = isStudent;
+    }
 
     if (!hasAccess) {
-      // Idan bashi da izini, duba inda ya dace a kais hi
-      let redirectPath = isStudent ? "/student-portal" : "/"; // Default fallback zuwa home idan komai ya cabe
+      // Idan bashi da ikon shiga wannan shafin, kai shi dashboard dinsa na asali
+      if (isStudent) return <Navigate to="/student-portal" replace />;
+      if (isRector) return <Navigate to="/rector-dashboard" replace />;
+      if (isAdmin) return <Navigate to="/admin-dashboard" replace />;
+      if (isSupervisor) return <Navigate to="/supervisor-dashboard" replace />;
 
-      if (isStudent) redirectPath = "/student-portal";
-      else if (isRector) redirectPath = "/rector-dashboard";
-      else if (isSupervisor) redirectPath = "/supervisor-dashboard";
-      else if (isAdmissionOfficer) redirectPath = "/admin-dashboard";
-
-      return <Navigate to={redirectPath} replace />;
+      return <Navigate to="/" replace />;
     }
   }
+
   return children;
 };
 
