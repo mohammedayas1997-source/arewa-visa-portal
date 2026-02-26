@@ -1,321 +1,186 @@
-import React, { useState, useEffect } from "react";
-import { db, auth } from "../firebase";
+import React, { useState } from "react";
+import { auth, db } from "../firebase";
 import {
   signInWithEmailAndPassword,
-  onAuthStateChanged,
   signOut,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import {
-  Lock,
-  Mail,
-  ShieldAlert,
-  GraduationCap,
-  ChevronRight,
+  BookOpen,
+  ArrowRight,
   Loader2,
+  UserCheck,
+  KeyRound,
+  X,
 } from "lucide-react";
 
 const StudentLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // 1. AUTO-REDIRECT: Check if already logged in and verify role
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const userRef = doc(db, "users", user.uid);
-        const userSnap = await getDoc(userRef);
+  const handleForgotPassword = async () => {
+    if (!email) {
+      alert("INPUT REQUIRED: Please enter your email address first.");
+      return;
+    }
 
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          if (userData.role === "student") {
-            navigate("/student-portal");
-          } else {
-            await signOut(auth);
-          }
-        }
-      }
-    });
-    return () => unsubscribe();
-  }, [navigate]);
+    try {
+      await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+      alert(
+        "RESET DISPATCHED: Check your inbox for the password recovery link.",
+      );
+    } catch (error) {
+      console.error("Reset Error:", error.code);
+      alert("SYSTEM ERROR: Could not send reset email. Verify your address.");
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
-
-    const emailValue = email.trim().toLowerCase();
 
     try {
-      // Step A: Firebase Authentication Login
+      const cleanEmail = email.trim().toLowerCase();
+
+      // 1. Firebase Auth
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        emailValue,
+        cleanEmail,
         password,
       );
       const user = userCredential.user;
 
-      // Step B: Role Verification via Firestore
+      // 2. Firestore Check
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
         const userData = userSnap.data();
 
-        // Check if role is strictly 'student'
-        if (userData.role === "student") {
-          navigate("/student-portal");
-        } else {
-          setError(
-            "ACCESS DENIED: This terminal is restricted to students only.",
-          );
+        // 3. Role Validation
+        if (userData.role !== "student") {
           await signOut(auth);
+          alert("RESTRICTED: This portal is for students only.");
+          setLoading(false);
+          return;
         }
+
+        // 4. Status Validation
+        if (userData.status === "suspended" || userData.status === "inactive") {
+          await signOut(auth);
+          alert("ACCOUNT INACTIVE: Your account has been suspended.");
+          setLoading(false);
+          return;
+        }
+
+        // 5. SUCCESSFUL REDIRECT
+        console.log("Access Granted. Redirecting to Student Portal...");
+        navigate("/student-portal");
       } else {
-        setError("ERROR: Student record not found in the database.");
         await signOut(auth);
+        alert("ACCOUNT ERROR: No student profile found in database.");
       }
-    } catch (err) {
-      console.error("Login Error:", err.code);
-      if (err.code === "auth/user-not-found")
-        setError("Email address not recognized.");
-      else if (err.code === "auth/wrong-password")
-        setError("Invalid Security Access Key.");
-      else if (err.code === "auth/invalid-credential")
-        setError("Invalid credentials provided.");
-      else setError("Authentication Failed: Please try again.");
+    } catch (error) {
+      console.error("Login Error:", error.code);
+      alert("AUTHENTICATION ERROR: Invalid email or password.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#020617",
-        padding: "20px",
-        fontFamily: "sans-serif",
-      }}
-    >
-      <div style={{ maxWidth: "450px", width: "100%" }}>
-        <div style={{ textAlign: "center", marginBottom: "40px" }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "80px",
-              height: "80px",
-              backgroundColor: "#2563eb",
-              color: "white",
-              borderRadius: "2rem",
-              marginBottom: "24px",
-              boxShadow: "0 25px 50px -12px rgba(37, 99, 235, 0.25)",
-            }}
-          >
-            <GraduationCap size={40} />
+    <div className="min-h-screen bg-white flex items-center justify-center px-6 selection:bg-blue-600 selection:text-white font-sans relative">
+      {/* UMURNI: CLOSE BUTTON INTEGRATION (An dan saukar da shi zuwa top-16) */}
+      <button
+        type="button"
+        onClick={() => navigate("/")}
+        className="absolute top-16 right-10 p-3 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all duration-300 group z-50"
+      >
+        <X
+          size={32}
+          strokeWidth={3}
+          className="group-hover:rotate-90 transition-transform duration-300"
+        />
+      </button>
+
+      <div className="max-w-md w-full relative">
+        <div className="text-center mb-12">
+          <div className="w-20 h-20 bg-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-200">
+            <BookOpen className="text-white" size={32} />
           </div>
-          <h1
-            style={{
-              fontSize: "2rem",
-              fontWeight: "900",
-              color: "white",
-              fontStyle: "italic",
-              letterSpacing: "-0.05em",
-              textTransform: "uppercase",
-              margin: "0",
-            }}
-          >
-            AREWA VISA <span style={{ color: "#2563eb" }}>ACADEMY</span>
-          </h1>
-          <p
-            style={{
-              fontSize: "10px",
-              fontWeight: "900",
-              color: "#64748b",
-              textTransform: "uppercase",
-              letterSpacing: "0.4em",
-              marginTop: "8px",
-            }}
-          >
-            Student Terminal Login
+          <h2 className="text-4xl font-black text-gray-900 tracking-tighter uppercase leading-none italic">
+            AREWA <br />{" "}
+            <span className="text-blue-600 font-black">ACADEMY</span>
+          </h2>
+          <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.3em] mt-4">
+            Authorized Academic Access Only
           </p>
         </div>
 
-        <div
-          style={{
-            backgroundColor: "#0f172a",
-            border: "1px solid #1e293b",
-            borderRadius: "2.5rem",
-            padding: "40px",
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
-          }}
-        >
-          <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: "24px" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "9px",
-                  fontWeight: "900",
-                  color: "#94a3b8",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  marginLeft: "16px",
-                  marginBottom: "8px",
-                }}
-              >
-                Institutional Email
-              </label>
-              <div style={{ position: "relative" }}>
-                <Mail
-                  style={{
-                    position: "absolute",
-                    left: "20px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "#64748b",
-                  }}
-                  size={18}
-                />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@academy.com"
-                  style={{
-                    width: "100%",
-                    backgroundColor: "#1e293b",
-                    border: "2px solid #1e293b",
-                    color: "white",
-                    borderRadius: "1.25rem",
-                    padding: "16px 16px 16px 56px",
-                    outline: "none",
-                    fontWeight: "bold",
-                    fontSize: "14px",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-            </div>
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div className="space-y-1">
+            <label className="ml-2 text-[9px] font-black text-gray-400 uppercase tracking-widest">
+              Email Address
+            </label>
+            <input
+              type="email"
+              placeholder="e.g. abubakar@arewavacademy.edu.ng"
+              required
+              className="w-full p-6 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-blue-600 focus:bg-white transition-all font-medium text-sm shadow-sm lowercase text-slate-900"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
 
-            <div style={{ marginBottom: "24px" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "9px",
-                  fontWeight: "900",
-                  color: "#94a3b8",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  marginLeft: "16px",
-                  marginBottom: "8px",
-                }}
-              >
-                Security Access Key
+          <div className="space-y-1">
+            <div className="flex justify-between items-center pr-2">
+              <label className="ml-2 text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                Password
               </label>
-              <div style={{ position: "relative" }}>
-                <Lock
-                  style={{
-                    position: "absolute",
-                    left: "20px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "#64748b",
-                  }}
-                  size={18}
-                />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  style={{
-                    width: "100%",
-                    backgroundColor: "#1e293b",
-                    border: "2px solid #1e293b",
-                    color: "white",
-                    borderRadius: "1.25rem",
-                    padding: "16px 16px 16px 56px",
-                    outline: "none",
-                    fontWeight: "bold",
-                    fontSize: "14px",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-            </div>
-
-            {error && (
-              <div
-                style={{
-                  backgroundColor: "rgba(239, 68, 68, 0.1)",
-                  border: "1px solid rgba(239, 68, 68, 0.2)",
-                  color: "#ef4444",
-                  fontSize: "10px",
-                  fontWeight: "900",
-                  textTransform: "uppercase",
-                  padding: "16px",
-                  borderRadius: "12px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  marginBottom: "24px",
-                }}
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-1"
               >
-                <ShieldAlert size={16} />
-                {error}
-              </div>
+                <KeyRound size={12} /> Recovery
+              </button>
+            </div>
+            <input
+              type="password"
+              placeholder="••••••••"
+              required
+              className="w-full p-6 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-blue-600 focus:bg-white transition-all font-medium text-sm shadow-sm text-slate-900"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-6 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.4em] flex items-center justify-center gap-3 hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 disabled:opacity-50 active:scale-95 mt-4"
+          >
+            {loading ? (
+              <Loader2 className="animate-spin text-white" />
+            ) : (
+              <>
+                Enter Classroom <ArrowRight size={20} />
+              </>
             )}
+          </button>
+        </form>
 
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: "100%",
-                backgroundColor: "#2563eb",
-                color: "white",
-                fontWeight: "900",
-                textTransform: "uppercase",
-                fontSize: "12px",
-                letterSpacing: "0.1em",
-                padding: "20px",
-                borderRadius: "1.25rem",
-                border: "none",
-                cursor: loading ? "not-allowed" : "pointer",
-                opacity: loading ? "0.7" : "1",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
-                transition: "0.3s",
-              }}
-            >
-              {loading ? (
-                <Loader2
-                  style={{ animation: "spin 1s linear infinite" }}
-                  size={20}
-                />
-              ) : (
-                <>
-                  Enter Terminal <ChevronRight size={18} />
-                </>
-              )}
-            </button>
-          </form>
+        <div className="mt-12 text-center border-t border-gray-100 pt-8">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-center gap-2">
+            <UserCheck size={14} className="text-blue-500" /> Secure Student
+            Session
+          </p>
         </div>
       </div>
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

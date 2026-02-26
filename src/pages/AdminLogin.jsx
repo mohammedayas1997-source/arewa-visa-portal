@@ -2,198 +2,175 @@ import React, { useState } from "react";
 import { auth, db } from "../firebase";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import { ShieldCheck, Loader2, ShieldAlert, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Lock, User, ShieldAlert, Loader2 } from "lucide-react";
 
-const AdminLogin = ({ onLogin }) => {
-  const navigate = useNavigate();
-  const [username, setUsername] = useState("");
+const StaffLogin = () => {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    if (loading) return;
+
     setLoading(true);
     setError("");
 
     try {
-      const emailValue = username.trim().toLowerCase();
-
-      // 1. SECURITY CHECK: Tabbatar da Email Domain
-      if (!emailValue.endsWith("@arewavacademy.edu.ng")) {
-        setError("SECURITY BREACH: Only official staff IDs are authorized.");
-        setLoading(false);
-        return;
-      }
-
-      // 2. Firebase Authentication
+      const cleanEmail = email.trim().toLowerCase();
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        emailValue,
+        cleanEmail,
         password,
       );
-
       const user = userCredential.user;
 
-      // 3. ROLE VERIFICATION: Nemo bayanan staff a Firestore
       const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
+      const userDoc = await getDoc(userRef);
 
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const userRole = userData.role;
 
-        // Jerin Staff Roles kawai (Ba dalibi a ciki)
-        const staffRoles = [
+        // UPDATED: Added admission-officer to authorized staff
+        const authorizedStaff = [
+          "rector",
+          "super-admin",
           "admin",
-          "instructor",
-          "SUPER_ADMIN",
-          "authority",
           "supervisor",
-          "admission-officer", // Na kara maka wannan idan babu shi
+          "AdminContentManager",
+          "instructor",
+          "staff",
+          "admission-officer",
         ];
 
-        // Tabbatar idan mutumin staff ne
-        if (staffRoles.includes(userData.role)) {
-          onLogin(true);
-
-          // DYNAMIC REDIRECTION: Kai kowa ofishinsa
-          if (userData.role === "supervisor") {
-            navigate("/supervisor-dashboard");
-          } else if (
-            userData.role === "authority" ||
-            userData.role === "SUPER_ADMIN"
-          ) {
-            navigate("/rector-dashboard");
-          } else {
-            // Sauran staff (Admin, Instructor, Admission Officer)
-            navigate("/admin-dashboard");
-          }
-        } else {
-          // Idan dalibi ne (student) ya yi kokarin shiga ta nan
+        if (!authorizedStaff.includes(userRole)) {
           await signOut(auth);
           setError(
-            "ACCESS DENIED: Wannan terminal din na ma'aikata (Staff) ne kawai.",
+            "ACCESS_DENIED: Unauthorized access. Staff credentials required.",
           );
+          setLoading(false);
+          return;
+        }
+
+        if (userData.status === "suspended" || userData.status === "inactive") {
+          await signOut(auth);
+          setError("ACCOUNT_REVOKED: This administrative account is inactive.");
+          setLoading(false);
+          return;
+        }
+
+        // REDIRECTION PROTOCOL
+        if (userRole === "rector") {
+          navigate("/rector", { replace: true });
+        } else if (userRole === "super-admin") {
+          navigate("/super-admin", { replace: true });
+        } else if (userRole === "supervisor") {
+          navigate("/supervisor-dashboard", { replace: true });
+        } else if (userRole === "AdminContentManager") {
+          navigate("/admin-secret-portal", { replace: true });
+        } else if (userRole === "admin") {
+          navigate("/admin-dashboard", { replace: true });
+        } else if (userRole === "admission-officer") {
+          // NEW: Redirect to the Admission Officer Dashboard
+          navigate("/admin", { replace: true });
+        } else {
+          navigate("/instructor-portal", { replace: true });
         }
       } else {
-        // Idan babu bayanan sa a Firestore gaba daya
         await signOut(auth);
-        setError("STRICT PROTOCOL: Staff profile record not found.");
+        setError("DATABASE_ERROR: No administrative profile found.");
       }
     } catch (err) {
-      console.error("Staff Login Error:", err.code);
-      if (err.code === "auth/wrong-password") {
-        setError("INVALID KEY: Security access key does not match.");
-      } else if (err.code === "auth/user-not-found") {
-        setError("UNKNOWN ID: No record of this staff ID.");
-      } else {
-        setError("CRITICAL ERROR: " + err.message);
-      }
+      console.error("Login Error:", err);
+      setError("AUTHENTICATION_FAILED: Invalid institutional credentials.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    // ... (UI dinka yana nan daram, ban canza masa komai ba)
-    <div
-      className="min-h-screen d-flex align-items-center justify-content-center bg-dark"
-      style={{ backgroundColor: "#020617" }}
-    >
-      <div
-        className="card border-0 shadow-lg p-4 p-md-5"
-        style={{
-          maxWidth: "400px",
-          borderRadius: "30px",
-          backgroundColor: "#ffffff",
-        }}
+    <div className="min-h-screen flex items-center justify-center bg-slate-950 px-6 font-sans relative">
+      <button
+        type="button"
+        onClick={() => navigate("/")}
+        className="absolute top-16 right-10 p-3 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-2xl transition-all duration-300 group z-50"
       >
-        <div className="text-center mb-4">
-          <div className="bg-danger text-white rounded-circle d-inline-block p-3 mb-3 shadow-lg">
-            <Lock size={32} />
+        <X
+          size={32}
+          strokeWidth={3}
+          className="group-hover:rotate-90 transition-transform duration-300"
+        />
+        <span className="sr-only">Close Portal</span>
+      </button>
+
+      <form
+        onSubmit={handleLogin}
+        className="bg-white p-10 rounded-[3rem] shadow-2xl max-w-md w-full border border-gray-100 relative"
+      >
+        <div className="flex justify-center mb-6">
+          <div className="p-4 bg-red-50 text-red-600 rounded-3xl animate-bounce">
+            <ShieldCheck size={40} />
           </div>
-          <h4
-            className="fw-black text-dark text-uppercase italic"
-            style={{ fontWeight: 900 }}
-          >
-            AVA Staff Portal
-          </h4>
-          <p className="text-muted small fw-bold">
-            PROTOCOL: AUTHORIZED PERSONNEL ONLY
-          </p>
         </div>
 
+        <h2 className="text-2xl font-black text-center mb-2 text-gray-900 uppercase tracking-tight">
+          AREWA Command Center
+        </h2>
+
         {error && (
-          <div
-            className="alert alert-danger d-flex align-items-center gap-2 py-3 small border-0 shadow-sm mb-4"
-            style={{ borderRadius: "15px", fontWeight: 800 }}
-          >
-            <ShieldAlert size={20} className="text-danger" /> {error}
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-[10px] font-black flex items-center gap-2 rounded-xl uppercase">
+            <ShieldAlert size={16} /> {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label className="form-label small fw-black text-muted mb-2 text-uppercase tracking-wider">
-              Official ID (Email)
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase ml-2 text-slate-400">
+              Institutional Email
             </label>
-            <div className="input-group">
-              <span
-                className="input-group-text bg-light border-0"
-                style={{ borderRadius: "15px 0 0 15px" }}
-              >
-                <User size={18} />
-              </span>
-              <input
-                type="email"
-                placeholder="staff@arewavacademy.edu.ng"
-                className="form-control bg-light border-0 py-3"
-                style={{ borderRadius: "0 15px 15px 0", fontWeight: 700 }}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-              />
-            </div>
+            <input
+              type="email"
+              placeholder="admin@arewavacademy.edu.ng"
+              className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-red-600 font-bold transition-all text-slate-900"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </div>
-          <div className="mb-4">
-            <label className="form-label small fw-black text-muted mb-2 text-uppercase tracking-wider">
-              Secure Access Key
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase ml-2 text-slate-400">
+              Security Key
             </label>
-            <div className="input-group">
-              <span
-                className="input-group-text bg-light border-0"
-                style={{ borderRadius: "15px 0 0 15px" }}
-              >
-                <Lock size={18} />
-              </span>
-              <input
-                type="password"
-                placeholder="••••••••"
-                className="form-control bg-light border-0 py-3"
-                style={{ borderRadius: "0 15px 15px 0", fontWeight: 700 }}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+            <input
+              type="password"
+              placeholder="••••••••"
+              className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-red-600 font-bold transition-all text-slate-900"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
           </div>
+
           <button
             type="submit"
-            className="btn btn-danger w-100 py-3 rounded-pill fw-black shadow-lg d-flex align-items-center justify-content-center gap-2"
             disabled={loading}
-            style={{ letterSpacing: "2px", backgroundColor: "#dc2626" }}
+            className="w-full py-5 bg-red-600 text-white rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2 hover:bg-red-700 active:scale-95 transition-all shadow-lg shadow-red-900/20 disabled:opacity-50"
           >
             {loading ? (
-              <Loader2 className="animate-spin" size={20} />
+              <Loader2 className="animate-spin" />
             ) : (
-              "INITIATE SESSION"
+              "Verify Credentials"
             )}
           </button>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 };
 
-export default AdminLogin;
+export default StaffLogin;
