@@ -8,7 +8,7 @@ import {
 } from "react-router-dom";
 import { auth, db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, updateDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 
 // --- EXTERNAL LIBRARIES ---
 import jsPDF from "jspdf";
@@ -37,9 +37,9 @@ import AdminContentManager from "./components/AdminContentManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AcademicExam from "./components/AcademicExam";
 
-// GYARA NA KARSHE: Tabbatar sunan fayil din ya dace da folder pages
-import AdmissionOfficerDashboard from "./src/pages/AdmissionOfficerDashboard.jsx";
-import RectorDashboard from "./src/pages/RectorDashboard.jsx";
+// GYARA: Mun cire ./src/ domin imports suyi aiki madaidaici (domin App.js yana cikin src riga)
+import AdmissionOfficerDashboard from "./pages/AdmissionOfficerDashboard";
+import RectorDashboard from "./pages/RectorDashboard";
 
 import "./App.css";
 
@@ -55,20 +55,19 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // --- CERTIFICATE GENERATION LOGIC (AVA OFFICIAL) ---
+  // --- CERTIFICATE GENERATION LOGIC ---
   const approveAndSendCertificate = async (student) => {
     const completionDate = document.getElementById(`date-${student.id}`)?.value;
     const courseTitle = document.getElementById(`course-${student.id}`)?.value;
 
     if (!completionDate) {
-      alert("Kuskure: Zabi ranar kammalawa (Completion Date)!");
+      alert("Kuskure: Zabi ranar kammalawa!");
       return;
     }
 
     const certificateID = `AVA-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
     try {
-      // 1. Update Firestore (AVA Issued Certificates)
       await setDoc(doc(db, "issuedCertificates", certificateID), {
         certificateID,
         studentId: student.id,
@@ -79,25 +78,18 @@ function App() {
         isValid: true,
       });
 
-      // 2. Generate PDF from DOM
       const input = document.getElementById(`cert-pdf-${student.id}`);
-      if (!input) {
-        alert("Ba a samu template din Certificate ba!");
-        return;
-      }
+      if (!input) return;
 
       const canvas = await html2canvas(input, { scale: 2, useCORS: true });
       const imgData = canvas.toDataURL("image/png");
-
       const pdf = new jsPDF("l", "px", [1050, 750]);
       pdf.addImage(imgData, "PNG", 0, 0, 1050, 750);
-
-      // 3. Download PDF
       pdf.save(`AVA-${student.fullName}-Certificate.pdf`);
 
-      alert(`Nasara! An samar da Certificate na ${student.fullName}.`);
+      alert(`Nasara! An samar da Certificate.`);
     } catch (err) {
-      alert("Kuskure wajen samar da Certificate: " + err.message);
+      alert("Kuskure: " + err.message);
     }
   };
 
@@ -125,23 +117,41 @@ function App() {
           <Route path="/login" element={<StudentLogin />} />
           <Route path="/student-login" element={<StudentLogin />} />
 
-          {/* ADMIN GATEWAY */}
+          {/* ADMIN GATEWAY: Kada a tura kowa Rector Dashboard kai tsaye domin role din na iya bambanta */}
           <Route
             path="/admin-gateway"
             element={
               isAuthenticated ? (
-                <Navigate to="/rector-dashboard" />
+                /* Za mu bar ProtectedRoute dake cikin kowane shafi ya tura su wurin da ya dace */
+                <Navigate to="/rector-dashboard" replace />
               ) : (
                 <AdminLogin onLogin={setIsAuthenticated} />
               )
             }
           />
 
+          {/* STAFF & EXECUTIVE ROUTES */}
           <Route
             path="/rector-dashboard"
             element={
               <ProtectedRoute requiredRole="rector">
                 <RectorDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-dashboard"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdmissionOfficerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/supervisor-dashboard"
+            element={
+              <ProtectedRoute requiredRole="supervisor">
+                <SupervisorDashboard />
               </ProtectedRoute>
             }
           />
@@ -164,22 +174,6 @@ function App() {
             }
           />
           <Route
-            path="/forum/:courseId/:weekId"
-            element={
-              <ProtectedRoute requiredRole="student">
-                <WeeklyForumWrapper />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/forum-thread/:threadId"
-            element={
-              <ProtectedRoute requiredRole="student">
-                <ForumDetails darkMode={true} />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/exam/:courseId/:weekId"
             element={
               <ProtectedRoute requiredRole="student">
@@ -187,82 +181,8 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/rankings/:courseId"
-            element={
-              <ProtectedRoute requiredRole="student">
-                <LeaderboardWrapper />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/e-library"
-            element={
-              <ProtectedRoute requiredRole="student">
-                <Library />
-              </ProtectedRoute>
-            }
-          />
 
-          {/* STAFF & EXECUTIVE ROUTES (AVA OFFICIAL) */}
-          <Route
-            path="/admin-dashboard"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <AdmissionOfficerDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/supervisor-dashboard"
-            element={
-              <ProtectedRoute requiredRole="supervisor">
-                <SupervisorDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/rector-dashboard"
-            element={
-              <ProtectedRoute requiredRole="rector">
-                <RectorDashboard />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* LEGACY ADMIN ROUTES (KEEPING FOR COMPATIBILITY) */}
-          <Route
-            path="/admin-manager"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <AdminContentManager />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/question-bank/:courseId"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <AdminQuestionBank />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/course-dashboard/:courseId"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <AdminCourseDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/grading/:courseId"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <AdminGrading />
-              </ProtectedRoute>
-            }
-          />
+          {/* LEGACY ADMIN ROUTES */}
           <Route
             path="/admin-portal"
             element={
@@ -274,16 +194,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/instructor-hub"
-            element={
-              <ProtectedRoute requiredRole="instructor">
-                <InstructorHub isAdmin={false} />
-              </ProtectedRoute>
-            }
-          />
 
-          {/* FALLBACK */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
@@ -291,7 +202,7 @@ function App() {
   );
 }
 
-// --- HELPER WRAPPERS ---
+// WRAPPERS
 const WeeklyForumWrapper = () => {
   const { courseId, weekId } = useParams();
   return <WeeklyForum courseId={courseId} weekId={parseInt(weekId)} />;
@@ -312,33 +223,18 @@ const LeaderboardWrapper = () => {
   );
 };
 
-// --- STATIC PAGES ---
+// STATIC COMPONENTS
 const Library = () => (
   <div
     className="container mt-5 pt-5 text-center"
     style={{ minHeight: "80vh" }}
   >
     <h1 className="fw-black italic text-blue-600">AVA E-LIBRARY</h1>
-    <p className="font-bold text-muted">
-      Access our global travel and hospitality resources here.
-    </p>
   </div>
 );
-
 const Gallery = () => (
   <div className="container mt-5 pt-5" style={{ minHeight: "80vh" }}>
     <h1 className="text-center mb-4 fw-black italic">AVA GALLERY</h1>
-    <div className="row g-3">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="col-md-4">
-          <img
-            src={`https://via.placeholder.com/300?text=AVA+Event+${i}`}
-            className="img-fluid rounded-4 shadow-sm"
-            alt="Gallery"
-          />
-        </div>
-      ))}
-    </div>
   </div>
 );
 

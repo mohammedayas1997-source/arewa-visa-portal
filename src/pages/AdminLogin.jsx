@@ -1,187 +1,209 @@
-import React, { useState, useEffect } from "react";
-import { auth, db } from "../firebase";
-import {
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut,
-} from "firebase/auth";
+import React, { useState } from "react";
+import { auth, db } from "../firebase"; // Tabbatar path din nan daidai ne
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { ShieldCheck, Loader2, ShieldAlert, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { ShieldCheck, Loader2, X } from "lucide-react";
 
-const StaffLogin = () => {
+const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const navigate = useNavigate();
-
-  // MUHIMMI: Mun cire onAuthStateChanged a nan domin kada ya yi rikici da handleLogin
-  // Idan mutum yana so ya shigo, handleLogin ne kawai zai tura shi.
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (loading) return;
-
     setLoading(true);
-    setError("");
 
     try {
-      const cleanEmail = email.trim().toLowerCase();
+      // 1. Tabbatar 'db' yana nan (Wannan zai magance hoton error din da ka turo)
+      if (!db) throw new Error("Firebase database not initialized.");
 
-      // 1. Firebase Auth Login
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        cleanEmail,
+        email.trim(),
         password,
       );
-      const user = userCredential.user;
-
-      // 2. Firestore Role Verification
-      const userRef = doc(db, "users", user.uid);
+      const userRef = doc(db, "users", userCredential.user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
-        const userData = userSnap.data();
-        const userRole = userData.role;
+        const role = userSnap.data().role;
 
-        // Jerin Roles din da aka yarda su shiga nan
-        const authorizedStaff = [
-          "rector",
-          "super-admin",
-          "admin",
-          "supervisor",
-          "AdminContentManager",
-          "instructor",
-          "staff",
-          "admission-officer",
-        ];
-
-        if (!authorizedStaff.includes(userRole)) {
-          await signOut(auth);
-          setError("ACCESS_DENIED: Wannan ofishin ma'aikata ne kawai.");
-          setLoading(false);
-          return;
-        }
-
-        if (userData.status === "suspended" || userData.status === "inactive") {
-          await signOut(auth);
-          setError("ACCOUNT_REVOKED: An dakatar da wannan account din.");
-          setLoading(false);
-          return;
-        }
-
-        // 3. REDIRECTION PROTOCOL (Madaidaitan Paths kamar yadda suke a App.js)
-        console.log("Login Successful for:", userRole);
-
-        if (userRole === "rector") {
-          navigate("/rector-dashboard", { replace: true });
-        } else if (userRole === "supervisor") {
-          navigate("/supervisor-dashboard", { replace: true });
-        } else if (userRole === "admin" || userRole === "admission-officer") {
-          // Tabbatar anan yana tura shi admin-dashboard kamar yadda App.js yake so
+        // 2. MADAIDAICIN REDIRECTION (Wannan zai hana komawa Home)
+        if (role === "rector") navigate("/rector-dashboard", { replace: true });
+        else if (role === "admin" || role === "admission-officer")
           navigate("/admin-dashboard", { replace: true });
-        } else {
-          navigate("/instructor-hub", { replace: true });
+        else if (role === "supervisor")
+          navigate("/supervisor-dashboard", { replace: true });
+        else {
+          await signOut(auth);
+          alert("RESTRICTED: You do not have administrative access.");
         }
       } else {
         await signOut(auth);
-        setError("DATABASE_ERROR: Ba'a samu profile dinka a Firestore ba.");
+        alert("ACCOUNT ERROR: No staff profile found.");
       }
     } catch (err) {
-      console.error("Staff Login Error:", err.code);
-      if (err.code === "auth/invalid-credential")
-        setError("Email ko Password ba daidai ba.");
-      else if (err.code === "auth/user-not-found")
-        setError("Ba'a yi rajista da wannan Email din ba.");
-      else setError("AUTHENTICATION_FAILED: Duba network dinka.");
+      alert("LOGIN FAILED: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  // UI STYLES (Don tabbatar komai ya zauna daram a waya)
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 px-6 font-sans relative overflow-x-hidden">
-      <button
-        type="button"
-        onClick={() => navigate("/")}
-        className="absolute top-8 md:top-16 right-6 md:right-10 p-3 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-2xl transition-all duration-300 group z-50"
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#020617",
+        padding: "20px",
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: "#0f172a",
+          padding: "40px",
+          borderRadius: "30px",
+          border: "1px solid #1e293b",
+          width: "100%",
+          maxWidth: "400px",
+          textAlign: "center",
+          position: "relative",
+        }}
       >
-        <X
-          size={32}
-          strokeWidth={3}
-          className="group-hover:rotate-90 transition-transform duration-300"
-        />
-      </button>
+        <button
+          onClick={() => navigate("/")}
+          style={{
+            position: "absolute",
+            top: "20px",
+            right: "20px",
+            background: "none",
+            border: "none",
+            color: "#64748b",
+            cursor: "pointer",
+          }}
+        >
+          <X size={24} />
+        </button>
 
-      <div className="w-full max-w-md">
+        <div
+          style={{
+            width: "60px",
+            height: "60px",
+            backgroundColor: "#ef4444",
+            borderRadius: "18px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 20px",
+          }}
+        >
+          <ShieldCheck color="#fff" size={32} />
+        </div>
+
+        <h2
+          style={{
+            color: "#fff",
+            fontWeight: "900",
+            textTransform: "uppercase",
+            letterSpacing: "-1px",
+          }}
+        >
+          AREWA <span style={{ color: "#ef4444" }}>STAFF</span>
+        </h2>
+
         <form
           onSubmit={handleLogin}
-          className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-2xl border border-gray-100 relative flex flex-col gap-6"
+          style={{ marginTop: "30px", textAlign: "left" }}
         >
-          <div className="flex flex-col items-center">
-            <div className="p-4 bg-red-50 text-red-600 rounded-3xl animate-pulse mb-4">
-              <ShieldCheck size={40} />
-            </div>
-            <h2 className="text-2xl font-black text-center text-gray-900 uppercase tracking-tight italic">
-              AREWA <span className="text-red-600">COMMAND</span>
-            </h2>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-2">
-              Staff Terminal Access
-            </p>
-          </div>
+          <label
+            style={{
+              color: "#94a3b8",
+              fontSize: "10px",
+              fontWeight: "bold",
+              marginLeft: "5px",
+            }}
+          >
+            STAFF EMAIL
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "15px",
+              margin: "8px 0 20px",
+              borderRadius: "12px",
+              backgroundColor: "#1e293b",
+              border: "1px solid #334155",
+              color: "#fff",
+              outline: "none",
+            }}
+            placeholder="admin@arewavacademy.edu.ng"
+            required
+          />
 
-          {error && (
-            <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-[10px] font-black flex items-center gap-2 rounded-xl uppercase">
-              <ShieldAlert size={16} /> {error}
-            </div>
-          )}
+          <label
+            style={{
+              color: "#94a3b8",
+              fontSize: "10px",
+              fontWeight: "bold",
+              marginLeft: "5px",
+            }}
+          >
+            SECURITY KEY
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "15px",
+              margin: "8px 0 20px",
+              borderRadius: "12px",
+              backgroundColor: "#1e293b",
+              border: "1px solid #334155",
+              color: "#fff",
+              outline: "none",
+            }}
+            placeholder="••••••••"
+            required
+          />
 
-          <div className="space-y-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase ml-2 text-slate-400 tracking-widest">
-                Institutional Email
-              </label>
-              <input
-                type="email"
-                placeholder="staff@arewavacademy.edu.ng"
-                className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-red-600 font-bold transition-all text-slate-900 text-sm"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase ml-2 text-slate-400 tracking-widest">
-                Security Key
-              </label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-red-600 font-bold transition-all text-slate-900 text-sm"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-5 bg-red-600 text-white rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2 hover:bg-red-700 active:scale-95 transition-all shadow-lg shadow-red-900/20 disabled:opacity-50 mt-4"
-            >
-              {loading ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                "Verify & Enter Portal"
-              )}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: "100%",
+              padding: "18px",
+              backgroundColor: "#ef4444",
+              color: "#fff",
+              border: "none",
+              borderRadius: "12px",
+              fontWeight: "900",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "10px",
+            }}
+          >
+            {loading ? (
+              <Loader2 className="animate-spin" size={20} />
+            ) : (
+              "VERIFY & ENTER"
+            )}
+          </button>
         </form>
       </div>
     </div>
   );
 };
 
-export default StaffLogin;
+export default AdminLogin;
