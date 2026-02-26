@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import { auth, db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { doc, updateDoc, serverTimestamp, setDoc } from "firebase/firestore";
 
 // --- EXTERNAL LIBRARIES ---
 import jsPDF from "jspdf";
@@ -35,8 +36,10 @@ import AdminCourseDashboard from "./pages/AdminCourseDashboard";
 import AdminContentManager from "./components/AdminContentManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AcademicExam from "./components/AcademicExam";
-import AdmissionOfficerDashboard from "./pages/AdmissionOfficerDashboard";
-import RectorDashboard from "./pages/RectorDashboard";
+
+// GYARA NA KARSHE: Tabbatar sunan fayil din ya dace da folder pages
+import AdmissionOfficerDashboard from "./src/pages/AdmissionOfficerDashboard.jsx";
+import RectorDashboard from "./src/pages/RectorDashboard.jsx";
 
 import "./App.css";
 
@@ -51,6 +54,52 @@ function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  // --- CERTIFICATE GENERATION LOGIC (AVA OFFICIAL) ---
+  const approveAndSendCertificate = async (student) => {
+    const completionDate = document.getElementById(`date-${student.id}`)?.value;
+    const courseTitle = document.getElementById(`course-${student.id}`)?.value;
+
+    if (!completionDate) {
+      alert("Kuskure: Zabi ranar kammalawa (Completion Date)!");
+      return;
+    }
+
+    const certificateID = `AVA-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
+    try {
+      // 1. Update Firestore (AVA Issued Certificates)
+      await setDoc(doc(db, "issuedCertificates", certificateID), {
+        certificateID,
+        studentId: student.id,
+        studentName: student.fullName,
+        courseTitle: courseTitle || student.selectedCourse,
+        completionDate,
+        issuedAt: serverTimestamp(),
+        isValid: true,
+      });
+
+      // 2. Generate PDF from DOM
+      const input = document.getElementById(`cert-pdf-${student.id}`);
+      if (!input) {
+        alert("Ba a samu template din Certificate ba!");
+        return;
+      }
+
+      const canvas = await html2canvas(input, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL("image/png");
+
+      const pdf = new jsPDF("l", "px", [1050, 750]);
+      pdf.addImage(imgData, "PNG", 0, 0, 1050, 750);
+
+      // 3. Download PDF
+      pdf.save(`AVA-${student.fullName}-Certificate.pdf`);
+
+      alert(`Nasara! An samar da Certificate na ${student.fullName}.`);
+    } catch (err) {
+      alert("Kuskure wajen samar da Certificate: " + err.message);
+    }
+  };
 
   if (loading) {
     return (
@@ -85,6 +134,23 @@ function App() {
               ) : (
                 <AdminLogin onLogin={setIsAuthenticated} />
               )
+            }
+          />
+          <Route
+            path="/admin-dashboard"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdmissionOfficerDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/rector-dashboard"
+            element={
+              <ProtectedRoute requiredRole="rector">
+                <RectorDashboard />
+              </ProtectedRoute>
             }
           />
 
@@ -146,7 +212,7 @@ function App() {
             }
           />
 
-          {/* STAFF & EXECUTIVE ROUTES */}
+          {/* STAFF & EXECUTIVE ROUTES (AVA OFFICIAL) */}
           <Route
             path="/admin-dashboard"
             element={
@@ -171,16 +237,8 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/instructor-hub"
-            element={
-              <ProtectedRoute requiredRole="instructor">
-                <InstructorHub isAdmin={false} />
-              </ProtectedRoute>
-            }
-          />
 
-          {/* LEGACY ADMIN TOOLS */}
+          {/* LEGACY ADMIN ROUTES (KEEPING FOR COMPATIBILITY) */}
           <Route
             path="/admin-manager"
             element={
@@ -190,10 +248,45 @@ function App() {
             }
           />
           <Route
+            path="/admin/question-bank/:courseId"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminQuestionBank />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/course-dashboard/:courseId"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminCourseDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/grading/:courseId"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminGrading />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin-portal"
             element={
               <ProtectedRoute requiredRole="admin">
-                <AdminDashboard QRCodeSVG={QRCodeSVG} />
+                <AdminDashboard
+                  approveAndSendCertificate={approveAndSendCertificate}
+                  QRCodeSVG={QRCodeSVG}
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/instructor-hub"
+            element={
+              <ProtectedRoute requiredRole="instructor">
+                <InstructorHub isAdmin={false} />
               </ProtectedRoute>
             }
           />
@@ -206,7 +299,7 @@ function App() {
   );
 }
 
-// --- HELPERS & STATIC PAGES (Suna nan kamar yadda ka kawo su) ---
+// --- HELPER WRAPPERS ---
 const WeeklyForumWrapper = () => {
   const { courseId, weekId } = useParams();
   return <WeeklyForum courseId={courseId} weekId={parseInt(weekId)} />;
@@ -227,6 +320,7 @@ const LeaderboardWrapper = () => {
   );
 };
 
+// --- STATIC PAGES ---
 const Library = () => (
   <div
     className="container mt-5 pt-5 text-center"
