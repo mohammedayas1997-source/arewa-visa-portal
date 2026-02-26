@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { auth, db } from "../firebase"; // Tabbatar path din nan daidai ne (ko firebaseConfig)
+import React, { useState } from "react";
+import { auth, db } from "../firebase";
 import {
   signInWithEmailAndPassword,
-  onAuthStateChanged,
   signOut,
   sendPasswordResetEmail,
 } from "firebase/auth";
@@ -23,36 +22,20 @@ const StudentLogin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // 1. AUTO-REDIRECT LOGIC: Maido da wannan domin ya daina wargajewa idan an riga an yi login
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userRef = doc(db, "users", user.uid);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists() && userSnap.data().role === "student") {
-            navigate("/student-portal");
-          }
-        } catch (err) {
-          console.error("Auth sync error:", err);
-        }
-      }
-    });
-    return () => unsubscribe();
-  }, [navigate]);
-
   const handleForgotPassword = async () => {
     if (!email) {
       alert("INPUT REQUIRED: Please enter your email address first.");
       return;
     }
+
     try {
       await sendPasswordResetEmail(auth, email.trim().toLowerCase());
       alert(
         "RESET DISPATCHED: Check your inbox for the password recovery link.",
       );
     } catch (error) {
-      alert("SYSTEM ERROR: Could not send reset email.");
+      console.error("Reset Error:", error.code);
+      alert("SYSTEM ERROR: Could not send reset email. Verify your address.");
     }
   };
 
@@ -63,7 +46,7 @@ const StudentLogin = () => {
     try {
       const cleanEmail = email.trim().toLowerCase();
 
-      // Step A: Firebase Auth
+      // 1. Firebase Auth
       const userCredential = await signInWithEmailAndPassword(
         auth,
         cleanEmail,
@@ -71,14 +54,14 @@ const StudentLogin = () => {
       );
       const user = userCredential.user;
 
-      // Step B: Firestore Check
+      // 2. Firestore Check
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
         const userData = userSnap.data();
 
-        // Check Role
+        // 3. Role Validation
         if (userData.role !== "student") {
           await signOut(auth);
           alert("RESTRICTED: This portal is for students only.");
@@ -86,7 +69,7 @@ const StudentLogin = () => {
           return;
         }
 
-        // Check Status
+        // 4. Status Validation
         if (userData.status === "suspended" || userData.status === "inactive") {
           await signOut(auth);
           alert("ACCOUNT INACTIVE: Your account has been suspended.");
@@ -94,10 +77,12 @@ const StudentLogin = () => {
           return;
         }
 
+        // 5. SUCCESSFUL REDIRECT
+        console.log("Access Granted. Redirecting to Student Portal...");
         navigate("/student-portal");
       } else {
         await signOut(auth);
-        alert("ACCOUNT ERROR: No student profile found.");
+        alert("ACCOUNT ERROR: No student profile found in database.");
       }
     } catch (error) {
       console.error("Login Error:", error.code);
@@ -109,6 +94,7 @@ const StudentLogin = () => {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-6 selection:bg-blue-600 selection:text-white font-sans relative">
+      {/* UMURNI: CLOSE BUTTON INTEGRATION (An dan saukar da shi zuwa top-16) */}
       <button
         type="button"
         onClick={() => navigate("/")}
@@ -142,7 +128,7 @@ const StudentLogin = () => {
             </label>
             <input
               type="email"
-              placeholder="e.g. name@arewavacademy.edu.ng"
+              placeholder="e.g. abubakar@arewavacademy.edu.ng"
               required
               className="w-full p-6 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-blue-600 focus:bg-white transition-all font-medium text-sm shadow-sm lowercase text-slate-900"
               value={email}
@@ -176,7 +162,7 @@ const StudentLogin = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-6 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.4em] flex items-center justify-center gap-3 hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 mt-4"
+            className="w-full py-6 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.4em] flex items-center justify-center gap-3 hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 disabled:opacity-50 active:scale-95 mt-4"
           >
             {loading ? (
               <Loader2 className="animate-spin text-white" />
@@ -190,7 +176,7 @@ const StudentLogin = () => {
 
         <div className="mt-12 text-center border-t border-gray-100 pt-8">
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-center gap-2">
-            <UserCheck size={14} className="text-blue-500" /> Secure Arewa
+            <UserCheck size={14} className="text-blue-500" /> Secure Student
             Session
           </p>
         </div>

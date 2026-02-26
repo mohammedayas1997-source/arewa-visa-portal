@@ -1,10 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { auth, db } from "../firebase";
-import {
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut,
-} from "firebase/auth";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { ShieldCheck, Loader2, ShieldAlert, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -15,52 +11,6 @@ const StaffLogin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
-  // 1. PROTOCOL: Auto-redirection for authenticated staff
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userRef = doc(db, "users", user.uid);
-          const userDoc = await getDoc(userRef);
-
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            const userRole = userData.role;
-
-            const authorizedStaff = [
-              "rector",
-              "super-admin",
-              "admin",
-              "supervisor",
-              "AdminContentManager",
-              "instructor",
-              "staff",
-              "admission-officer",
-            ];
-
-            if (
-              authorizedStaff.includes(userRole) &&
-              userData.status !== "suspended"
-            ) {
-              // Dynamic redirect based on role
-              if (userRole === "rector") navigate("/rector", { replace: true });
-              else if (userRole === "super-admin")
-                navigate("/super-admin", { replace: true });
-              else if (userRole === "supervisor")
-                navigate("/supervisor-dashboard", { replace: true });
-              else if (userRole === "admin" || userRole === "admission-officer")
-                navigate("/admin", { replace: true });
-              else navigate("/instructor-portal", { replace: true });
-            }
-          }
-        } catch (err) {
-          console.error("Auth Listener Error:", err);
-        }
-      }
-    });
-    return () => unsubscribe();
-  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -85,6 +35,7 @@ const StaffLogin = () => {
         const userData = userDoc.data();
         const userRole = userData.role;
 
+        // UPDATED: Added admission-officer to authorized staff
         const authorizedStaff = [
           "rector",
           "super-admin",
@@ -113,14 +64,22 @@ const StaffLogin = () => {
         }
 
         // REDIRECTION PROTOCOL
-        if (userRole === "rector") navigate("/rector", { replace: true });
-        else if (userRole === "super-admin")
+        if (userRole === "rector") {
+          navigate("/rector", { replace: true });
+        } else if (userRole === "super-admin") {
           navigate("/super-admin", { replace: true });
-        else if (userRole === "supervisor")
+        } else if (userRole === "supervisor") {
           navigate("/supervisor-dashboard", { replace: true });
-        else if (userRole === "admin" || userRole === "admission-officer")
+        } else if (userRole === "AdminContentManager") {
+          navigate("/admin-secret-portal", { replace: true });
+        } else if (userRole === "admin") {
+          navigate("/admin-dashboard", { replace: true });
+        } else if (userRole === "admission-officer") {
+          // NEW: Redirect to the Admission Officer Dashboard
           navigate("/admin", { replace: true });
-        else navigate("/instructor-portal", { replace: true });
+        } else {
+          navigate("/instructor-portal", { replace: true });
+        }
       } else {
         await signOut(auth);
         setError("DATABASE_ERROR: No administrative profile found.");
@@ -145,6 +104,7 @@ const StaffLogin = () => {
           strokeWidth={3}
           className="group-hover:rotate-90 transition-transform duration-300"
         />
+        <span className="sr-only">Close Portal</span>
       </button>
 
       <form
