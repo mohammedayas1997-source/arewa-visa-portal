@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { auth, db } from "../firebase";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { useNavigate } from "react-router-dom"; // Na kara navigate don sauki
+import { useNavigate } from "react-router-dom";
 import { Lock, User, ShieldAlert, Loader2 } from "lucide-react";
 
 const AdminLogin = ({ onLogin }) => {
@@ -18,17 +18,16 @@ const AdminLogin = ({ onLogin }) => {
     setError("");
 
     try {
-      // 1. Tace Email din (Trim, Lowercase, and Domain Check)
       const emailValue = username.trim().toLowerCase();
 
+      // 1. SECURITY CHECK: Tabbatar da Email Domain
       if (!emailValue.endsWith("@arewavacademy.edu.ng")) {
-        setError(
-          "SECURITY BREACH: Only @arewavacademy.edu.ng IDs are authorized for staff access.",
-        );
+        setError("SECURITY BREACH: Only official staff IDs are authorized.");
         setLoading(false);
         return;
       }
 
+      // 2. Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(
         auth,
         emailValue,
@@ -37,26 +36,28 @@ const AdminLogin = ({ onLogin }) => {
 
       const user = userCredential.user;
 
-      // 2. Duba Role a Firestore
+      // 3. ROLE VERIFICATION: Nemo bayanan staff a Firestore
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
         const userData = userSnap.data();
 
-        // Tantance Idan Role din yana cikin wadanda aka amincewa
-        const allowedRoles = [
+        // Jerin Staff Roles kawai (Ba dalibi a ciki)
+        const staffRoles = [
           "admin",
           "instructor",
           "SUPER_ADMIN",
           "authority",
           "supervisor",
+          "admission-officer", // Na kara maka wannan idan babu shi
         ];
 
-        if (allowedRoles.includes(userData.role)) {
-          onLogin(true); // Sanar da App.js cewa an yi login
+        // Tabbatar idan mutumin staff ne
+        if (staffRoles.includes(userData.role)) {
+          onLogin(true);
 
-          // DYNAMIC REDIRECTION: Tura kowa gidansa
+          // DYNAMIC REDIRECTION: Kai kowa ofishinsa
           if (userData.role === "supervisor") {
             navigate("/supervisor-dashboard");
           } else if (
@@ -64,30 +65,38 @@ const AdminLogin = ({ onLogin }) => {
             userData.role === "SUPER_ADMIN"
           ) {
             navigate("/rector-dashboard");
-          } else if (
-            userData.role === "admin" ||
-            userData.role === "instructor"
-          ) {
+          } else {
+            // Sauran staff (Admin, Instructor, Admission Officer)
             navigate("/admin-dashboard");
           }
         } else {
+          // Idan dalibi ne (student) ya yi kokarin shiga ta nan
           await signOut(auth);
           setError(
-            "ACCESS DENIED: Your role is not authorized for staff entry.",
+            "ACCESS DENIED: Wannan terminal din na ma'aikata (Staff) ne kawai.",
           );
         }
       } else {
+        // Idan babu bayanan sa a Firestore gaba daya
         await signOut(auth);
-        setError("USER_NOT_FOUND: No staff profile linked to this ID.");
+        setError("STRICT PROTOCOL: Staff profile record not found.");
       }
     } catch (err) {
-      setError(err.message || "LOGIN FAILED: Authentication error occurred.");
+      console.error("Staff Login Error:", err.code);
+      if (err.code === "auth/wrong-password") {
+        setError("INVALID KEY: Security access key does not match.");
+      } else if (err.code === "auth/user-not-found") {
+        setError("UNKNOWN ID: No record of this staff ID.");
+      } else {
+        setError("CRITICAL ERROR: " + err.message);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
+    // ... (UI dinka yana nan daram, ban canza masa komai ba)
     <div
       className="min-h-screen d-flex align-items-center justify-content-center bg-dark"
       style={{ backgroundColor: "#020617" }}
@@ -101,7 +110,7 @@ const AdminLogin = ({ onLogin }) => {
         }}
       >
         <div className="text-center mb-4">
-          <div className="bg-danger text-white rounded-circle d-inline-block p-3 mb-3 shadow-lg animate-pulse">
+          <div className="bg-danger text-white rounded-circle d-inline-block p-3 mb-3 shadow-lg">
             <Lock size={32} />
           </div>
           <h4
@@ -176,9 +185,7 @@ const AdminLogin = ({ onLogin }) => {
             style={{ letterSpacing: "2px", backgroundColor: "#dc2626" }}
           >
             {loading ? (
-              <>
-                <Loader2 className="animate-spin" size={20} /> VERIFYING...
-              </>
+              <Loader2 className="animate-spin" size={20} />
             ) : (
               "INITIATE SESSION"
             )}

@@ -21,6 +21,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
           if (userDoc.exists()) {
             const userData = userDoc.data();
 
+            // SECURITY: Idan an dakatar da ma'aikaci ko dalibi
             if (
               userData.status === "suspended" ||
               userData.status === "inactive"
@@ -35,6 +36,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
               setUser(currentUser);
             }
           } else {
+            // Idan babu record a Firestore
             setUser(currentUser);
             setRole(null);
           }
@@ -65,18 +67,25 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     );
   }
 
+  // Idan an dakatar da account din
   if (status === "suspended") {
     return (
-      <Navigate to="/login" state={{ error: "Account Suspended" }} replace />
+      <Navigate
+        to="/login"
+        state={{ error: "Account Suspended by Authority" }}
+        replace
+      />
     );
   }
 
+  // Idan ba'a yi login ba
   if (!user) {
-    // Idan ba a yi login ba, duba ko shafin ma'aikata ne ko na dalibai
     const isStaffRoute =
       location.pathname.includes("admin") ||
       location.pathname.includes("rector") ||
       location.pathname.includes("supervisor");
+
+    // Idan ma'aikaci ne ka kai shi gateway, idan dalibi ne ka kai shi login na dalibai
     return (
       <Navigate
         to={isStaffRoute ? "/admin-gateway" : "/login"}
@@ -86,33 +95,38 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     );
   }
 
+  // --- ROLE BASED ACCESS CONTROL (RBAC) ---
   if (requiredRole) {
-    // Tabbatar muna duba roles din daidai
-    const isAdmin =
-      role === "admin" ||
-      role === "admission-officer" ||
-      role === "super-admin";
+    // Tace dukkan roles din da suka dace
+    const isSuperAdmin = role === "SUPER_ADMIN" || role === "super-admin";
     const isRector = role === "rector" || role === "authority";
     const isSupervisor = role === "supervisor";
+    const isAdmin =
+      role === "admin" || role === "admission-officer" || isSuperAdmin;
     const isStudent = role === "student";
 
-    // 1. Master access ga Rector da Admin a wasu shafukan
-    let hasAccess = role === requiredRole;
+    let hasAccess = false;
 
+    // 1. Logic na bangaren Admin
     if (requiredRole === "admin") {
       hasAccess = isAdmin || isRector || isSupervisor;
     }
-
-    if (requiredRole === "student") {
+    // 2. Logic na bangaren Student
+    else if (requiredRole === "student") {
       hasAccess = isStudent;
+    }
+    // 3. Logic na wasu shafukan (Rector ko Supervisor kawai)
+    else {
+      hasAccess = role === requiredRole || isRector || isSuperAdmin;
     }
 
     if (!hasAccess) {
-      // Idan bashi da ikon shiga wannan shafin, kai shi dashboard dinsa na asali
+      // Idan bashi da izini, kai kowa inda ya dace da matsayinsa
       if (isStudent) return <Navigate to="/student-portal" replace />;
-      if (isRector) return <Navigate to="/rector-dashboard" replace />;
-      if (isAdmin) return <Navigate to="/admin-dashboard" replace />;
+      if (isRector || isSuperAdmin)
+        return <Navigate to="/rector-dashboard" replace />;
       if (isSupervisor) return <Navigate to="/supervisor-dashboard" replace />;
+      if (isAdmin) return <Navigate to="/admin-dashboard" replace />;
 
       return <Navigate to="/" replace />;
     }

@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { db, auth } from "../firebase";
-import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut,
+} from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import {
@@ -12,8 +16,6 @@ import {
   Loader2,
 } from "lucide-react";
 
-// ... (sauran imports suna nan daram)
-
 const StudentLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,13 +23,18 @@ const StudentLogin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // 1. AUTO-REDIRECT: Idan riga yana login, duba idan dalibi ne kafin a bar shi
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
+
         if (userSnap.exists() && userSnap.data().role === "student") {
           navigate("/student-portal");
+        } else if (userSnap.exists() && userSnap.data().role !== "student") {
+          // Idan ba dalibi ba ne, cire shi daga zaman (Logout)
+          await signOut(auth);
         }
       }
     });
@@ -39,13 +46,10 @@ const StudentLogin = () => {
     setLoading(true);
     setError("");
 
-    // GYARA 1: Tabbatar babu sarari (space) kuma duka ƙananan baki ne
     const emailValue = email.trim().toLowerCase();
 
-    // GYARA 2: Na cire takunkumin @arewavacademy.edu.ng domin kowane email ya wuce
-    // Idan kana son dawo da shi, zaka iya cire alamar comment (/* */)
-
     try {
+      // Step A: Yi login na Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(
         auth,
         emailValue,
@@ -53,25 +57,27 @@ const StudentLogin = () => {
       );
       const user = userCredential.user;
 
-      // 2. TANTANCEWA: Duba idan dalibi ne a Firestore
+      // Step B: TANTANCE ROLE: Nemo bayanan sa a Firestore
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
         const userData = userSnap.data();
+
+        // DOKA: Idan role dinsa student ne kawai zai shiga
         if (userData.role === "student") {
           navigate("/student-portal");
         } else {
-          setError("Access Denied: This is not a student account.");
-          await auth.signOut();
+          // Idan ma'aikaci ne ko wani daban, ba shi error sannan ka yi sign out
+          setError("ACCESS DENIED: Wannan terminal din na dalibai ne kawai.");
+          await signOut(auth);
         }
       } else {
-        setError("Access Denied: Student record not found in database.");
-        await auth.signOut();
+        setError("ERROR: Ba a samu bayanan ka a matsayin dalibi ba.");
+        await signOut(auth);
       }
     } catch (err) {
       console.error("Login Error:", err.code);
-      // Karin haske ga mai amfani
       if (err.code === "auth/user-not-found")
         setError("Email din nan babu shi a system.");
       else if (err.code === "auth/wrong-password")
@@ -82,7 +88,6 @@ const StudentLogin = () => {
     }
   };
 
-  // ... (UI code dinka duka yana nan daram ba mu taba ba)
   return (
     <div
       style={{
