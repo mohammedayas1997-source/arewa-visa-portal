@@ -40,128 +40,171 @@ const StudentLogin = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  const handleForgotPassword = async () => {
-    if (!email) {
-      alert("INPUT REQUIRED: Please enter your email address first.");
-      return;
-    }
-    try {
-      await sendPasswordResetEmail(auth, email.trim().toLowerCase());
-      alert("RESET DISPATCHED: Check your inbox for the link.");
-    } catch (error) {
-      alert("SYSTEM ERROR: Could not send reset email.");
-    }
-  };
-
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const cleanEmail = email.trim().toLowerCase();
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        cleanEmail,
+        email.trim().toLowerCase(),
         password,
       );
-      const user = userCredential.user;
-      const userRef = doc(db, "users", user.uid);
+      const userRef = doc(db, "users", userCredential.user.uid);
       const userSnap = await getDoc(userRef);
 
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-        if (userData.role !== "student") {
-          await signOut(auth);
-          alert("RESTRICTED: This portal is for students only.");
-          setLoading(false);
-          return;
-        }
-        if (userData.status === "suspended" || userData.status === "inactive") {
-          await signOut(auth);
-          alert("ACCOUNT INACTIVE: Your account has been suspended.");
-          setLoading(false);
-          return;
-        }
+      if (userSnap.exists() && userSnap.data().role === "student") {
         navigate("/student-portal");
       } else {
         await signOut(auth);
-        alert("ACCOUNT ERROR: Profile not found.");
+        alert("Access Denied: Students only.");
       }
     } catch (error) {
-      alert("AUTHENTICATION ERROR: Invalid credentials.");
+      alert("Login Failed: Please check your credentials.");
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 selection:bg-blue-600 selection:text-white font-sans relative overflow-x-hidden">
-      {/* CLOSE BUTTON */}
-      <button
-        type="button"
-        onClick={() => navigate("/")}
-        className="absolute top-6 right-6 p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all z-50"
-      >
-        <X size={28} strokeWidth={2.5} />
-      </button>
+  // STYLE OBJECTS (Don tabbatar komai ya zauna daram ko da CSS ya bata)
+  const styles = {
+    container: {
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "#f8fafc",
+      padding: "20px",
+    },
+    card: {
+      backgroundColor: "#fff",
+      padding: "40px",
+      borderRadius: "30px",
+      boxShadow: "0 20px 50px rgba(0,0,0,0.1)",
+      width: "100%",
+      maxWidth: "400px",
+      textAlign: "center",
+      position: "relative",
+    },
+    closeBtn: {
+      position: "absolute",
+      top: "20px",
+      right: "20px",
+      border: "none",
+      background: "none",
+      cursor: "pointer",
+      color: "#64748b",
+    },
+    inputGroup: { textAlign: "left", marginBottom: "20px" },
+    label: {
+      display: "block",
+      fontSize: "10px",
+      fontWeight: "900",
+      color: "#64748b",
+      textTransform: "uppercase",
+      marginBottom: "8px",
+      marginLeft: "5px",
+    },
+    input: {
+      width: "100%",
+      padding: "15px",
+      borderRadius: "15px",
+      border: "2px solid #f1f5f9",
+      outline: "none",
+      fontSize: "14px",
+      boxSizing: "border-box",
+    },
+    button: {
+      width: "100%",
+      padding: "18px",
+      backgroundColor: "#2563eb",
+      color: "#fff",
+      border: "none",
+      borderRadius: "15px",
+      fontWeight: "900",
+      fontSize: "12px",
+      textTransform: "uppercase",
+      cursor: "pointer",
+      marginTop: "10px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "10px",
+    },
+  };
 
-      <div className="w-full max-w-[420px] bg-white p-8 md:p-10 rounded-[2.5rem] shadow-2xl shadow-blue-100 border border-gray-100 relative">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-blue-200">
-            <BookOpen className="text-white" size={28} />
+  return (
+    <div style={styles.container}>
+      <div style={styles.card}>
+        <button onClick={() => navigate("/")} style={styles.closeBtn}>
+          <X size={24} />
+        </button>
+
+        <div style={{ marginBottom: "30px" }}>
+          <div
+            style={{
+              width: "60px",
+              height: "60px",
+              backgroundColor: "#2563eb",
+              borderRadius: "15px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 15px",
+            }}
+          >
+            <BookOpen color="#fff" size={30} />
           </div>
-          <h2 className="text-3xl font-black text-gray-900 tracking-tighter uppercase leading-tight italic">
-            AREWA <br /> <span className="text-blue-600">ACADEMY</span>
+          <h2
+            style={{
+              fontSize: "28px",
+              fontWeight: "900",
+              margin: 0,
+              color: "#0f172a",
+            }}
+          >
+            AREWA <span style={{ color: "#2563eb" }}>ACADEMY</span>
           </h2>
-          <p className="text-gray-400 font-bold text-[9px] uppercase tracking-[0.2em] mt-3">
-            Authorized Academic Access Only
+          <p
+            style={{
+              fontSize: "9px",
+              fontWeight: "800",
+              color: "#94a3b8",
+              textTransform: "uppercase",
+              marginTop: "5px",
+            }}
+          >
+            Authorized Access Only
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="flex flex-col gap-5">
-          <div className="flex flex-col gap-1.5">
-            <label className="ml-1 text-[10px] font-black text-gray-500 uppercase tracking-wider">
-              Email Address
-            </label>
+        <form onSubmit={handleLogin}>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Email Address</label>
             <input
               type="email"
-              placeholder="e.g. name@arewavacademy.edu.ng"
-              required
-              className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-blue-600 focus:bg-white transition-all font-semibold text-sm text-slate-900"
+              style={styles.input}
+              placeholder="e.g. name@arewa.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center px-1">
-              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider">
-                Password
-              </label>
-              <button
-                type="button"
-                onClick={handleForgotPassword}
-                className="text-[10px] font-black text-blue-600 uppercase hover:underline"
-              >
-                Recovery
-              </button>
-            </div>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Security Key</label>
             <input
               type="password"
+              style={styles.input}
               placeholder="••••••••"
-              required
-              className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-blue-600 focus:bg-white transition-all font-semibold text-sm text-slate-900"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-4 mt-2 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-[0.98] disabled:opacity-50"
-          >
+          <button type="submit" style={styles.button} disabled={loading}>
             {loading ? (
-              <Loader2 className="animate-spin" size={18} />
+              <Loader2 className="animate-spin" size={20} />
             ) : (
               <>
                 Enter Classroom <ArrowRight size={18} />
@@ -170,10 +213,25 @@ const StudentLogin = () => {
           </button>
         </form>
 
-        <div className="mt-8 text-center border-t border-gray-50 pt-6">
-          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-center gap-2">
-            <UserCheck size={14} className="text-blue-500" /> Secure Arewa
-            Session
+        <div
+          style={{
+            marginTop: "30px",
+            borderTop: "1px solid #f1f5f9",
+            paddingTop: "20px",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "9px",
+              fontWeight: "900",
+              color: "#94a3b8",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "5px",
+            }}
+          >
+            <UserCheck size={14} color="#2563eb" /> SECURE AREWA SESSION
           </p>
         </div>
       </div>
