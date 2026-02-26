@@ -23,7 +23,6 @@ const StudentLogin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // 1. AUTO-REDIRECT LOGIC: Wannan zai hana shafin wargajewa idan an riga an yi login
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -46,133 +45,111 @@ const StudentLogin = () => {
       alert("INPUT REQUIRED: Please enter your email address first.");
       return;
     }
-
     try {
       await sendPasswordResetEmail(auth, email.trim().toLowerCase());
-      alert(
-        "RESET DISPATCHED: Check your inbox for the password recovery link.",
-      );
+      alert("RESET DISPATCHED: Check your inbox for the link.");
     } catch (error) {
-      console.error("Reset Error:", error.code);
-      alert("SYSTEM ERROR: Could not send reset email. Verify your address.");
+      alert("SYSTEM ERROR: Could not send reset email.");
     }
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const cleanEmail = email.trim().toLowerCase();
-
-      // Step A: Firebase Auth
       const userCredential = await signInWithEmailAndPassword(
         auth,
         cleanEmail,
         password,
       );
       const user = userCredential.user;
-
-      // Step B: Firestore Check
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
         const userData = userSnap.data();
-
-        // Check Role
         if (userData.role !== "student") {
           await signOut(auth);
           alert("RESTRICTED: This portal is for students only.");
           setLoading(false);
           return;
         }
-
-        // Check Status
         if (userData.status === "suspended" || userData.status === "inactive") {
           await signOut(auth);
           alert("ACCOUNT INACTIVE: Your account has been suspended.");
           setLoading(false);
           return;
         }
-
-        // SUCCESSFUL REDIRECT
-        console.log("Access Granted. Redirecting to Student Portal...");
         navigate("/student-portal");
       } else {
         await signOut(auth);
-        alert("ACCOUNT ERROR: No student profile found in database.");
+        alert("ACCOUNT ERROR: Profile not found.");
       }
     } catch (error) {
-      console.error("Login Error:", error.code);
-      alert("AUTHENTICATION ERROR: Invalid email or password.");
+      alert("AUTHENTICATION ERROR: Invalid credentials.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-6 selection:bg-blue-600 selection:text-white font-sans relative">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 selection:bg-blue-600 selection:text-white font-sans relative overflow-x-hidden">
       {/* CLOSE BUTTON */}
       <button
         type="button"
         onClick={() => navigate("/")}
-        className="absolute top-16 right-10 p-3 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all duration-300 group z-50"
+        className="absolute top-6 right-6 p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all z-50"
       >
-        <X
-          size={32}
-          strokeWidth={3}
-          className="group-hover:rotate-90 transition-transform duration-300"
-        />
+        <X size={28} strokeWidth={2.5} />
       </button>
 
-      <div className="max-w-md w-full relative">
-        <div className="text-center mb-12">
-          <div className="w-20 h-20 bg-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-200">
-            <BookOpen className="text-white" size={32} />
+      <div className="w-full max-w-[420px] bg-white p-8 md:p-10 rounded-[2.5rem] shadow-2xl shadow-blue-100 border border-gray-100 relative">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-blue-200">
+            <BookOpen className="text-white" size={28} />
           </div>
-          <h2 className="text-4xl font-black text-gray-900 tracking-tighter uppercase leading-none italic">
-            AREWA <br />{" "}
-            <span className="text-blue-600 font-black">ACADEMY</span>
+          <h2 className="text-3xl font-black text-gray-900 tracking-tighter uppercase leading-tight italic">
+            AREWA <br /> <span className="text-blue-600">ACADEMY</span>
           </h2>
-          <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.3em] mt-4">
+          <p className="text-gray-400 font-bold text-[9px] uppercase tracking-[0.2em] mt-3">
             Authorized Academic Access Only
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-1">
-            <label className="ml-2 text-[9px] font-black text-gray-400 uppercase tracking-widest">
+        <form onSubmit={handleLogin} className="flex flex-col gap-5">
+          <div className="flex flex-col gap-1.5">
+            <label className="ml-1 text-[10px] font-black text-gray-500 uppercase tracking-wider">
               Email Address
             </label>
             <input
               type="email"
               placeholder="e.g. name@arewavacademy.edu.ng"
               required
-              className="w-full p-6 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-blue-600 focus:bg-white transition-all font-medium text-sm shadow-sm lowercase text-slate-900"
+              className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-blue-600 focus:bg-white transition-all font-semibold text-sm text-slate-900"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
-          <div className="space-y-1">
-            <div className="flex justify-between items-center pr-2">
-              <label className="ml-2 text-[9px] font-black text-gray-400 uppercase tracking-widest">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex justify-between items-center px-1">
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider">
                 Password
               </label>
               <button
                 type="button"
                 onClick={handleForgotPassword}
-                className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-1"
+                className="text-[10px] font-black text-blue-600 uppercase hover:underline"
               >
-                <KeyRound size={12} /> Recovery
+                Recovery
               </button>
             </div>
             <input
               type="password"
               placeholder="••••••••"
               required
-              className="w-full p-6 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-blue-600 focus:bg-white transition-all font-medium text-sm shadow-sm text-slate-900"
+              className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-blue-600 focus:bg-white transition-all font-semibold text-sm text-slate-900"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -181,20 +158,20 @@ const StudentLogin = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-6 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.4em] flex items-center justify-center gap-3 hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 mt-4 disabled:opacity-50 active:scale-95"
+            className="w-full py-4 mt-2 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-[0.98] disabled:opacity-50"
           >
             {loading ? (
-              <Loader2 className="animate-spin text-white" />
+              <Loader2 className="animate-spin" size={18} />
             ) : (
               <>
-                Enter Classroom <ArrowRight size={20} />
+                Enter Classroom <ArrowRight size={18} />
               </>
             )}
           </button>
         </form>
 
-        <div className="mt-12 text-center border-t border-gray-100 pt-8">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-center gap-2">
+        <div className="mt-8 text-center border-t border-gray-50 pt-6">
+          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-center gap-2">
             <UserCheck size={14} className="text-blue-500" /> Secure Arewa
             Session
           </p>
