@@ -4,7 +4,6 @@ import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
   signOut,
-  sendPasswordResetEmail,
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
@@ -13,8 +12,9 @@ import {
   ArrowRight,
   Loader2,
   UserCheck,
-  KeyRound,
   X,
+  Lock,
+  Mail,
 } from "lucide-react";
 
 const StudentLogin = () => {
@@ -23,17 +23,14 @@ const StudentLogin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // 1. Listen for Auth State
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        try {
-          const userRef = doc(db, "users", user.uid);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists() && userSnap.data().role === "student") {
-            navigate("/student-portal");
-          }
-        } catch (err) {
-          console.error("Auth sync error:", err);
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists() && userSnap.data().role === "student") {
+          navigate("/student-portal");
         }
       }
     });
@@ -42,171 +39,197 @@ const StudentLogin = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (loading) return;
+
     setLoading(true);
+    const cleanEmail = email.trim().toLowerCase();
+
     try {
+      // Step A: Firebase Auth Login
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        email.trim().toLowerCase(),
+        cleanEmail,
         password,
       );
+
+      // Step B: Role Verification
       const userRef = doc(db, "users", userCredential.user.uid);
       const userSnap = await getDoc(userRef);
 
-      if (userSnap.exists() && userSnap.data().role === "student") {
-        navigate("/student-portal");
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        if (userData.role === "student") {
+          navigate("/student-portal");
+        } else {
+          await signOut(auth);
+          alert("RESTRICTED: Access denied. This portal is for students only.");
+        }
       } else {
         await signOut(auth);
-        alert("Access Denied: Students only.");
+        alert("ERROR: No student record found in database.");
       }
     } catch (error) {
-      console.error("Full Login Error:", error);
-
-      if (error.code === "auth/wrong-password") {
-        alert("SECURITY KEY ERROR: The password you entered is incorrect.");
-      } else if (error.code === "auth/user-not-found") {
-        alert(
-          "USER NOT FOUND: This email address is not registered in our system.",
-        );
-      } else if (error.code === "auth/invalid-credential") {
-        alert("AUTHENTICATION ERROR: Invalid login credentials provided.");
+      console.error("Login Error:", error.code);
+      if (
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/invalid-credential"
+      ) {
+        alert("INVALID CREDENTIALS: Duba Email ko Password dinka.");
       } else {
-        alert("AUTHENTICATION ERROR: " + error.message);
+        alert("SYSTEM ERROR: " + error.message);
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // STYLE OBJECTS (Don tabbatar komai ya zauna daram ko da CSS ya bata)
-  const styles = {
-    container: {
-      minHeight: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "#f8fafc",
-      padding: "20px",
-    },
-    card: {
-      backgroundColor: "#fff",
-      padding: "40px",
-      borderRadius: "30px",
-      boxShadow: "0 20px 50px rgba(0,0,0,0.1)",
-      width: "100%",
-      maxWidth: "400px",
-      textAlign: "center",
-      position: "relative",
-    },
-    closeBtn: {
-      position: "absolute",
-      top: "20px",
-      right: "20px",
-      border: "none",
-      background: "none",
-      cursor: "pointer",
-      color: "#64748b",
-    },
-    inputGroup: { textAlign: "left", marginBottom: "20px" },
-    label: {
-      display: "block",
-      fontSize: "10px",
-      fontWeight: "900",
-      color: "#64748b",
-      textTransform: "uppercase",
-      marginBottom: "8px",
-      marginLeft: "5px",
-    },
-    input: {
-      width: "100%",
-      padding: "15px",
-      borderRadius: "15px",
-      border: "2px solid #f1f5f9",
-      outline: "none",
-      fontSize: "14px",
-      boxSizing: "border-box",
-    },
-    button: {
-      width: "100%",
-      padding: "18px",
-      backgroundColor: "#2563eb",
-      color: "#fff",
-      border: "none",
-      borderRadius: "15px",
-      fontWeight: "900",
-      fontSize: "12px",
-      textTransform: "uppercase",
-      cursor: "pointer",
-      marginTop: "10px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "10px",
-    },
+  // INLINE STYLES - Don tabbatar design bai sake wargajewa ba ko da Tailwind ya ki loading
+  const containerStyle = {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#020617",
+    padding: "20px",
+    fontFamily: "sans-serif",
+  };
+
+  const cardStyle = {
+    backgroundColor: "#0f172a",
+    padding: "40px",
+    borderRadius: "2rem",
+    width: "100%",
+    maxWidth: "400px",
+    border: "1px solid #1e293b",
+    textAlign: "center",
+    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+    position: "relative",
+  };
+
+  const inputStyle = {
+    width: "100%",
+    padding: "16px 16px 16px 48px",
+    backgroundColor: "#1e293b",
+    border: "2px solid #334155",
+    borderRadius: "1rem",
+    color: "white",
+    fontSize: "14px",
+    outline: "none",
+    boxSizing: "border-box",
+    transition: "0.3s",
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <button onClick={() => navigate("/")} style={styles.closeBtn}>
+    <div style={containerStyle}>
+      <div style={cardStyle}>
+        <button
+          onClick={() => navigate("/")}
+          style={{
+            position: "absolute",
+            top: "20px",
+            right: "20px",
+            background: "none",
+            border: "none",
+            color: "#64748b",
+            cursor: "pointer",
+          }}
+        >
           <X size={24} />
         </button>
 
-        <div style={{ marginBottom: "30px" }}>
+        <div style={{ marginBottom: "32px" }}>
           <div
             style={{
-              width: "60px",
-              height: "60px",
+              width: "64px",
+              height: "64px",
               backgroundColor: "#2563eb",
-              borderRadius: "15px",
+              borderRadius: "1.25rem",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              margin: "0 auto 15px",
+              margin: "0 auto 16px",
             }}
           >
-            <BookOpen color="#fff" size={30} />
+            <BookOpen color="white" size={32} />
           </div>
-          <h2
+          <h1
             style={{
-              fontSize: "28px",
+              color: "white",
+              fontSize: "24px",
               fontWeight: "900",
               margin: 0,
-              color: "#0f172a",
+              fontStyle: "italic",
             }}
           >
             AREWA <span style={{ color: "#2563eb" }}>ACADEMY</span>
-          </h2>
+          </h1>
           <p
             style={{
+              color: "#64748b",
               fontSize: "9px",
-              fontWeight: "800",
-              color: "#94a3b8",
+              fontWeight: "bold",
               textTransform: "uppercase",
-              marginTop: "5px",
+              letterSpacing: "3px",
+              marginTop: "8px",
             }}
           >
-            Authorized Access Only
+            Student Terminal Access
           </p>
         </div>
 
-        <form onSubmit={handleLogin}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Email Address</label>
+        <form
+          onSubmit={handleLogin}
+          style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+        >
+          <div style={{ position: "relative", textAlign: "left" }}>
+            <label
+              style={{
+                fontSize: "9px",
+                color: "#94a3b8",
+                fontWeight: "900",
+                marginLeft: "10px",
+                marginBottom: "8px",
+                display: "block",
+              }}
+            >
+              EMAIL ADDRESS
+            </label>
+            <Mail
+              size={18}
+              color="#64748b"
+              style={{ position: "absolute", left: "16px", bottom: "16px" }}
+            />
             <input
               type="email"
-              style={styles.input}
-              placeholder="e.g. name@arewa.com"
+              style={inputStyle}
+              placeholder="student@arewavacademy.edu.ng"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Security Key</label>
+          <div style={{ position: "relative", textAlign: "left" }}>
+            <label
+              style={{
+                fontSize: "9px",
+                color: "#94a3b8",
+                fontWeight: "900",
+                marginLeft: "10px",
+                marginBottom: "8px",
+                display: "block",
+              }}
+            >
+              SECURITY KEY
+            </label>
+            <Lock
+              size={18}
+              color="#64748b"
+              style={{ position: "absolute", left: "16px", bottom: "16px" }}
+            />
             <input
               type="password"
-              style={styles.input}
+              style={inputStyle}
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -214,12 +237,32 @@ const StudentLogin = () => {
             />
           </div>
 
-          <button type="submit" style={styles.button} disabled={loading}>
+          <button
+            type="submit"
+            style={{
+              width: "100%",
+              padding: "18px",
+              backgroundColor: "#2563eb",
+              color: "white",
+              border: "none",
+              borderRadius: "1rem",
+              fontWeight: "900",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "10px",
+              textTransform: "uppercase",
+              fontSize: "12px",
+              letterSpacing: "1px",
+            }}
+            disabled={loading}
+          >
             {loading ? (
-              <Loader2 className="animate-spin" size={20} />
+              <Loader2 className="animate-spin" />
             ) : (
               <>
-                Enter Classroom <ArrowRight size={18} />
+                Enter Terminal <ArrowRight size={18} />
               </>
             )}
           </button>
@@ -227,20 +270,20 @@ const StudentLogin = () => {
 
         <div
           style={{
-            marginTop: "30px",
-            borderTop: "1px solid #f1f5f9",
+            marginTop: "32px",
+            borderTop: "1px solid #1e293b",
             paddingTop: "20px",
           }}
         >
           <p
             style={{
+              color: "#475569",
               fontSize: "9px",
-              fontWeight: "900",
-              color: "#94a3b8",
+              fontWeight: "bold",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: "5px",
+              gap: "8px",
             }}
           >
             <UserCheck size={14} color="#2563eb" /> SECURE AREWA SESSION
