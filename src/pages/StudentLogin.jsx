@@ -59,7 +59,19 @@ const StudentLogin = () => {
         alert("Access Denied: Students only.");
       }
     } catch (error) {
-      alert("Login Failed: Please check your credentials.");
+      console.error("Full Login Error:", error);
+
+      if (error.code === "auth/wrong-password") {
+        alert("SECURITY KEY ERROR: The password you entered is incorrect.");
+      } else if (error.code === "auth/user-not-found") {
+        alert(
+          "USER NOT FOUND: This email address is not registered in our system.",
+        );
+      } else if (error.code === "auth/invalid-credential") {
+        alert("AUTHENTICATION ERROR: Invalid login credentials provided.");
+      } else {
+        alert("AUTHENTICATION ERROR: " + error.message);
+      }
     } finally {
       setLoading(false);
     }
