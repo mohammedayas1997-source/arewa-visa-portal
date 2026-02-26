@@ -263,37 +263,44 @@ const StudentPortal = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
+        setLoading(false); // Dole ne ka kashe loading idan babu user
         navigate("/student-login");
         return;
       }
       try {
         const userRef = doc(db, "users", user.uid);
-        const unsubUser = onSnapshot(userRef, (snap) => {
+
+        // Gyara 1: Tabbatar onSnapshot yana kashe loading bayan ya samu data
+        const unsubUser = onSnapshot(userRef, async (snap) => {
           if (snap.exists()) {
             const data = snap.data();
             setStudentData({ id: user.uid, ...data });
             if (data.selectedCourseId)
               setSelectedCourseId(data.selectedCourseId);
+
             const courseStartDate =
               data.courseSelectionDate?.toDate() || new Date("2026-01-01");
             const diffTime = new Date() - courseStartDate;
             const weekCount =
               Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7)) + 1;
-            // ADJUSTED FOR 4 MONTHS (16 WEEKS)
             setCurrentWeek(weekCount > 16 ? 16 : weekCount < 1 ? 1 : weekCount);
+
+            // Gyara 2: Saka Exam check a cikin snapshot din don komai ya zo lokaci daya
+            const examRef = doc(db, `students/${user.uid}/exams/week_8`);
+            const examSnap = await getDoc(examRef);
+            if (examSnap.exists() && examSnap.data().passed) {
+              setHasPassedMidterm(true);
+            }
+
+            setLoading(false); // Yanzu portal din zai bude domin an samu duka data
+          } else {
+            setLoading(false); // Ko da babu doc, a bar shi ya wuce don ya zabi kwas
           }
         });
 
-        // ADJUSTED FOR MIDTERM AT WEEK 8
-        const examRef = doc(db, `students/${user.uid}/exams/week_8`);
-        const examSnap = await getDoc(examRef);
-        if (examSnap.exists() && examSnap.data().passed)
-          setHasPassedMidterm(true);
-
         return () => unsubUser();
       } catch (error) {
-        console.error(error);
-      } finally {
+        console.error("Portal Sync Error:", error);
         setLoading(false);
       }
     });
