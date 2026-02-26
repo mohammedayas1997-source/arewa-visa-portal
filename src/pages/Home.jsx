@@ -2592,21 +2592,25 @@ const Home = () => {
       {/* COURSE APPLICATION FORM */}
       {showCourseForm && (
         <div
-          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-2 py-4"
+          className="position-fixed top-0 start-0 w-100 h-100 px-2 py-4" // Mun cire d-flex
           style={{
             zIndex: 10000,
             backgroundColor: "rgba(0,0,0,0.85)",
-            overflowY: "auto",
+            overflowY: "auto", // Wannan zai bar yatsa ya yi scrolling
+            display: "block", // Mun canza zuwa block domin waya
           }}
         >
           <div
-            className="card border-0 shadow-lg w-100"
+            className="card border-0 shadow-lg w-100 mx-auto" // Mun ƙara mx-auto
             style={{
               maxWidth: "900px",
               borderRadius: "20px",
-              overflow: "hidden",
+              overflow: "visible", // Mun canza daga hidden domin gudun yanke form
+              marginTop: "20px",
+              marginBottom: "40px",
             }}
           >
+            {" "}
             {/* --- FARKON GYARA: DUBA KO ZA'A NUNA PAYMENT KO FORM --- */}
             {!showPaymentStep ? (
               <>

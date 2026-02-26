@@ -8,7 +8,8 @@
   text-align: left !important; /* Don rubutu ya daina zama a tsakiya dole */
 }
 
-body, html {
+body,
+html {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -27,4 +28,22 @@ body, html {
 
 .transition {
   transition: all 0.3s ease-in-out;
+}
+/* Wannan zai sa Modal din ya zama full screen a waya */
+@media (max-width: 768px) {
+  .modal-mobile-fix {
+    max-width: 98% !important;
+    margin: 10px !important;
+    border-radius: 15px !important;
+  }
+
+  /* Zai sa Sidebar din ya koma sama maimakon gefe */
+  .sidebar-mobile-hide {
+    padding: 20px !important;
+    min-height: auto !important;
+  }
+
+  .form-padding-mobile {
+    padding: 20px !important;
+  }
 }

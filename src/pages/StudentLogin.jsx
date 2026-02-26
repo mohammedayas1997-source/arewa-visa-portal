@@ -19,9 +19,16 @@ const StudentLogin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // 1. GYARA: Idan riga yana login, kai shi Dashboard kai tsaye
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) navigate("/portal");
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists() && userSnap.data().role === "student") {
+          navigate("/student-portal"); // Tabbatar wannan path din yana App.jsx
+        }
+      }
     });
     return () => unsubscribe();
   }, [navigate]);
@@ -39,13 +46,20 @@ const StudentLogin = () => {
       );
       const user = userCredential.user;
 
+      // 2. TANTANCEWA: Duba role a Firestore
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
-        navigate("/portal");
+        const userData = userSnap.data();
+        if (userData.role === "student") {
+          navigate("/student-portal");
+        } else {
+          setError("Access Denied: Not a student account.");
+          await auth.signOut();
+        }
       } else {
-        setError("Access Denied: Student Record Not Found.");
+        setError("Access Denied: Student record not found.");
         await auth.signOut();
       }
     } catch (err) {
@@ -62,13 +76,12 @@ const StudentLogin = () => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#020617", // slate-950
+        backgroundColor: "#020617",
         padding: "20px",
         fontFamily: "sans-serif",
       }}
     >
       <div style={{ maxWidth: "450px", width: "100%" }}>
-        {/* ACADEMY LOGO & HEADER */}
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <div
             style={{
@@ -113,10 +126,9 @@ const StudentLogin = () => {
           </p>
         </div>
 
-        {/* LOGIN FORM CARD */}
         <div
           style={{
-            backgroundColor: "#0f172a", // slate-900
+            backgroundColor: "#0f172a",
             border: "1px solid #1e293b",
             borderRadius: "2.5rem",
             padding: "40px",
@@ -124,7 +136,6 @@ const StudentLogin = () => {
           }}
         >
           <form onSubmit={handleLogin}>
-            {/* EMAIL INPUT */}
             <div style={{ marginBottom: "24px" }}>
               <label
                 style={{
@@ -173,7 +184,6 @@ const StudentLogin = () => {
               </div>
             </div>
 
-            {/* PASSWORD INPUT */}
             <div style={{ marginBottom: "24px" }}>
               <label
                 style={{
@@ -222,7 +232,6 @@ const StudentLogin = () => {
               </div>
             </div>
 
-            {/* ERROR MESSAGE */}
             {error && (
               <div
                 style={{
@@ -245,7 +254,6 @@ const StudentLogin = () => {
               </div>
             )}
 
-            {/* SUBMIT BUTTON */}
             <button
               type="submit"
               disabled={loading}
@@ -282,29 +290,8 @@ const StudentLogin = () => {
             </button>
           </form>
         </div>
-
-        {/* FOOTER INFO */}
-        <p
-          style={{
-            textAlign: "center",
-            marginTop: "32px",
-            fontSize: "9px",
-            fontWeight: "bold",
-            color: "#475569",
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-          }}
-        >
-          Authorized Access Only. System IP Logged.
-        </p>
       </div>
-
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

@@ -95,31 +95,30 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     const isSuperAdmin = role === "SUPER_ADMIN" || role === "super-admin";
     const isRector = role === "rector" || role === "authority";
     const isSupervisor = role === "supervisor";
-    const isAdmissionOfficer = role === "admission-officer";
-    const isAdminGeneral = role === "admin" || role === "instructor";
+    const isAdmissionOfficer = role === "admission-officer" || role === "admin"; // Admission officer sau tari role dinsa 'admin' ne a Firestore
+    const isStudent = role === "student";
 
-    // Access Logic: SuperAdmin and Rector have master keys
+    // Access Logic:
     const hasAccess =
       isSuperAdmin ||
       isRector ||
-      role === requiredRole ||
+      (requiredRole === "student" && isStudent) || // Tabbatar dalibi zai iya shiga student routes
       (requiredRole === "admin" &&
-        (isAdminGeneral || isAdmissionOfficer || isSupervisor));
+        (isAdmissionOfficer || isSupervisor || isRector)) ||
+      role === requiredRole;
 
     if (!hasAccess) {
-      // Dynamic Redirection based on actual role if user hits a wrong wall
-      let redirectPath = "/student-portal";
+      // Idan bashi da izini, duba inda ya dace a kais hi
+      let redirectPath = "/"; // Default fallback zuwa home idan komai ya cabe
 
-      if (isSuperAdmin) redirectPath = "/super-admin-dashboard";
+      if (isStudent) redirectPath = "/student-portal";
       else if (isRector) redirectPath = "/rector-dashboard";
       else if (isSupervisor) redirectPath = "/supervisor-dashboard";
       else if (isAdmissionOfficer) redirectPath = "/admin-dashboard";
-      else if (isAdminGeneral) redirectPath = "/admin-dashboard";
 
       return <Navigate to={redirectPath} replace />;
     }
   }
-
   return children;
 };
 
