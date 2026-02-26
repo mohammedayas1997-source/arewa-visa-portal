@@ -38,14 +38,27 @@ const StudentLogin = () => {
     setLoading(true);
     setError("");
 
+    // DOKA: Tabbatar email din na Institutional ne kawai
+    const emailValue = email.trim().toLowerCase();
+
+    // Misali: Idan kana son dole sai email din academy ne kadai zai shiga
+    if (!emailValue.endsWith("@arewavacademy.edu.ng")) {
+      setError(
+        "Please use your official institutional email (@arewavacademy.edu.ng)",
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        email.trim(),
+        emailValue,
         password,
       );
       const user = userCredential.user;
 
+      // ... sauran logic na Firestore (Authentication check)
       // 2. TANTANCEWA: Duba role a Firestore
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
