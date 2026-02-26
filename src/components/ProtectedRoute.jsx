@@ -109,7 +109,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
     if (!hasAccess) {
       // Idan bashi da izini, duba inda ya dace a kais hi
-      let redirectPath = "/"; // Default fallback zuwa home idan komai ya cabe
+      let redirectPath = isStudent ? "/student-portal" : "/"; // Default fallback zuwa home idan komai ya cabe
 
       if (isStudent) redirectPath = "/student-portal";
       else if (isRector) redirectPath = "/rector-dashboard";
