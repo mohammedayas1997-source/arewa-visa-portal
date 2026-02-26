@@ -1,0 +1,30 @@
+/* Wannan zai share tsofaffin dokokin Vite ya ba Bootstrap dama */
+#root {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 100vh;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: left !important; /* Don rubutu ya daina zama a tsakiya dole */
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Custom Gallery Effects */
+.gallery-hover img:hover {
+  transform: scale(1.1);
+  cursor: pointer;
+}
+
+.object-fit-cover {
+  object-fit: cover;
+}
+
+.transition {
+  transition: all 0.3s ease-in-out;
+}
