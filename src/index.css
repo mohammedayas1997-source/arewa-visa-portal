@@ -1,81 +1,42 @@
 @import "tailwindcss";
 
-/* 1. RESET & BASE STYLES */
 @layer base {
-  html,
-  body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    overflow-x: hidden;
-    background-color: #f8fafc;
-    font-family: sans-serif;
-  }
-
+  /* Wannan zai gyara matsalar #root da take hargitsa shafin */
   #root {
+    all: unset; /* Yana wanke tsofaffin dokokin Vite */
+    display: block;
     width: 100%;
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
   }
 
-  /* Wannan zai tilasta icons su fito koda Tailwind yana son boye su */
-  svg {
+  /* Wannan zai tilasta icons su fito radau */
+  svg.lucide {
     display: inline-block !important;
     vertical-align: middle;
+    width: 24px;
+    height: 24px;
+    stroke-width: 2;
+    stroke: currentColor;
+    fill: none;
   }
 }
 
-/* 2. NAVBAR & LAYERING FIX */
-.sticky-top {
-  position: sticky;
-  top: 0;
-  z-index: 2000 !important;
-  background-color: white;
-}
-
+/* WANNAN ZAI GYARA NAVBAR */
 .navbar {
-  z-index: 2001;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  z-index: 1050 !important; /* Matsayin Bootstrap na asali */
 }
 
-/* Kariya ga Icons a cikin Mobile Menu */
-.navbar-toggler svg {
-  width: 30px !important;
-  height: 30px !important;
-  stroke: #003366 !important;
+.sticky-top {
+  z-index: 1060 !important;
 }
 
-/* 3. UTILITIES */
-.object-fit-cover {
-  object-fit: cover;
-}
-
-.gallery-hover img {
-  transition: transform 0.3s ease;
-}
-
-.gallery-hover img:hover {
-  transform: scale(1.05);
-  cursor: pointer;
-}
-
-/* 4. MOBILE RESPONSIVENESS */
+/* Gyara hotuna a waya */
 @media (max-width: 768px) {
-  .container {
-    padding-left: 15px;
-    padding-right: 15px;
+  .navbar-brand img {
+    height: 40px !important;
   }
 
-  /* Kare Dashboard Sidebar daga rufe Navbar */
   .sidebar-mobile-hide {
-    margin-top: 80px !important;
-    padding: 15px !important;
-  }
-
-  /* Gyara hotunan Jobs da Courses su daina mikewa */
-  .card img {
-    height: 200px !important;
-    object-fit: cover;
+    margin-top: 70px !important;
   }
 }
