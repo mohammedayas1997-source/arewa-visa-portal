@@ -1,21 +1,23 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  important: true, // Wannan zai tilasta wa Tailwind classes su yi aiki ba tare da sun hargitsa Bootstrap ba
   theme: {
     extend: {
       colors: {
-        // Na gyara wannan kalar zuwa Navy Blue din da kake amfani da shi a Navbar
         primary: {
           DEFAULT: "#003366",
           light: "#0d6efd",
         },
-        secondary: "#dc2626", // Red din AVA
+        secondary: "#dc2626",
       },
-      // Mun kara wadannan domin tabbatar da cewa fonts da sauran abubuwa sun zauna
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
       },
     },
   },
   plugins: [],
+  corePlugins: {
+    preflight: false, // WANNAN SHINE MAGANIN HARGTSEWA - Zai hana Tailwind goge adon Bootstrap
+  },
 };

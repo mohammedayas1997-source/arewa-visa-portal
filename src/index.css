@@ -1,42 +1,14 @@
 @import "tailwindcss";
 
-@layer base {
-  /* Wannan zai gyara matsalar #root da take hargitsa shafin */
-  #root {
-    all: unset; /* Yana wanke tsofaffin dokokin Vite */
-    display: block;
-    width: 100%;
-    min-height: 100vh;
-  }
-
-  /* Wannan zai tilasta icons su fito radau */
-  svg.lucide {
-    display: inline-block !important;
-    vertical-align: middle;
-    width: 24px;
-    height: 24px;
-    stroke-width: 2;
-    stroke: currentColor;
-    fill: none;
-  }
+/* Tabbatar Bootstrap yana aiki yadda ya kamata */
+body {
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  background-color: #f8fafc;
 }
 
-/* WANNAN ZAI GYARA NAVBAR */
-.navbar {
-  z-index: 1050 !important; /* Matsayin Bootstrap na asali */
-}
-
-.sticky-top {
-  z-index: 1060 !important;
-}
-
-/* Gyara hotuna a waya */
-@media (max-width: 768px) {
-  .navbar-brand img {
-    height: 40px !important;
-  }
-
-  .sidebar-mobile-hide {
-    margin-top: 70px !important;
-  }
+/* Kariya ga Icons */
+svg {
+  display: inline-block !important;
+  vertical-align: middle;
 }
