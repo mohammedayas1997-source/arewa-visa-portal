@@ -1,3 +1,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Wannan zai tilasta kowane icon na Lucide ya fito fili */
+svg.lucide {
+  display: inline-block !important;
+  vertical-align: middle;
+  overflow: visible !important;
+}
+
+.nav-link svg,
+.navbar-brand svg {
+  margin-right: 8px;
+  color: inherit;
+}
