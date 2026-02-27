@@ -1,20 +1,81 @@
 @import "tailwindcss";
 
-/* Wannan zai tabbatar dukkan icons sun bayyana */
+/* 1. RESET & BASE STYLES */
 @layer base {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
+    background-color: #f8fafc;
+    font-family: sans-serif;
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Wannan zai tilasta icons su fito koda Tailwind yana son boye su */
   svg {
     display: inline-block !important;
     vertical-align: middle;
-    width: auto;
-    height: auto;
   }
 }
 
-/* Wannan zai gyara matsalar Navbar a kowane yanayi */
-.navbar-toggler svg,
-.nav-link svg,
-.navbar-brand svg {
-  min-width: 20px;
-  min-height: 20px;
-  display: flex !important;
+/* 2. NAVBAR & LAYERING FIX */
+.sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 2000 !important;
+  background-color: white;
+}
+
+.navbar {
+  z-index: 2001;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Kariya ga Icons a cikin Mobile Menu */
+.navbar-toggler svg {
+  width: 30px !important;
+  height: 30px !important;
+  stroke: #003366 !important;
+}
+
+/* 3. UTILITIES */
+.object-fit-cover {
+  object-fit: cover;
+}
+
+.gallery-hover img {
+  transition: transform 0.3s ease;
+}
+
+.gallery-hover img:hover {
+  transform: scale(1.05);
+  cursor: pointer;
+}
+
+/* 4. MOBILE RESPONSIVENESS */
+@media (max-width: 768px) {
+  .container {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
+  /* Kare Dashboard Sidebar daga rufe Navbar */
+  .sidebar-mobile-hide {
+    margin-top: 80px !important;
+    padding: 15px !important;
+  }
+
+  /* Gyara hotunan Jobs da Courses su daina mikewa */
+  .card img {
+    height: 200px !important;
+    object-fit: cover;
+  }
 }
