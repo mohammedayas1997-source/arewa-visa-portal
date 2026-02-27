@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+// GYARA: Tabbatar sunan file din ya dace da folder dinka (firebase ko firebaseConfig)
 import { auth, db } from "../firebase";
 import {
   signInWithEmailAndPassword,
@@ -13,39 +14,41 @@ const StaffLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true); // Sabo: don hana wargajewa yayin duba auth
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // 1. AUTO-REDIRECT LOGIC (An inganta shi)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
+      try {
+        if (user) {
           const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
+
           if (userSnap.exists()) {
             const role = userSnap.data().role;
-            const isStaff = [
+            const staffRoles = [
               "rector",
               "admin",
               "supervisor",
               "admission-officer",
               "super-admin",
-            ].includes(role);
+            ];
 
-            if (isStaff) {
-              // Idan har yanzu yana login kuma staff ne, tura shi dashboard
-              // Amma idan kana son ka tsaya a login page, sai ka cire wannan layin
+            if (staffRoles.includes(role)) {
+              // Idan kana so ya wuce dashboard kai tsaye idan an riga an yi login:
               // navigate("/admin-dashboard", { replace: true });
             }
           }
-        } catch (err) {
-          console.error("Auth check error:", err);
         }
+      } catch (err) {
+        console.error("Auth check error:", err);
+      } finally {
+        // Wannan dole ne ya kasance a nan don shafin ya fito ko da an samu error
+        setCheckingAuth(false);
       }
-      setCheckingAuth(false);
     });
+
     return () => unsubscribe();
   }, [navigate]);
 
@@ -84,18 +87,15 @@ const StaffLogin = () => {
         if (!authorizedStaff.includes(userRole)) {
           await signOut(auth);
           setError("ACCESS_DENIED: Staff credentials required.");
-          setLoading(false);
           return;
         }
 
         if (userData.status === "suspended" || userData.status === "inactive") {
           await signOut(auth);
           setError("ACCOUNT_REVOKED: This account is inactive.");
-          setLoading(false);
           return;
         }
 
-        // REDIRECTION PROTOCOL
         if (userRole === "rector") navigate("/rector-dashboard");
         else if (userRole === "admin" || userRole === "admission-officer")
           navigate("/admin-dashboard");
@@ -106,17 +106,21 @@ const StaffLogin = () => {
         setError("DATABASE_ERROR: Profile not found.");
       }
     } catch (err) {
-      setError("AUTHENTICATION_FAILED: Invalid credentials.");
+      setError("AUTHENTICATION_FAILED: Password ko Email ba daidai ba.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Loading state yayin da system yake duba ko mutum ya yi login
   if (checkingAuth) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <Loader2 className="text-red-600 animate-spin" size={48} />
+        <div className="text-center">
+          <Loader2 className="text-red-600 animate-spin mb-4" size={48} />
+          <p className="text-red-500 text-[10px] font-black tracking-widest uppercase">
+            AREWA SYSTEM INITIALIZING...
+          </p>
+        </div>
       </div>
     );
   }
@@ -126,13 +130,9 @@ const StaffLogin = () => {
       <button
         type="button"
         onClick={() => navigate("/")}
-        className="absolute top-16 right-10 p-3 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-2xl transition-all duration-300 group z-50"
+        className="absolute top-16 right-10 p-3 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-2xl transition-all duration-300 z-50"
       >
-        <X
-          size={32}
-          strokeWidth={3}
-          className="group-hover:rotate-90 transition-transform duration-300"
-        />
+        <X size={32} strokeWidth={3} />
       </button>
 
       <form
