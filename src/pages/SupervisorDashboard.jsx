@@ -41,7 +41,6 @@ import {
   AlertCircle,
   RefreshCcw,
   UploadCloud,
-  Menu,
   X,
 } from "lucide-react";
 
@@ -54,7 +53,6 @@ const SupervisorDashboard = () => {
   const [activeThread, setActiveThread] = useState(null);
   const [replies, setReplies] = useState([]);
   const [reply, setReply] = useState("");
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [privateMessages, setPrivateMessages] = useState([]);
   const [selectedStudentForDM, setSelectedStudentForDM] = useState(null);
   const [dmText, setDmText] = useState("");
@@ -170,6 +168,7 @@ const SupervisorDashboard = () => {
     if (!selectedCourse) return;
     const courseId = selectedCourse.toLowerCase().replace(/ /g, "_");
 
+    // FIX: Removed orderBy from students query to prevent index-related blank screen
     const unsubStudents = onSnapshot(
       query(
         collection(db, "users"),
@@ -346,43 +345,33 @@ const SupervisorDashboard = () => {
       <div
         className={`min-h-screen flex items-center justify-center p-6 ${isDarkMode ? "bg-slate-950" : "bg-slate-50"}`}
       >
-        <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div>
-            <h1 className="text-7xl font-black italic tracking-tighter text-blue-600 mb-2">
-              AVA.CORE
+        <div className="max-w-6xl w-full">
+          <div className="mb-12 text-center">
+            <h1 className="text-6xl font-black italic tracking-tighter text-blue-600 mb-2">
+              AVA.TERMINAL
             </h1>
             <p
-              className={`font-black uppercase tracking-widest text-xs mb-8 ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
+              className={`font-black uppercase tracking-widest text-[10px] ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
             >
               Operational Command Terminal
             </p>
-            <h2
-              className={`text-4xl font-bold ${isDarkMode ? "text-white" : "text-slate-900"}`}
-            >
-              Welcome, Inspector {supervisorData?.fullName?.split(" ")[0]}
-            </h2>
-            <p className="mt-4 opacity-50 font-medium">
-              Select a specialized deployment module to begin monitoring.
-            </p>
           </div>
-          <div className="grid grid-cols-1 gap-3 max-h-[75vh] overflow-y-auto pr-4 custom-scrollbar">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {availableCourses.map((course) => (
               <button
                 key={course}
                 onClick={() => setSelectedCourse(course)}
-                className={`p-6 rounded-[2rem] text-left transition-all border group hover:scale-[1.02] active:scale-[0.98] ${isDarkMode ? "bg-white/5 border-white/10 hover:bg-blue-600" : "bg-white border-slate-200 shadow-sm hover:bg-blue-600"}`}
+                className={`p-10 rounded-[2.5rem] text-left transition-all border group relative overflow-hidden ${isDarkMode ? "bg-slate-900 border-white/5 hover:border-blue-600" : "bg-white border-slate-200 shadow-sm hover:border-blue-600"}`}
               >
-                <div className="flex justify-between items-center">
-                  <span
-                    className={`font-black text-lg group-hover:text-white ${isDarkMode ? "text-white" : "text-slate-900"}`}
-                  >
-                    {course}
-                  </span>
-                  <ShieldCheck
-                    size={20}
-                    className="opacity-20 group-hover:opacity-100 group-hover:text-white"
-                  />
-                </div>
+                <ShieldCheck
+                  size={20}
+                  className="mb-4 text-blue-600 opacity-40 group-hover:opacity-100 transition-opacity"
+                />
+                <span
+                  className={`font-black text-sm uppercase tracking-tight block ${isDarkMode ? "text-white" : "text-slate-900"}`}
+                >
+                  {course}
+                </span>
               </button>
             ))}
           </div>
@@ -392,7 +381,7 @@ const SupervisorDashboard = () => {
 
   return (
     <div
-      className={`flex flex-col lg:flex-row min-h-screen transition-all duration-500 ${isDarkMode ? "bg-slate-950 text-white" : "bg-[#f8fafc] text-slate-900"}`}
+      className={`flex flex-col lg:flex-row min-h-screen ${isDarkMode ? "bg-slate-950 text-white" : "bg-[#f8fafc] text-slate-900"}`}
     >
       <aside
         className={`fixed lg:sticky top-0 h-screen w-80 p-8 flex flex-col border-r z-[100] transition-all ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200 shadow-xl"}`}
@@ -408,15 +397,14 @@ const SupervisorDashboard = () => {
             AVA CENTRAL
           </h2>
         </div>
-
         <nav className="space-y-2 flex-1 overflow-y-auto custom-scrollbar">
           {[
             {
               id: "forum",
               icon: <MessageSquare size={18} />,
-              label: "Course Forum",
+              label: "Dispatch Forum",
             },
-            { id: "dm", icon: <Lock size={18} />, label: "Private Comms" },
+            { id: "dm", icon: <Lock size={18} />, label: "Secure Comms" },
             {
               id: "students",
               icon: <Users size={18} />,
@@ -443,7 +431,6 @@ const SupervisorDashboard = () => {
             </button>
           ))}
         </nav>
-
         <div className="mt-8 p-6 bg-gradient-to-br from-blue-600 to-blue-800 rounded-3xl text-white shadow-2xl">
           <div className="flex items-center gap-2 mb-1 opacity-60">
             <Wallet size={14} />
@@ -455,19 +442,18 @@ const SupervisorDashboard = () => {
             ₦{supervisorData?.salary?.toLocaleString()}
           </div>
         </div>
-
         <div className="mt-8 space-y-3 pt-6 border-t border-white/5">
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
             className="w-full flex items-center justify-center gap-3 p-4 bg-slate-800/40 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600/20 transition-all"
           >
-            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />} Spectrum
+            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />} SPECTRUM
           </button>
           <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-3 p-4 bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all"
           >
-            <LogOut size={18} /> Abort Session
+            <LogOut size={18} /> ABORT SESSION
           </button>
         </div>
       </aside>
@@ -479,11 +465,8 @@ const SupervisorDashboard = () => {
               {activeTab} Node
             </h1>
             <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40 mt-1">
-              Operational Environment
+              Operational Environment: {selectedCourse}
             </p>
-          </div>
-          <div className="px-6 py-3 bg-blue-600/10 rounded-2xl text-blue-600 font-black text-xs uppercase tracking-widest border border-blue-600/20 shadow-inner">
-            {selectedCourse}
           </div>
         </header>
 
@@ -507,7 +490,7 @@ const SupervisorDashboard = () => {
                     </div>
                   )}
                 </div>
-                <label className="absolute -bottom-4 -right-4 p-5 bg-blue-600 text-white rounded-3xl shadow-2xl cursor-pointer hover:scale-110 active:scale-90 transition-all">
+                <label className="absolute -bottom-4 -right-4 p-5 bg-blue-600 text-white rounded-3xl shadow-2xl cursor-pointer hover:scale-110 transition-all">
                   <Camera size={20} />
                   <input
                     type="file"
@@ -645,14 +628,14 @@ const SupervisorDashboard = () => {
                     className="p-8 border-t border-white/5 flex gap-4 bg-slate-900/20"
                   >
                     <input
-                      className="flex-1 bg-transparent outline-none font-black text-sm px-4"
+                      className="flex-1 bg-transparent outline-none font-black text-sm px-4 text-inherit"
                       placeholder="Transmit response to thread..."
                       value={reply}
                       onChange={(e) => setReply(e.target.value)}
                     />
                     <button
                       type="submit"
-                      className="p-5 bg-blue-600 text-white rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-blue-600/20"
+                      className="p-5 bg-blue-600 text-white rounded-2xl hover:scale-105 transition-all shadow-xl shadow-blue-600/20"
                     >
                       <Send size={20} />
                     </button>
@@ -724,7 +707,7 @@ const SupervisorDashboard = () => {
                       value={dmText}
                       onChange={(e) => setDmText(e.target.value)}
                       placeholder="Type classified message..."
-                      className="flex-1 bg-transparent outline-none font-black text-sm px-4"
+                      className="flex-1 bg-transparent outline-none font-black text-sm px-4 text-inherit"
                     />
                     <button
                       type="submit"
