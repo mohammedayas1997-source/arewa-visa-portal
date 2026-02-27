@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { db, auth } from "../firebase";
+import { auth, firestore as db } from "../firebase";
 import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
