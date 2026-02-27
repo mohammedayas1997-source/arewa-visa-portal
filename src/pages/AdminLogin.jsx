@@ -1,19 +1,57 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { auth, db } from "../firebase";
-import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut,
+} from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { LogIn, ShieldCheck, Loader2, ShieldAlert, X } from "lucide-react";
+import { ShieldCheck, Loader2, ShieldAlert, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const StaffLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true); // Sabo: don hana wargajewa yayin duba auth
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  // 1. AUTO-REDIRECT LOGIC (An inganta shi)
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userRef = doc(db, "users", user.uid);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const role = userSnap.data().role;
+            const isStaff = [
+              "rector",
+              "admin",
+              "supervisor",
+              "admission-officer",
+              "super-admin",
+            ].includes(role);
+
+            if (isStaff) {
+              // Idan har yanzu yana login kuma staff ne, tura shi dashboard
+              // Amma idan kana son ka tsaya a login page, sai ka cire wannan layin
+              // navigate("/admin-dashboard", { replace: true });
+            }
+          }
+        } catch (err) {
+          console.error("Auth check error:", err);
+        }
+      }
+      setCheckingAuth(false);
+    });
+    return () => unsubscribe();
+  }, [navigate]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setError("");
 
@@ -24,13 +62,12 @@ const StaffLogin = () => {
         cleanEmail,
         password,
       );
-      const user = userCredential.user;
 
-      const userRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userRef);
+      const userRef = doc(db, "users", userCredential.user.uid);
+      const userSnap = await getDoc(userRef);
 
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
         const userRole = userData.role;
 
         const authorizedStaff = [
@@ -46,45 +83,43 @@ const StaffLogin = () => {
 
         if (!authorizedStaff.includes(userRole)) {
           await signOut(auth);
-          setError(
-            "ACCESS_DENIED: Unauthorized access. Staff credentials required.",
-          );
+          setError("ACCESS_DENIED: Staff credentials required.");
           setLoading(false);
           return;
         }
 
         if (userData.status === "suspended" || userData.status === "inactive") {
           await signOut(auth);
-          setError("ACCOUNT_REVOKED: This administrative account is inactive.");
+          setError("ACCOUNT_REVOKED: This account is inactive.");
           setLoading(false);
           return;
         }
 
-        if (userRole === "rector") {
-          navigate("/rector");
-        } else if (userRole === "super-admin") {
-          navigate("/super-admin");
-        } else if (userRole === "supervisor") {
-          navigate("/supervisor-dashboard");
-        } else if (userRole === "AdminContentManager") {
-          navigate("/admin-secret-portal");
-        } else if (userRole === "admin") {
+        // REDIRECTION PROTOCOL
+        if (userRole === "rector") navigate("/rector-dashboard");
+        else if (userRole === "admin" || userRole === "admission-officer")
           navigate("/admin-dashboard");
-        } else if (userRole === "admission-officer") {
-          navigate("/admin");
-        } else {
-          navigate("/instructor-portal");
-        }
+        else if (userRole === "supervisor") navigate("/supervisor-dashboard");
+        else navigate("/instructor-hub");
       } else {
         await signOut(auth);
-        setError("DATABASE_ERROR: No administrative profile found.");
+        setError("DATABASE_ERROR: Profile not found.");
       }
     } catch (err) {
-      setError("AUTHENTICATION_FAILED: Invalid institutional credentials.");
+      setError("AUTHENTICATION_FAILED: Invalid credentials.");
     } finally {
       setLoading(false);
     }
   };
+
+  // Loading state yayin da system yake duba ko mutum ya yi login
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <Loader2 className="text-red-600 animate-spin" size={48} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 px-6 font-sans relative">
@@ -110,13 +145,12 @@ const StaffLogin = () => {
           </div>
         </div>
 
-        {/* ANAN NA CANZA SUNAN ZUWA AREWA */}
         <h2 className="text-2xl font-black text-center mb-2 text-gray-900 uppercase tracking-tight italic">
           AREWA <span className="text-red-600">COMMAND CENTER</span>
         </h2>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-[10px] font-black flex items-center gap-2 rounded-xl uppercase">
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-[10px] font-black flex items-center gap-2 rounded-xl uppercase italic">
             <ShieldAlert size={16} /> {error}
           </div>
         )}
