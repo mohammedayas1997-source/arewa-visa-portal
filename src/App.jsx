@@ -21,7 +21,6 @@ import Home from "./pages/Home";
 import Contact from "./pages/Contact";
 import About from "./pages/About";
 import AdminDashboard from "./pages/AdminDashboard";
-import AdminLogin from "./pages/AdminLogin";
 import StudentPortal from "./components/StudentPortal";
 import StudentLogin from "./pages/StudentLogin";
 import WeeklyForum from "./components/WeeklyForum";
