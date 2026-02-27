@@ -35,7 +35,7 @@ export default function Navbar() {
         style={{
           backgroundColor: "#003366",
           position: "relative",
-          zIndex: 1100,
+          zIndex: 1101, // Mun kara shi sama da komai
         }}
       >
         <div className="container d-flex justify-content-between align-items-center">
@@ -71,14 +71,17 @@ export default function Navbar() {
       </div>
 
       {/* MAIN NAVBAR */}
-      <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top py-2">
+      <nav
+        className="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top py-2"
+        style={{ zIndex: 1100 }} // Tabbatar Navbar tana layer na sama koyaushe
+      >
         <div className="container">
           <Link className="navbar-brand d-flex align-items-center gap-2" to="/">
             <img
               src={logo}
               alt="Logo"
               height="50"
-              style={{ objectFit: "contain" }}
+              style={{ objectFit: "contain", maxWidth: "100%" }}
             />
             <div className="lh-1">
               <strong className="d-block text-dark">AREWA VISA</strong>
@@ -96,6 +99,7 @@ export default function Navbar() {
             type="button"
             data-bs-toggle="collapse"
             data-bs-target="#navbarNav"
+            style={{ zIndex: 1102 }} // Tabbatar toggler icon din baya boyuwa
           >
             <Menu size={24} color="#003366" />
           </button>
@@ -113,13 +117,14 @@ export default function Navbar() {
                 </Link>
               </li>
 
-              {/* WHAT WE DO DROPDOWN (DA CIKAKKEN JERIN KASASHE) */}
+              {/* WHAT WE DO DROPDOWN */}
               <li className="nav-item dropdown">
                 <button
                   className="nav-link dropdown-toggle btn btn-link text-dark p-0 d-flex align-items-center gap-1"
                   id="whatWeDoDropdown"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
+                  style={{ border: "none", outline: "none" }}
                 >
                   WHAT WE DO <ChevronDown size={16} />
                 </button>
@@ -127,9 +132,10 @@ export default function Navbar() {
                   className="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4"
                   style={{
                     minWidth: "350px",
-                    maxHeight: "85vh",
+                    maxHeight: "80vh", // Mun rage kadan don gudun overflow
                     overflowY: "auto",
                     padding: "15px",
+                    zIndex: 1200, // Tabbatar dropdown din yana sama da komai
                   }}
                   aria-labelledby="whatWeDoDropdown"
                 >
@@ -299,12 +305,14 @@ export default function Navbar() {
                   id="elibraryDropdown"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
+                  style={{ border: "none", outline: "none" }}
                 >
                   E-LIBRARY <ChevronDown size={16} />
                 </button>
                 <ul
                   className="dropdown-menu dropdown-menu-end shadow border-0"
                   aria-labelledby="elibraryDropdown"
+                  style={{ zIndex: 1200 }}
                 >
                   <li>
                     <a
