@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { auth, firestore as db } from "../firebase";
+import { auth, db } from "../firebase"; // MUHIMMI: Mun gyara wannan
 import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
@@ -22,11 +22,22 @@ const StaffLogin = () => {
         try {
           const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
-          if (userSnap.exists() && userSnap.data().role !== "student") {
-            // navigate("/admin-dashboard");
+          if (userSnap.exists()) {
+            const role = userSnap.data().role?.toLowerCase();
+            const authorized = [
+              "rector",
+              "admin",
+              "supervisor",
+              "admission-officer",
+              "super-admin",
+            ];
+            if (authorized.includes(role)) {
+              // Idan kana so ya wuce dashboard kai tsaye:
+              // navigate("/admin-dashboard");
+            }
           }
         } catch (err) {
-          console.error(err);
+          console.error("Auth sync error:", err);
         }
       }
     });
@@ -40,24 +51,18 @@ const StaffLogin = () => {
 
     try {
       const cleanEmail = email.trim().toLowerCase();
-      console.log("Logging in with:", cleanEmail);
-
       const userCredential = await signInWithEmailAndPassword(
         auth,
         cleanEmail,
         password,
       );
-      const user = userCredential.user;
-      console.log("Auth Success! UID:", user.uid);
 
-      const userRef = doc(db, "users", user.uid);
+      const userRef = doc(db, "users", userCredential.user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
         const userData = userSnap.data();
-        // MUHIMMI: Mun mayar da role din ya zama lowercase don magance matsalar babban harafi
         const role = userData.role ? userData.role.toLowerCase() : "";
-        console.log("Found User Role:", role);
 
         const authorized = [
           "rector",
@@ -66,44 +71,34 @@ const StaffLogin = () => {
           "admission-officer",
           "super-admin",
         ];
-        if (authorized.includes(role)) {
-          console.log("Access Granted. Role:", role);
-          setLoading(false); // Dole ne ka kashe loading din anan
 
-          if (role === "rector") {
+        if (authorized.includes(role)) {
+          // REDIRECTION PROTOCOL
+          if (role === "rector")
             navigate("/rector-dashboard", { replace: true });
-          } else if (role === "admin" || role === "admission-officer") {
+          else if (role === "admin" || role === "admission-officer")
             navigate("/admin-dashboard", { replace: true });
-          } else if (role === "supervisor") {
-            // TABBATAR: Shin /supervisor-dashboard ne ko /supervisor-portal?
+          else if (role === "supervisor")
             navigate("/supervisor-dashboard", { replace: true });
-          } else {
-            navigate("/instructor-hub", { replace: true });
-          }
+          else navigate("/instructor-hub", { replace: true });
         } else {
-          console.error("Role not authorized:", role);
           await signOut(auth);
-          setError(
-            "Access Denied: Your account role does not have permission to access this portal.",
-          );
+          setError("ACCESS DENIED: Administrative credentials required.");
         }
       } else {
-        console.error("No Firestore document for UID:", user.uid);
         await signOut(auth);
-        setError(
-          "DATABASE ERROR: No administrative profile found in Firestore.",
-        );
+        setError("DATABASE ERROR: Profile not found.");
       }
     } catch (err) {
-      console.error("Full Firebase Error:", err.code, err.message);
-      // Wannan zai nuna maka takamaiman error din a screen
+      console.error("Firebase Login Error:", err.code);
       setError(
-        `LOGIN FAILED: ${err.code === "auth/invalid-credential" ? "Email ko Password ba daidai ba" : err.message}`,
+        `LOGIN FAILED: ${err.code === "auth/invalid-credential" ? "Email/Password is incorrect" : "System authentication failure"}`,
       );
     } finally {
       setLoading(false);
     }
   };
+
   return (
     <div
       style={{
@@ -111,7 +106,7 @@ const StaffLogin = () => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#020617", // Slate-950
+        backgroundColor: "#020617",
         padding: "24px",
         position: "relative",
         fontFamily: "sans-serif",
@@ -127,7 +122,6 @@ const StaffLogin = () => {
           background: "none",
           border: "none",
           cursor: "pointer",
-          transition: "color 0.3s",
         }}
       >
         <X size={32} />
@@ -167,7 +161,7 @@ const StaffLogin = () => {
             fontSize: "24px",
             fontWeight: "900",
             textAlign: "center",
-            marginBottom: "24px",
+            marginBottom: "8px",
             color: "#111827",
             textTransform: "uppercase",
             fontStyle: "italic",
@@ -175,6 +169,18 @@ const StaffLogin = () => {
         >
           AREWA <span style={{ color: "#dc2626" }}>COMMAND CENTER</span>
         </h2>
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: "10px",
+            color: "#64748b",
+            marginBottom: "24px",
+            fontWeight: "bold",
+            letterSpacing: "2px",
+          }}
+        >
+          ADMINISTRATIVE TERMINAL
+        </p>
 
         {error && (
           <div
@@ -183,10 +189,9 @@ const StaffLogin = () => {
               padding: "12px",
               backgroundColor: "#fef2f2",
               color: "#b91c1c",
-              fontSize: "12px",
+              fontSize: "11px",
               fontWeight: "bold",
               borderRadius: "12px",
-              textTransform: "uppercase",
               display: "flex",
               alignItems: "center",
               gap: "8px",
@@ -203,7 +208,7 @@ const StaffLogin = () => {
         >
           <input
             type="email"
-            placeholder="Staff Email"
+            placeholder="Institutional Email"
             style={{
               width: "100%",
               padding: "16px",
@@ -252,7 +257,6 @@ const StaffLogin = () => {
               alignItems: "center",
               justifyContent: "center",
               gap: "8px",
-              transition: "background-color 0.3s",
             }}
           >
             {loading ? <Loader2 className="animate-spin" /> : "Verify & Access"}
