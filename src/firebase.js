@@ -16,8 +16,8 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// GYARA: Mun maida 'db' ya koma Firestore domin duka shafukan Login suyi aiki
-export const db = getFirestore(app);
-export const rtdb = getDatabase(app); // Idan kana bukatar Realtime Database, kira shi da 'rtdb'
+// MUN BAMBANTA SUNAYEN DOMIN KOWANE SHAFIN YA SAMU ABINDA YAKE BUQATA
+export const firestore = getFirestore(app); // StaffLogin zai yi amfani da wannan
+export const db = getDatabase(app); // Sauran shafukan za su ci gaba da amfani da 'db'
 export const storage = getStorage(app);
 export const auth = getAuth(app);
