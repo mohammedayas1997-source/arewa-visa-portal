@@ -2430,31 +2430,85 @@ const Home = () => {
           </div>
           <div className="row g-4">
             {coursesData.map((course) => (
-              <div className="col-lg-3 col-md-6" key={course.id}>
+              <div className="col-lg-3 col-md-6 mb-4" key={course.id}>
                 <div
-                  className="card h-100 border-0 shadow-sm p-4 text-center"
-                  style={{ borderRadius: "20px", transition: "0.3s" }}
+                  className="card h-100 border-0 shadow-sm overflow-hidden"
+                  style={{
+                    borderRadius: "20px",
+                    transition: "transform 0.3s ease",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.transform = "translateY(-10px)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.transform = "translateY(0)")
+                  }
                 >
+                  {/* 1. SASHE NA HOTON COURSE */}
                   <div
-                    className="mb-4 d-inline-block p-3 rounded-circle"
                     style={{
-                      backgroundColor: `${course.color}15`,
-                      color: course.color,
+                      position: "relative",
+                      height: "180px",
+                      overflow: "hidden",
                     }}
                   >
-                    {course.icon}
+                    <img
+                      src={course.image}
+                      alt={course.title}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                    {/* ICON DIN COURSE DA KAKE SO (Floating Icon) */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: "15px",
+                        right: "15px",
+                        backgroundColor: "white",
+                        color: course.color,
+                        padding: "10px",
+                        borderRadius: "15px",
+                        boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {React.cloneElement(course.icon, { size: 24 })}
+                    </div>
                   </div>
-                  <h5 className="fw-bold mb-3">{course.title}</h5>
-                  <p className="text-muted small mb-4">{course.desc}</p>
-                  <button
-                    onClick={() => {
-                      setShowCourseForm(true);
-                      setSelectedCourse(course.title);
-                    }}
-                    className="btn btn-danger w-100 rounded-pill py-2"
-                  >
-                    Apply for this Course
-                  </button>
+
+                  {/* 2. SASHE NA BAYANAI */}
+                  <div className="card-body p-4 text-center">
+                    <h5 className="fw-bold mb-2" style={{ color: "#003366" }}>
+                      {course.title}
+                    </h5>
+                    <p
+                      className="text-muted small mb-4"
+                      style={{ minHeight: "45px" }}
+                    >
+                      {course.desc}
+                    </p>
+
+                    <button
+                      onClick={() => {
+                        setShowCourseForm(true);
+                        setSelectedCourse(course.title);
+                      }}
+                      className="btn btn-danger w-100 rounded-pill py-2 fw-bold"
+                      style={{
+                        backgroundColor: "#dc2626",
+                        border: "none",
+                        fontSize: "14px",
+                      }}
+                    >
+                      Apply for this Course
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
