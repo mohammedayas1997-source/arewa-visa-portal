@@ -69,7 +69,12 @@ export default function Navbar() {
       <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top py-3">
         <div className="container">
           <Link className="navbar-brand d-flex align-items-center gap-2" to="/">
-            <img src={logo} alt="Logo" height="50" />
+            {/* ANAN NA TAKAITA GIRMAN LOGO DIN DON YA ZAUNA DAIDAI */}
+            <img
+              src={logo}
+              alt="Logo"
+              style={{ height: "50px", width: "auto", objectFit: "contain" }}
+            />
             <div className="lh-1">
               <strong className="d-block text-dark">AREWA VISA</strong>
               <small
