@@ -150,35 +150,40 @@ const SupervisorDashboard = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userRef = doc(db, "users", user.uid);
-        // Maimakon onSnapshot a nan, yi amfani da getDoc don gudun fari fat idan snapshot ya makale
-        const snap = await getDoc(userRef);
-        if (snap.exists()) {
-          setSupervisorData({ id: user.uid, ...snap.data() });
+        try {
+          const userRef = doc(db, "users", user.uid);
+          const snap = await getDoc(userRef);
+          if (snap.exists()) {
+            setSupervisorData({ id: user.uid, ...snap.data() });
+          }
+        } catch (error) {
+          console.error("Error fetching supervisor data:", error);
+        } finally {
+          setAuthLoading(false);
         }
-        setAuthLoading(false); // Dole ne ya dawo false anan
       } else {
         navigate("/admin-login");
       }
     });
+    return () => unsubscribe();
+  }, [navigate]);
+
+  useEffect(() => {
     localStorage.setItem("super-theme", isDarkMode ? "dark" : "light");
     document.documentElement.classList.toggle("dark", isDarkMode);
-    return () => unsubscribe();
-  }, [isDarkMode, navigate]);
+  }, [isDarkMode]);
 
   // 2. DATA SYNC (STUDENTS, FORUM, PRIVATE DMS, LOGS)
   useEffect(() => {
     if (!selectedCourse) return;
 
+    const courseId = selectedCourse.toLowerCase().replace(/ /g, "_");
+
     const unsubStudents = onSnapshot(
       query(
         collection(db, "users"),
         where("role", "==", "student"),
-        where(
-          "selectedCourseId",
-          "==",
-          selectedCourse.toLowerCase().replace(/ /g, "_"),
-        ),
+        where("selectedCourseId", "==", courseId),
       ),
       (snap) =>
         setStudents(
@@ -193,11 +198,7 @@ const SupervisorDashboard = () => {
     const unsubForum = onSnapshot(
       query(
         collection(db, "forum_threads"),
-        where(
-          "courseId",
-          "==",
-          selectedCourse.toLowerCase().replace(/ /g, "_"),
-        ),
+        where("courseId", "==", courseId),
         orderBy("createdAt", "desc"),
       ),
       (snap) =>
@@ -266,6 +267,7 @@ const SupervisorDashboard = () => {
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
       await updateDoc(doc(db, "users", supervisorData.id), { photoURL: url });
+      setSupervisorData((prev) => ({ ...prev, photoURL: url }));
       setSettingsMsg({ type: "success", text: "Identity image updated." });
     } catch (err) {
       setSettingsMsg({ type: "error", text: "Upload failed." });
@@ -347,7 +349,7 @@ const SupervisorDashboard = () => {
       <div
         className={`min-h-screen flex items-center justify-center p-4 lg:p-6 ${isDarkMode ? "bg-slate-950" : "bg-slate-50"}`}
       >
-        <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+        <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 animate-in fade-in zoom-in duration-500">
           <div className="flex flex-col justify-center text-center md:text-left">
             <h1 className="text-5xl lg:text-6xl font-black italic tracking-tighter mb-4 text-blue-600 text-shadow-glow">
               AVA.SV
@@ -673,7 +675,10 @@ const SupervisorDashboard = () => {
                       value={reply}
                       onChange={(e) => setReply(e.target.value)}
                     />
-                    <button className="p-4 lg:p-5 bg-blue-600 text-white rounded-xl lg:rounded-2xl">
+                    <button
+                      type="submit"
+                      className="p-4 lg:p-5 bg-blue-600 text-white rounded-xl lg:rounded-2xl hover:scale-105 active:scale-95 transition-all"
+                    >
                       <Send size={18} />
                     </button>
                   </form>
@@ -746,7 +751,10 @@ const SupervisorDashboard = () => {
                       placeholder="Aika sakon sirri..."
                       className="flex-1 bg-transparent outline-none font-black text-xs lg:text-sm"
                     />
-                    <button className="p-4 bg-blue-600 text-white rounded-xl lg:rounded-2xl">
+                    <button
+                      type="submit"
+                      className="p-4 bg-blue-600 text-white rounded-xl lg:rounded-2xl hover:scale-105 active:scale-95 transition-all"
+                    >
                       <Send size={18} />
                     </button>
                   </form>
@@ -842,7 +850,7 @@ const SupervisorDashboard = () => {
 
         {/* LIBRARY SECTION */}
         {activeTab === "library" && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 animate-in slide-in-from-bottom-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 animate-in slide-in-from-bottom-5 duration-500">
             {libraryLinks.map((lib, i) => (
               <a
                 key={i}
