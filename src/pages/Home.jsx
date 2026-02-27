@@ -659,6 +659,7 @@ const Home = () => {
       details:
         "Comprehensive training in modern cleaning techniques, chemical safety, and specialized equipment handling for global sectors.",
       icon: <Brush size={40} />,
+      image: "1000084709.jpg", // Hoton dake nuna tsarin aiki
       color: "#007bff",
     },
     {
@@ -668,6 +669,7 @@ const Home = () => {
       details:
         "Focuses on guest relations, room maintenance, and high-end service standards required in international resorts.",
       icon: <Hotel size={40} />,
+      image: "1000084709.jpg",
       color: "#6610f2",
     },
     {
@@ -677,6 +679,7 @@ const Home = () => {
       details:
         "Advanced dry cleaning techniques, textile science, and operational mastery of commercial laundry systems.",
       icon: <Wind size={40} />,
+      image: "1000084709.jpg",
       color: "#0dcaf0",
     },
     {
@@ -686,6 +689,7 @@ const Home = () => {
       details:
         "Mastering application workflows, appointment scheduling, and embassy compliance for international travel.",
       icon: <FileText size={40} />,
+      image: "1000088518.jpg", // Hoton dake nuna tsarin "Secure Session"
       color: "#dc3545",
     },
     {
@@ -695,6 +699,7 @@ const Home = () => {
       details:
         "Professional training in Amadeus and Galileo systems for flight booking, fare construction, and itinerary management.",
       icon: <Plane size={40} />,
+      image: "1000084761.jpg", // Hoton dake nuna "Specialization"
       color: "#198754",
     },
     {
@@ -704,6 +709,7 @@ const Home = () => {
       details:
         "Strategic management of travel agencies, IATA standards, marketing, and global partnership logistics.",
       icon: <Briefcase size={40} />,
+      image: "1000084709.jpg",
       color: "#fd7e14",
     },
     {
@@ -713,6 +719,7 @@ const Home = () => {
       details:
         "Professional etiquette, conflict resolution, and client relations training for high-level corporate environments.",
       icon: <Headphones size={40} />,
+      image: "1000084709.jpg",
       color: "#ffc107",
     },
     {
@@ -722,6 +729,7 @@ const Home = () => {
       details:
         "Specialized modules on aircraft interior maintenance, hazardous materials handling, and aviation security compliance.",
       icon: <Ship size={40} />,
+      image: "1000084709.jpg",
       color: "#20c997",
     },
     {
@@ -731,6 +739,7 @@ const Home = () => {
       details:
         "Modern security protocols, emergency response, and surveillance technology management.",
       icon: <ShieldCheck size={40} />,
+      image: "1000088518.jpg",
       color: "#343a40",
     },
     {
@@ -740,6 +749,7 @@ const Home = () => {
       details:
         "Certified training in first aid, child development, geriatric care, and domestic safety for global households.",
       icon: <Users size={40} />,
+      image: "WhatsApp Image 2026-02-27 at 12.27.04 PM.jpeg", // Hoton dalibai da takardar shaida
       color: "#d63384",
     },
     {
@@ -749,6 +759,7 @@ const Home = () => {
       details:
         "Mastery of freight forwarding, customs documentation, warehousing, and international shipping logistics.",
       icon: <Package size={40} />,
+      image: "WhatsApp Image 2026-02-27 at 12.27.03 PM.jpeg", // Hoton Cargo and Logistics firi-fai
       color: "#6f42c1",
     },
     {
@@ -758,10 +769,10 @@ const Home = () => {
       details:
         "Comprehensive geography, tourism legislation, and strategic planning of global vacation and travel packages.",
       icon: <Globe2 size={40} />,
+      image: "WhatsApp Image 2026-02-27 at 12.27.04 PM.jpeg", // Hoton daliban Travel and Tourism
       color: "#001f3f",
     },
   ];
-
   const availableJobs = [
     {
       id: 1,
@@ -769,6 +780,7 @@ const Home = () => {
       country: "Australia 🇦🇺",
       slot: "12 Slots Left",
       category: "Security",
+      image: "1000088518.jpg", // Hoton dake nuna "Secure Session" ya dace da Security
     },
     {
       id: 2,
@@ -776,6 +788,7 @@ const Home = () => {
       country: "Canada 🇨🇦",
       slot: "8 Slots Left",
       category: "Healthcare",
+      image: "WhatsApp Image 2026-02-27 at 12.27.04 PM.jpeg", // Hoton dalibai da takardar shaida (Professionalism)
     },
     {
       id: 3,
@@ -783,6 +796,7 @@ const Home = () => {
       country: "USA 🇺🇸",
       slot: "25 Slots Left",
       category: "Cleaning",
+      image: "1000084709.jpg", // Hoton dashboard dake nuna tsarin ayyukan Academy
     },
     {
       id: 4,
@@ -790,6 +804,7 @@ const Home = () => {
       country: "Schengen Area 🇪🇺",
       slot: "5 Slots Left",
       category: "Schengen",
+      image: "1000088518.jpg", // Yanayin tsaro da portal ya dace da aikin Visa
     },
     {
       id: 5,
@@ -797,6 +812,7 @@ const Home = () => {
       country: "Japan 🇯🇵",
       slot: "15 Slots Left",
       category: "Hospitality",
+      image: "1000084709.jpg",
     },
     {
       id: 6,
@@ -804,6 +820,7 @@ const Home = () => {
       country: "South Korea 🇰🇷",
       slot: "10 Slots Left",
       category: "Service",
+      image: "1000084709.jpg",
     },
     {
       id: 7,
@@ -811,6 +828,7 @@ const Home = () => {
       country: "New Zealand 🇳🇿",
       slot: "4 Slots Left",
       category: "Travel",
+      image: "1000084761.jpg", // Hoton kwas din Specialization
     },
     {
       id: 8,
@@ -818,6 +836,7 @@ const Home = () => {
       country: "Gulf Countries 🇶🇦 🇦🇪",
       slot: "20 Slots Left",
       category: "Gulf",
+      image: "1000088518.jpg",
     },
     {
       id: 9,
@@ -825,6 +844,7 @@ const Home = () => {
       country: "United Kingdom 🇬🇧",
       slot: "2 Slots Left",
       category: "Management",
+      image: "WhatsApp Image 2026-02-27 at 12.27.04 PM.jpeg", // Hoton masu takardar shaida
     },
     {
       id: 10,
@@ -832,6 +852,7 @@ const Home = () => {
       country: "Russia 🇷🇺",
       slot: "12 Slots Left",
       category: "Aviation",
+      image: "1000084709.jpg",
     },
     {
       id: 11,
@@ -839,6 +860,7 @@ const Home = () => {
       country: "Mauritius 🇲🇺",
       slot: "7 Slots Left",
       category: "Logistics",
+      image: "WhatsApp Image 2026-02-27 at 12.27.03 PM.jpeg", // Hoton Cargo and Logistics firi-fai
     },
     {
       id: 12,
@@ -846,6 +868,7 @@ const Home = () => {
       country: "Seychelles 🇸🇨",
       slot: "6 Slots Left",
       category: "Tourism",
+      image: "WhatsApp Image 2026-02-27 at 12.27.04 PM.jpeg",
     },
   ];
 

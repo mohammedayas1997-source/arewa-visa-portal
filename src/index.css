@@ -1,16 +1,20 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* Wannan zai tilasta kowane icon na Lucide ya fito fili */
-svg.lucide {
-  display: inline-block !important;
-  vertical-align: middle;
-  overflow: visible !important;
+/* Wannan zai tabbatar dukkan icons sun bayyana */
+@layer base {
+  svg {
+    display: inline-block !important;
+    vertical-align: middle;
+    width: auto;
+    height: auto;
+  }
 }
 
+/* Wannan zai gyara matsalar Navbar a kowane yanayi */
+.navbar-toggler svg,
 .nav-link svg,
 .navbar-brand svg {
-  margin-right: 8px;
-  color: inherit;
+  min-width: 20px;
+  min-height: 20px;
+  display: flex !important;
 }
