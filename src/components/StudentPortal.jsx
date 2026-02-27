@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { db, auth, storage } from "../firebase"; // Path corrected for your project
+import { auth, db } from "../firebase"; // Path corrected for your project
 import {
   signOut,
   onAuthStateChanged,

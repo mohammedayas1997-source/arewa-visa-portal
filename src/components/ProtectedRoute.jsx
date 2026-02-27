@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 // GYARA 1: Tabbatar path din ya dace da inda file din firebase yake (sau yawancin sa ../firebase)
 // GYARA 2: Mun kira 'firestore' maimakon 'db' don kaucewa rikici da Realtime Database
-import { auth, firestore as db } from "../firebase"; 
+import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { Navigate, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
@@ -24,7 +24,10 @@ const ProtectedRoute = ({ children, requiredRole }) => {
           if (userDoc.exists()) {
             const userData = userDoc.data();
 
-            if (userData.status === "suspended" || userData.status === "inactive") {
+            if (
+              userData.status === "suspended" ||
+              userData.status === "inactive"
+            ) {
               await signOut(auth);
               setStatus("suspended");
               setUser(null);
@@ -57,10 +60,38 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#020617", color: "white" }}>
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#020617",
+          color: "white",
+        }}
+      >
         <div style={{ textAlign: "center" }}>
-          <div className="animate-spin" style={{ width: "40px", height: "40px", border: "4px solid #2563eb", borderTopColor: "transparent", borderRadius: "50%", margin: "0 auto 20px" }}></div>
-          <p style={{ fontSize: "10px", fontWeight: "900", letterSpacing: "2px", color: "#3b82f6" }}>AREWA SECURITY: VERIFYING...</p>
+          <div
+            className="animate-spin"
+            style={{
+              width: "40px",
+              height: "40px",
+              border: "4px solid #2563eb",
+              borderTopColor: "transparent",
+              borderRadius: "50%",
+              margin: "0 auto 20px",
+            }}
+          ></div>
+          <p
+            style={{
+              fontSize: "10px",
+              fontWeight: "900",
+              letterSpacing: "2px",
+              color: "#3b82f6",
+            }}
+          >
+            AREWA SECURITY: VERIFYING...
+          </p>
         </div>
       </div>
     );
@@ -68,13 +99,23 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
   // 1. Redirect idan ba'a yi login ba
   if (!user) {
-    const isStaffPath = ["admin", "rector", "supervisor"].some(path => location.pathname.includes(path));
-    return <Navigate to={isStaffPath ? "/admin-gateway" : "/login"} state={{ from: location }} replace />;
+    const isStaffPath = ["admin", "rector", "supervisor"].some((path) =>
+      location.pathname.includes(path),
+    );
+    return (
+      <Navigate
+        to={isStaffPath ? "/admin-gateway" : "/login"}
+        state={{ from: location }}
+        replace
+      />
+    );
   }
 
   // 2. Redirect idan an dakatar
   if (status === "suspended") {
-    return <Navigate to="/login" state={{ error: "Account Suspended" }} replace />;
+    return (
+      <Navigate to="/login" state={{ error: "Account Suspended" }} replace />
+    );
   }
 
   // 3. Role-Based Access
