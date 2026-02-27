@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { db, auth, storage } from "../firebase"; // Path corrected
+import { db, auth, storage } from "../firebase";
 import {
   onAuthStateChanged,
   signOut,
@@ -41,7 +41,6 @@ import {
   AlertCircle,
   RefreshCcw,
   UploadCloud,
-  ChevronRight,
   Menu,
   X,
 } from "lucide-react";
@@ -56,14 +55,10 @@ const SupervisorDashboard = () => {
   const [replies, setReplies] = useState([]);
   const [reply, setReply] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // NEW STATES: PRIVATE MESSAGING & HISTORY
   const [privateMessages, setPrivateMessages] = useState([]);
   const [selectedStudentForDM, setSelectedStudentForDM] = useState(null);
   const [dmText, setDmText] = useState("");
   const [systemLogs, setSystemLogs] = useState([]);
-
-  // SETTINGS & IDENTITY STATES
   const [isDarkMode, setIsDarkMode] = useState(
     () => localStorage.getItem("super-theme") === "dark",
   );
@@ -77,7 +72,6 @@ const SupervisorDashboard = () => {
   const [settingsMsg, setSettingsMsg] = useState({ type: "", text: "" });
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // AREWA VISA ACADEMY OFFICIAL COURSES (TOTAL: 12)
   const availableCourses = [
     "Cleaning Course",
     "Housekeeping Course",
@@ -146,7 +140,6 @@ const SupervisorDashboard = () => {
     },
   ];
 
-  // 1. AUTH & THEME PERSISTENCE
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -157,7 +150,7 @@ const SupervisorDashboard = () => {
             setSupervisorData({ id: user.uid, ...snap.data() });
           }
         } catch (error) {
-          console.error("Error fetching supervisor data:", error);
+          console.error("Auth Error:", error);
         } finally {
           setAuthLoading(false);
         }
@@ -173,10 +166,8 @@ const SupervisorDashboard = () => {
     document.documentElement.classList.toggle("dark", isDarkMode);
   }, [isDarkMode]);
 
-  // 2. DATA SYNC (STUDENTS, FORUM, PRIVATE DMS, LOGS)
   useEffect(() => {
     if (!selectedCourse) return;
-
     const courseId = selectedCourse.toLowerCase().replace(/ /g, "_");
 
     const unsubStudents = onSnapshot(
@@ -227,7 +218,6 @@ const SupervisorDashboard = () => {
     };
   }, [selectedCourse]);
 
-  // FORUM REPLIES LISTENER
   useEffect(() => {
     if (!activeThread) return;
     const unsubReplies = onSnapshot(
@@ -240,7 +230,6 @@ const SupervisorDashboard = () => {
     return () => unsubReplies();
   }, [activeThread]);
 
-  // PRIVATE MESSAGE LISTENER
   useEffect(() => {
     if (!selectedStudentForDM) return;
     const q = query(
@@ -248,13 +237,12 @@ const SupervisorDashboard = () => {
       where("studentId", "==", selectedStudentForDM.id),
       orderBy("createdAt", "asc"),
     );
-    const unsub = onSnapshot(q, (snap) => {
-      setPrivateMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    });
+    const unsub = onSnapshot(q, (snap) =>
+      setPrivateMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    );
     return () => unsub();
   }, [selectedStudentForDM]);
 
-  // --- SETTINGS PROTOCOLS ---
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -268,9 +256,12 @@ const SupervisorDashboard = () => {
       const url = await getDownloadURL(storageRef);
       await updateDoc(doc(db, "users", supervisorData.id), { photoURL: url });
       setSupervisorData((prev) => ({ ...prev, photoURL: url }));
-      setSettingsMsg({ type: "success", text: "Identity image updated." });
+      setSettingsMsg({ type: "success", text: "Identity profile updated." });
     } catch (err) {
-      setSettingsMsg({ type: "error", text: "Upload failed." });
+      setSettingsMsg({
+        type: "error",
+        text: "System failed to process image.",
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -279,7 +270,10 @@ const SupervisorDashboard = () => {
   const handlePasswordUpdate = async (e) => {
     e.preventDefault();
     if (passwords.new !== passwords.confirm)
-      return setSettingsMsg({ type: "error", text: "Passwords mismatch." });
+      return setSettingsMsg({
+        type: "error",
+        text: "Password confirmation mismatch.",
+      });
     setIsUpdating(true);
     try {
       const cred = EmailAuthProvider.credential(
@@ -290,11 +284,14 @@ const SupervisorDashboard = () => {
       await updatePassword(auth.currentUser, passwords.new);
       setSettingsMsg({
         type: "success",
-        text: "Security credentials updated.",
+        text: "Security credentials synchronized.",
       });
       setPasswords({ current: "", new: "", confirm: "" });
     } catch (err) {
-      setSettingsMsg({ type: "error", text: "Current password invalid." });
+      setSettingsMsg({
+        type: "error",
+        text: "Invalid current authorization key.",
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -326,7 +323,7 @@ const SupervisorDashboard = () => {
   };
 
   const handleLogout = async () => {
-    if (window.confirm("CRITICAL: Terminate Supervisor Session?")) {
+    if (window.confirm("CRITICAL: Terminate Session?")) {
       await signOut(auth);
       navigate("/admin-login");
     }
@@ -339,7 +336,7 @@ const SupervisorDashboard = () => {
       >
         <Loader2 className="animate-spin mb-4" size={48} />
         <p className="font-black uppercase tracking-[0.3em] text-xs">
-          Authenticating AVA Supervisor...
+          Authenticating Node Access...
         </p>
       </div>
     );
@@ -347,36 +344,45 @@ const SupervisorDashboard = () => {
   if (!selectedCourse)
     return (
       <div
-        className={`min-h-screen flex items-center justify-center p-4 lg:p-6 ${isDarkMode ? "bg-slate-950" : "bg-slate-50"}`}
+        className={`min-h-screen flex items-center justify-center p-6 ${isDarkMode ? "bg-slate-950" : "bg-slate-50"}`}
       >
-        <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 animate-in fade-in zoom-in duration-500">
-          <div className="flex flex-col justify-center text-center md:text-left">
-            <h1 className="text-5xl lg:text-6xl font-black italic tracking-tighter mb-4 text-blue-600 text-shadow-glow">
-              AVA.SV
+        <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div>
+            <h1 className="text-7xl font-black italic tracking-tighter text-blue-600 mb-2">
+              AVA.CORE
             </h1>
             <p
-              className={`font-black uppercase tracking-widest text-[10px] lg:text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
+              className={`font-black uppercase tracking-widest text-xs mb-8 ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
             >
-              Arewa Visa Academy Terminal
+              Operational Command Terminal
             </p>
             <h2
-              className={`text-2xl lg:text-3xl font-bold mt-4 lg:mt-8 ${isDarkMode ? "text-white" : "text-slate-900"}`}
+              className={`text-4xl font-bold ${isDarkMode ? "text-white" : "text-slate-900"}`}
             >
-              Maraba, {supervisorData?.fullName}
+              Welcome, Inspector {supervisorData?.fullName?.split(" ")[0]}
             </h2>
+            <p className="mt-4 opacity-50 font-medium">
+              Select a specialized deployment module to begin monitoring.
+            </p>
           </div>
-          <div className="grid grid-cols-1 gap-4 max-h-[60vh] md:max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="grid grid-cols-1 gap-3 max-h-[75vh] overflow-y-auto pr-4 custom-scrollbar">
             {availableCourses.map((course) => (
               <button
                 key={course}
                 onClick={() => setSelectedCourse(course)}
-                className={`p-5 lg:p-6 rounded-[1.5rem] lg:rounded-[2rem] text-left transition-all group border ${isDarkMode ? "bg-white/5 border-white/10 hover:bg-blue-600" : "bg-white border-slate-200 hover:bg-blue-600"}`}
+                className={`p-6 rounded-[2rem] text-left transition-all border group hover:scale-[1.02] active:scale-[0.98] ${isDarkMode ? "bg-white/5 border-white/10 hover:bg-blue-600" : "bg-white border-slate-200 shadow-sm hover:bg-blue-600"}`}
               >
-                <p
-                  className={`font-black text-base lg:text-lg group-hover:text-white transition-all ${isDarkMode ? "text-white" : "text-slate-900"}`}
-                >
-                  {course}
-                </p>
+                <div className="flex justify-between items-center">
+                  <span
+                    className={`font-black text-lg group-hover:text-white ${isDarkMode ? "text-white" : "text-slate-900"}`}
+                  >
+                    {course}
+                  </span>
+                  <ShieldCheck
+                    size={20}
+                    className="opacity-20 group-hover:opacity-100 group-hover:text-white"
+                  />
+                </div>
               </button>
             ))}
           </div>
@@ -386,80 +392,51 @@ const SupervisorDashboard = () => {
 
   return (
     <div
-      className={`flex flex-col lg:flex-row min-h-screen font-sans transition-colors duration-300 ${isDarkMode ? "bg-slate-950 text-white" : "bg-[#f8fafc] text-slate-900"}`}
+      className={`flex flex-col lg:flex-row min-h-screen transition-all duration-500 ${isDarkMode ? "bg-slate-950 text-white" : "bg-[#f8fafc] text-slate-900"}`}
     >
-      {/* MOBILE HEADER */}
-      <header
-        className={`lg:hidden flex items-center justify-between p-4 border-b sticky top-0 z-[100] ${isDarkMode ? "bg-slate-950 border-slate-800" : "bg-white border-slate-200 shadow-sm"}`}
-      >
-        <div
-          className="flex items-center gap-2"
-          onClick={() => setSelectedCourse(null)}
-        >
-          <ShieldCheck className="text-blue-600" size={24} />
-          <h2 className="text-lg font-black italic text-blue-600 tracking-tighter">
-            AVA CORE
-          </h2>
-        </div>
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 bg-blue-600 text-white rounded-lg"
-        >
-          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
-      </header>
-
-      {/* MOBILE OVERLAY */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] lg:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        ></div>
-      )}
-
-      {/* SIDEBAR - Desktop & Mobile */}
       <aside
-        className={`fixed inset-y-0 left-0 z-[110] w-72 lg:w-80 border-r p-6 lg:p-8 flex flex-col transition-transform duration-300 transform lg:translate-x-0 lg:sticky lg:h-screen ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200 shadow-sm"}`}
+        className={`fixed lg:sticky top-0 h-screen w-80 p-8 flex flex-col border-r z-[100] transition-all ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200 shadow-xl"}`}
       >
         <div
-          className="hidden lg:flex items-center gap-3 mb-10 cursor-pointer"
+          className="flex items-center gap-3 mb-12 cursor-pointer"
           onClick={() => setSelectedCourse(null)}
         >
           <div className="p-2 bg-blue-600 rounded-xl text-white shadow-lg">
             <ShieldCheck size={24} />
           </div>
-          <h2 className="text-xl font-black italic text-blue-600 uppercase tracking-tighter">
-            AVA CORE
+          <h2 className="text-xl font-black italic text-blue-600 tracking-tighter">
+            AVA CENTRAL
           </h2>
         </div>
 
-        <nav className="space-y-2 lg:space-y-3 flex-1 overflow-y-auto custom-scrollbar">
+        <nav className="space-y-2 flex-1 overflow-y-auto custom-scrollbar">
           {[
             {
               id: "forum",
               icon: <MessageSquare size={18} />,
-              label: "Forum Patrol",
+              label: "Course Forum",
             },
-            { id: "dm", icon: <Lock size={18} />, label: "Private DMs" },
+            { id: "dm", icon: <Lock size={18} />, label: "Private Comms" },
             {
               id: "students",
               icon: <Users size={18} />,
-              label: "Student Roster",
+              label: "Cadet Roster",
             },
-            { id: "library", icon: <BookOpen size={18} />, label: "E-Library" },
+            {
+              id: "library",
+              icon: <BookOpen size={18} />,
+              label: "Resource Vault",
+            },
             {
               id: "history",
               icon: <History size={18} />,
-              label: "System Logs",
+              label: "Incident Logs",
             },
-            { id: "settings", icon: <Settings size={18} />, label: "Settings" },
+            { id: "settings", icon: <Settings size={18} />, label: "Config" },
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id);
-                setIsMobileMenuOpen(false);
-              }}
+              onClick={() => setActiveTab(tab.id)}
               className={`t-nav ${activeTab === tab.id ? "t-active" : ""}`}
             >
               {tab.icon} {tab.label}
@@ -467,99 +444,99 @@ const SupervisorDashboard = () => {
           ))}
         </nav>
 
-        {/* SALARY MODULE */}
-        <div className="mt-6 mb-6 p-5 lg:p-6 bg-blue-600 rounded-2xl lg:rounded-3xl text-white shadow-xl">
-          <div className="flex items-center gap-2 mb-2">
-            <Wallet size={16} />
-            <span className="text-[10px] font-black uppercase opacity-60 tracking-widest">
-              Alawans
+        <div className="mt-8 p-6 bg-gradient-to-br from-blue-600 to-blue-800 rounded-3xl text-white shadow-2xl">
+          <div className="flex items-center gap-2 mb-1 opacity-60">
+            <Wallet size={14} />
+            <span className="text-[10px] font-black uppercase tracking-widest">
+              Active Credit
             </span>
           </div>
-          <div className="text-xl lg:text-2xl font-black tracking-tighter">
-            ₦{supervisorData?.salary?.toLocaleString() || "0.00"}
+          <div className="text-2xl font-black italic">
+            ₦{supervisorData?.salary?.toLocaleString()}
           </div>
         </div>
 
-        <div className="space-y-4 pt-4 border-t border-slate-800">
+        <div className="mt-8 space-y-3 pt-6 border-t border-white/5">
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
-            className="w-full flex items-center justify-center gap-3 p-3 lg:p-4 bg-slate-800/50 rounded-2xl font-black uppercase text-[10px] tracking-widest"
+            className="w-full flex items-center justify-center gap-3 p-4 bg-slate-800/40 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600/20 transition-all"
           >
             {isDarkMode ? <Sun size={18} /> : <Moon size={18} />} Spectrum
           </button>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-3 p-3 lg:p-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all"
+            className="w-full flex items-center justify-center gap-3 p-4 bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all"
           >
-            <LogOut size={18} /> Logout
+            <LogOut size={18} /> Abort Session
           </button>
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
-      <main className="flex-1 p-4 lg:p-10 overflow-y-auto overflow-x-hidden">
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 lg:mb-10 gap-4">
-          <h1 className="text-2xl lg:text-4xl font-black italic uppercase tracking-tighter">
-            {activeTab.replace("_", " ")} Node
-          </h1>
-          <div className="px-4 py-2 bg-blue-600/10 rounded-xl text-blue-600 font-black text-[10px] lg:text-xs uppercase tracking-widest border border-blue-600/20">
+      <main className="flex-1 p-6 lg:p-12">
+        <header className="flex justify-between items-center mb-12">
+          <div>
+            <h1 className="text-4xl font-black italic uppercase tracking-tighter text-blue-600">
+              {activeTab} Node
+            </h1>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40 mt-1">
+              Operational Environment
+            </p>
+          </div>
+          <div className="px-6 py-3 bg-blue-600/10 rounded-2xl text-blue-600 font-black text-xs uppercase tracking-widest border border-blue-600/20 shadow-inner">
             {selectedCourse}
           </div>
         </header>
 
-        {/* SETTINGS MODULE */}
         {activeTab === "settings" && (
-          <div className="max-w-4xl space-y-8 lg:space-y-12 animate-in fade-in duration-500">
-            {settingsMsg.text && (
-              <div
-                className={`p-4 rounded-xl flex items-center gap-3 font-black text-[10px] uppercase border ${settingsMsg.type === "success" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-red-500/10 border-red-500/20 text-red-500"}`}
-              >
-                {settingsMsg.type === "success" ? (
-                  <CheckCircle2 size={16} />
-                ) : (
-                  <AlertCircle size={16} />
-                )}{" "}
-                {settingsMsg.text}
-              </div>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
-              <div className="flex justify-center md:block">
-                <div className="relative group w-48 lg:w-full">
-                  <div className="w-full aspect-square rounded-[2rem] lg:rounded-[3rem] overflow-hidden border-4 border-blue-600/20 bg-slate-800 flex items-center justify-center relative">
-                    {supervisorData?.photoURL ? (
-                      <img
-                        src={supervisorData.photoURL}
-                        className="w-full h-full object-cover"
-                        alt="Supervisor"
-                      />
-                    ) : (
-                      <Users size={60} className="text-slate-700" />
-                    )}
-                    {isUpdating && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                        <RefreshCcw className="animate-spin text-white" />
-                      </div>
-                    )}
-                  </div>
-                  <label className="absolute -bottom-2 lg:-bottom-4 -right-2 lg:-right-4 p-3 lg:p-4 bg-blue-600 text-white rounded-xl lg:rounded-2xl shadow-xl cursor-pointer hover:scale-110 transition-all">
-                    <Camera size={18} />
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleImageUpload}
+          <div className="max-w-4xl animate-in fade-in slide-in-from-right-10 duration-500">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+              <div className="relative group">
+                <div className="w-full aspect-square rounded-[3rem] overflow-hidden border-4 border-blue-600/20 bg-slate-800 flex items-center justify-center relative shadow-2xl">
+                  {supervisorData?.photoURL ? (
+                    <img
+                      src={supervisorData.photoURL}
+                      className="w-full h-full object-cover"
+                      alt="Identity"
                     />
-                  </label>
+                  ) : (
+                    <Users size={64} className="opacity-20" />
+                  )}
+                  {isUpdating && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                      <RefreshCcw className="animate-spin text-white" />
+                    </div>
+                  )}
                 </div>
+                <label className="absolute -bottom-4 -right-4 p-5 bg-blue-600 text-white rounded-3xl shadow-2xl cursor-pointer hover:scale-110 active:scale-90 transition-all">
+                  <Camera size={20} />
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                  />
+                </label>
               </div>
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 space-y-6">
+                {settingsMsg.text && (
+                  <div
+                    className={`p-5 rounded-2xl flex items-center gap-3 font-black text-[10px] uppercase border ${settingsMsg.type === "success" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-red-500/10 border-red-500/20 text-red-500"}`}
+                  >
+                    {settingsMsg.type === "success" ? (
+                      <CheckCircle2 size={16} />
+                    ) : (
+                      <AlertCircle size={16} />
+                    )}{" "}
+                    {settingsMsg.text}
+                  </div>
+                )}
                 <form
                   onSubmit={handlePasswordUpdate}
-                  className={`p-6 lg:p-10 rounded-[2rem] lg:rounded-[2.5rem] border space-y-4 lg:space-y-6 ${isDarkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-xl border-slate-100"}`}
+                  className={`p-10 rounded-[3rem] border space-y-6 ${isDarkMode ? "bg-slate-900 border-white/5 shadow-2xl" : "bg-white shadow-xl border-slate-100"}`}
                 >
                   <input
                     type="password"
-                    placeholder="TIKIYAR SIRRI NA YANZU"
+                    placeholder="Current Authorization Key"
                     required
                     className="s-input"
                     value={passwords.current}
@@ -567,10 +544,10 @@ const SupervisorDashboard = () => {
                       setPasswords({ ...passwords, current: e.target.value })
                     }
                   />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <input
                       type="password"
-                      placeholder="SABUWAR TIKIYA"
+                      placeholder="New Secure Key"
                       required
                       className="s-input"
                       value={passwords.new}
@@ -580,7 +557,7 @@ const SupervisorDashboard = () => {
                     />
                     <input
                       type="password"
-                      placeholder="TABBATAR DA SABUWA"
+                      placeholder="Confirm Key"
                       required
                       className="s-input"
                       value={passwords.confirm}
@@ -591,13 +568,13 @@ const SupervisorDashboard = () => {
                   </div>
                   <button
                     disabled={isUpdating}
-                    className="w-full py-4 lg:py-5 bg-blue-600 text-white rounded-xl lg:rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3"
+                    className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-blue-600/30"
                   >
                     {isUpdating ? (
                       <RefreshCcw className="animate-spin" />
                     ) : (
                       <>
-                        <UploadCloud size={16} /> Update Security
+                        <UploadCloud size={18} /> Update Security Profile
                       </>
                     )}
                   </button>
@@ -607,59 +584,57 @@ const SupervisorDashboard = () => {
           </div>
         )}
 
-        {/* FORUM INTERFACE */}
         {activeTab === "forum" && (
-          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 h-auto lg:h-[75vh]">
+          <div className="flex gap-8 h-[70vh] animate-in fade-in duration-500">
             <div
-              className={`w-full lg:w-1/3 rounded-[1.5rem] lg:rounded-[2.5rem] border overflow-hidden flex flex-col max-h-[40vh] lg:max-h-full ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200 shadow-sm"}`}
+              className={`w-1/3 rounded-[3rem] border overflow-hidden flex flex-col ${isDarkMode ? "bg-slate-900 border-slate-800 shadow-2xl" : "bg-white border-slate-200 shadow-xl"}`}
             >
-              <div className="p-4 lg:p-6 border-b border-slate-800 font-black uppercase text-[10px] opacity-50">
-                Arewa Forum Threads
+              <div className="p-8 border-b border-slate-800 font-black uppercase text-[10px] opacity-40 tracking-widest">
+                Active Dispatch Threads
               </div>
               <div className="overflow-y-auto flex-1 custom-scrollbar">
                 {forumThreads.map((thread) => (
                   <div
                     key={thread.id}
                     onClick={() => setActiveThread(thread)}
-                    className={`p-4 lg:p-6 border-b border-slate-800 cursor-pointer transition-all ${activeThread?.id === thread.id ? "bg-blue-600 text-white" : "hover:bg-blue-600/10"}`}
+                    className={`p-8 border-b border-white/5 cursor-pointer transition-all ${activeThread?.id === thread.id ? "bg-blue-600 text-white shadow-lg" : "hover:bg-blue-600/10"}`}
                   >
-                    <p className="font-black text-xs lg:text-sm line-clamp-1 italic uppercase">
+                    <p className="font-black text-sm uppercase italic line-clamp-1 mb-2">
                       "{thread.title}"
                     </p>
-                    <p
-                      className={`text-[10px] mt-1 lg:mt-2 font-bold ${activeThread?.id === thread.id ? "text-blue-100" : "text-slate-400"}`}
-                    >
-                      Daga {thread.studentName}
-                    </p>
+                    <div className="flex items-center gap-2 opacity-50 text-[10px] font-bold">
+                      <Users size={12} />
+                      <span>Cadet {thread.studentName?.split(" ")[0]}</span>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
             <div
-              className={`flex-1 rounded-[1.5rem] lg:rounded-[2.5rem] border flex flex-col overflow-hidden min-h-[50vh] lg:min-h-0 ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200 shadow-xl"}`}
+              className={`flex-1 rounded-[3.5rem] border flex flex-col overflow-hidden ${isDarkMode ? "bg-slate-900 border-slate-800 shadow-2xl" : "bg-white border-slate-200 shadow-2xl"}`}
             >
               {activeThread ? (
                 <>
                   <div
-                    className={`p-6 lg:p-8 border-b ${isDarkMode ? "bg-slate-800/50 border-slate-700" : "bg-slate-50/50 border-slate-100"}`}
+                    className={`p-10 border-b ${isDarkMode ? "bg-blue-600/5 border-slate-800" : "bg-slate-50 border-slate-100"}`}
                   >
-                    <h3 className="font-black text-xl lg:text-2xl italic uppercase text-blue-600">
+                    <h3 className="font-black text-3xl italic uppercase text-blue-600 tracking-tighter">
                       {activeThread.title}
                     </h3>
-                    <p className="opacity-60 text-xs lg:text-sm mt-3 leading-relaxed">
-                      {activeThread.content}
+                    <p className="opacity-50 text-sm mt-4 leading-relaxed font-medium">
+                      "{activeThread.content}"
                     </p>
                   </div>
-                  <div className="flex-1 p-6 lg:p-8 overflow-y-auto space-y-4 lg:space-y-6 flex flex-col custom-scrollbar">
+                  <div className="flex-1 p-10 overflow-y-auto space-y-6 flex flex-col custom-scrollbar">
                     {replies.map((msg) => (
                       <div
                         key={msg.id}
-                        className={`max-w-[85%] lg:max-w-[80%] p-4 rounded-2xl lg:rounded-3xl ${msg.role === "supervisor" ? "bg-blue-600 text-white self-end rounded-tr-none" : "bg-slate-800 text-white self-start"}`}
+                        className={`max-w-[75%] p-6 rounded-[2rem] shadow-sm ${msg.role === "supervisor" ? "bg-blue-600 text-white self-end rounded-tr-none" : "bg-slate-800 text-white self-start rounded-tl-none border border-white/5"}`}
                       >
-                        <p className="text-[8px] font-black uppercase mb-1 opacity-70">
+                        <p className="text-[9px] font-black uppercase mb-2 opacity-60 tracking-widest">
                           {msg.sender}
                         </p>
-                        <p className="text-xs lg:text-sm font-medium italic">
+                        <p className="text-sm font-bold italic leading-relaxed">
                           "{msg.text}"
                         </p>
                       </div>
@@ -667,27 +642,27 @@ const SupervisorDashboard = () => {
                   </div>
                   <form
                     onSubmit={handleReply}
-                    className="p-4 lg:p-6 border-t border-slate-800 flex gap-3 lg:gap-4"
+                    className="p-8 border-t border-white/5 flex gap-4 bg-slate-900/20"
                   >
                     <input
-                      className="flex-1 bg-transparent outline-none font-black text-xs lg:text-sm"
-                      placeholder="Rubuta bayani anan..."
+                      className="flex-1 bg-transparent outline-none font-black text-sm px-4"
+                      placeholder="Transmit response to thread..."
                       value={reply}
                       onChange={(e) => setReply(e.target.value)}
                     />
                     <button
                       type="submit"
-                      className="p-4 lg:p-5 bg-blue-600 text-white rounded-xl lg:rounded-2xl hover:scale-105 active:scale-95 transition-all"
+                      className="p-5 bg-blue-600 text-white rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-blue-600/20"
                     >
-                      <Send size={18} />
+                      <Send size={20} />
                     </button>
                   </form>
                 </>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center opacity-20 p-8 text-center">
-                  <MessageSquare size={60} />
-                  <p className="font-black uppercase text-[10px] mt-4">
-                    Zabi tattaunawa don shiga ciki
+                <div className="flex-1 flex flex-col items-center justify-center opacity-20 p-8">
+                  <MessageSquare size={80} />
+                  <p className="font-black uppercase text-xs mt-6 tracking-widest">
+                    Select an active thread to monitor communications
                   </p>
                 </div>
               )}
@@ -695,23 +670,22 @@ const SupervisorDashboard = () => {
           </div>
         )}
 
-        {/* DM SECTION */}
         {activeTab === "dm" && (
-          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 h-auto lg:h-[75vh]">
+          <div className="flex gap-8 h-[70vh] animate-in zoom-in duration-500">
             <div
-              className={`w-full lg:w-1/3 rounded-[1.5rem] lg:rounded-[2.5rem] border flex flex-col max-h-[40vh] lg:max-h-full ${isDarkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-xl"}`}
+              className={`w-1/3 rounded-[3rem] border flex flex-col ${isDarkMode ? "bg-slate-900 border-white/5 shadow-2xl" : "bg-white shadow-2xl"}`}
             >
-              <div className="p-4 lg:p-6 font-black uppercase text-[10px] opacity-50 border-b border-slate-800">
-                Jerin Dalibai
+              <div className="p-8 font-black uppercase text-[10px] opacity-40 border-b border-white/5 tracking-widest">
+                Target Cadets
               </div>
               <div className="overflow-y-auto flex-1 custom-scrollbar">
                 {students.map((s) => (
                   <div
                     key={s.id}
                     onClick={() => setSelectedStudentForDM(s)}
-                    className={`p-4 lg:p-6 border-b border-slate-800 cursor-pointer transition-all ${selectedStudentForDM?.id === s.id ? "bg-blue-600 text-white" : "hover:bg-blue-600/10"}`}
+                    className={`p-8 border-b border-white/5 cursor-pointer transition-all ${selectedStudentForDM?.id === s.id ? "bg-blue-600 text-white" : "hover:bg-blue-600/5"}`}
                   >
-                    <p className="font-black uppercase text-xs lg:text-sm">
+                    <p className="font-black uppercase text-sm tracking-tight">
                       {s.studentName}
                     </p>
                   </div>
@@ -719,23 +693,24 @@ const SupervisorDashboard = () => {
               </div>
             </div>
             <div
-              className={`flex-1 rounded-[1.5rem] lg:rounded-[2.5rem] border flex flex-col overflow-hidden min-h-[50vh] lg:min-h-0 ${isDarkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-xl"}`}
+              className={`flex-1 rounded-[3.5rem] border flex flex-col overflow-hidden ${isDarkMode ? "bg-slate-900 border-white/5 shadow-2xl" : "bg-white shadow-2xl"}`}
             >
               {selectedStudentForDM ? (
                 <>
-                  <div className="p-6 lg:p-8 border-b border-slate-800 bg-blue-600/5">
-                    <h3 className="font-black italic uppercase text-blue-600 text-xs lg:text-base">
-                      Secure Direct Line: {selectedStudentForDM.studentName}
+                  <div className="p-8 border-b border-white/5 bg-blue-600/5 flex items-center justify-between">
+                    <h3 className="font-black italic uppercase text-blue-600 tracking-tighter text-lg">
+                      Secure Protocol: {selectedStudentForDM.studentName}
                     </h3>
+                    <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-glow"></div>
                   </div>
-                  <div className="flex-1 p-6 lg:p-8 overflow-y-auto flex flex-col space-y-4 custom-scrollbar">
+                  <div className="flex-1 p-10 overflow-y-auto flex flex-col space-y-6 custom-scrollbar">
                     {privateMessages.map((m) => (
                       <div
                         key={m.id}
-                        className={`max-w-[85%] lg:max-w-[70%] p-4 lg:p-5 rounded-2xl lg:rounded-3xl font-bold text-xs lg:text-sm ${m.senderRole === "supervisor" ? "bg-blue-600 text-white self-end rounded-tr-none" : "bg-slate-800 text-white self-start rounded-tl-none"}`}
+                        className={`max-w-[70%] p-6 rounded-[2rem] font-bold text-sm shadow-sm ${m.senderRole === "supervisor" ? "bg-blue-600 text-white self-end rounded-tr-none" : "bg-slate-800 text-white self-start rounded-tl-none border border-white/5"}`}
                       >
                         {m.text}
-                        <div className="text-[8px] opacity-50 mt-2 uppercase">
+                        <div className="text-[8px] opacity-40 mt-3 uppercase tracking-tighter">
                           {m.sender}
                         </div>
                       </div>
@@ -743,27 +718,27 @@ const SupervisorDashboard = () => {
                   </div>
                   <form
                     onSubmit={handleSendDM}
-                    className="p-4 lg:p-6 border-t border-slate-800 flex gap-3 lg:gap-4"
+                    className="p-8 border-t border-white/5 flex gap-4"
                   >
                     <input
                       value={dmText}
                       onChange={(e) => setDmText(e.target.value)}
-                      placeholder="Aika sakon sirri..."
-                      className="flex-1 bg-transparent outline-none font-black text-xs lg:text-sm"
+                      placeholder="Type classified message..."
+                      className="flex-1 bg-transparent outline-none font-black text-sm px-4"
                     />
                     <button
                       type="submit"
-                      className="p-4 bg-blue-600 text-white rounded-xl lg:rounded-2xl hover:scale-105 active:scale-95 transition-all"
+                      className="p-5 bg-blue-600 text-white rounded-2xl hover:scale-105 transition-all"
                     >
-                      <Send size={18} />
+                      <Send size={20} />
                     </button>
                   </form>
                 </>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center opacity-30 p-8 text-center">
-                  <Lock size={60} />
-                  <p className="font-black uppercase text-[10px] mt-4">
-                    Zabi dalibi don aika sakon sirri
+                <div className="flex-1 flex flex-col items-center justify-center opacity-20 p-8">
+                  <Lock size={80} />
+                  <p className="font-black uppercase text-xs mt-6 tracking-widest">
+                    Select a cadet to establish encrypted link
                   </p>
                 </div>
               )}
@@ -771,40 +746,39 @@ const SupervisorDashboard = () => {
           </div>
         )}
 
-        {/* ROSTER SECTION */}
         {activeTab === "students" && (
           <div
-            className={`rounded-[1.5rem] lg:rounded-[3rem] border overflow-x-auto custom-scrollbar ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-sm"}`}
+            className={`rounded-[3rem] border overflow-hidden animate-in fade-in duration-700 ${isDarkMode ? "bg-slate-900 border-slate-800 shadow-2xl" : "bg-white border-slate-100 shadow-2xl"}`}
           >
-            <table className="w-full text-left min-w-[600px]">
+            <table className="w-full text-left">
               <thead>
-                <tr className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest border-b border-slate-800 bg-slate-800/10 text-slate-500">
-                  <th className="p-6 lg:p-8">Dalibi</th>
-                  <th className="p-6 lg:p-8">Kwas Din Da Ya Zaba</th>
-                  <th className="p-6 lg:p-8 text-center">Matsayi</th>
+                <tr className="text-[10px] font-black uppercase tracking-widest border-b border-white/5 bg-blue-600/5 text-slate-500">
+                  <th className="p-10">Cadet Identity</th>
+                  <th className="p-10">Specialization Assignment</th>
+                  <th className="p-10 text-center">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {students.map((std) => (
                   <tr
                     key={std.id}
-                    className="border-b border-slate-800/5 hover:bg-blue-600/5 transition-all"
+                    className="border-b border-white/5 hover:bg-blue-600/5 transition-all group"
                   >
-                    <td className="p-6 lg:p-8 flex items-center gap-4">
-                      <div className="w-8 lg:w-10 h-8 lg:h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-black text-[10px] lg:text-xs">
+                    <td className="p-10 flex items-center gap-6">
+                      <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-sm shadow-lg group-hover:rotate-6 transition-all">
                         {std.studentName?.charAt(0)}
                       </div>
-                      <p className="font-black text-xs lg:text-sm uppercase">
+                      <p className="font-black text-base uppercase tracking-tighter">
                         {std.studentName}
                       </p>
                     </td>
-                    <td className="p-6 lg:p-8 text-[10px] lg:text-xs font-bold text-blue-500 italic">
+                    <td className="p-10 text-xs font-black text-blue-500 italic tracking-widest">
                       {std.selectedCourseId?.replace(/_/g, " ").toUpperCase()}
                     </td>
-                    <td className="p-6 lg:p-8 text-center">
-                      <div className="px-3 py-1 bg-emerald-500/10 text-emerald-500 text-[8px] font-black uppercase rounded-full inline-block">
-                        Active Student
-                      </div>
+                    <td className="p-10 text-center">
+                      <span className="px-5 py-2 bg-emerald-500/10 text-emerald-500 text-[9px] font-black uppercase rounded-full border border-emerald-500/20">
+                        Active Node
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -813,32 +787,31 @@ const SupervisorDashboard = () => {
           </div>
         )}
 
-        {/* LOGS SECTION */}
         {activeTab === "history" && (
           <div
-            className={`rounded-[1.5rem] lg:rounded-[2.5rem] border overflow-x-auto custom-scrollbar ${isDarkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-xl"}`}
+            className={`rounded-[3rem] border overflow-hidden animate-in slide-in-from-bottom-10 duration-500 ${isDarkMode ? "bg-slate-900 border-white/5 shadow-2xl" : "bg-white shadow-2xl"}`}
           >
-            <table className="w-full text-left min-w-[600px]">
+            <table className="w-full text-left">
               <thead>
-                <tr className="text-[9px] lg:text-[10px] font-black uppercase text-slate-500 border-b border-slate-800 bg-slate-800/20">
-                  <th className="p-4 lg:p-6">Action</th>
-                  <th className="p-4 lg:p-6">Details</th>
-                  <th className="p-4 lg:p-6 text-right">Time</th>
+                <tr className="text-[10px] font-black uppercase text-slate-500 border-b border-white/5 bg-blue-600/5">
+                  <th className="p-8">Protocol Action</th>
+                  <th className="p-8">Operational Details</th>
+                  <th className="p-8 text-right">Timestamp</th>
                 </tr>
               </thead>
               <tbody>
                 {systemLogs.map((log) => (
                   <tr
                     key={log.id}
-                    className="border-b border-slate-800/10 transition-all hover:bg-slate-500/5"
+                    className="border-b border-white/5 transition-all hover:bg-white/5"
                   >
-                    <td className="p-4 lg:p-6 text-blue-600 font-black uppercase text-[8px] lg:text-[10px]">
+                    <td className="p-8 text-blue-600 font-black uppercase text-[10px] tracking-widest">
                       {log.action}
                     </td>
-                    <td className="p-4 lg:p-6 font-bold text-[10px] lg:text-xs uppercase">
+                    <td className="p-8 font-bold text-xs uppercase opacity-80">
                       {log.details}
                     </td>
-                    <td className="p-4 lg:p-6 text-[8px] lg:text-[10px] opacity-40 text-right">
+                    <td className="p-8 text-[10px] font-black opacity-30 text-right uppercase">
                       {log.timestamp?.toDate().toLocaleString()}
                     </td>
                   </tr>
@@ -848,28 +821,27 @@ const SupervisorDashboard = () => {
           </div>
         )}
 
-        {/* LIBRARY SECTION */}
         {activeTab === "library" && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 animate-in slide-in-from-bottom-5 duration-500">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 animate-in zoom-in duration-500">
             {libraryLinks.map((lib, i) => (
               <a
                 key={i}
                 href={lib.url}
                 target="_blank"
                 rel="noreferrer"
-                className={`p-6 lg:p-8 rounded-[1.5rem] lg:rounded-[2.5rem] border transition-all hover:-translate-y-2 ${isDarkMode ? "bg-slate-900 border-white/5 hover:border-blue-600" : "bg-white border-slate-200 shadow-xl hover:border-blue-600"}`}
+                className={`group p-10 rounded-[3rem] border transition-all hover:-translate-y-3 ${isDarkMode ? "bg-slate-900 border-white/5 hover:border-blue-600 shadow-2xl" : "bg-white border-slate-200 shadow-xl hover:border-blue-600"}`}
               >
-                <div className="text-[9px] lg:text-[10px] font-black text-blue-600 uppercase mb-2 bg-blue-600/10 px-2 py-1 rounded inline-block">
+                <div className="text-[10px] font-black text-blue-600 uppercase mb-4 bg-blue-600/10 px-3 py-1 rounded-lg inline-block tracking-widest">
                   {lib.cat}
                 </div>
-                <h3 className="font-black text-base lg:text-xl mb-3 lg:mb-4 uppercase italic">
+                <h3 className="font-black text-2xl mb-6 uppercase italic tracking-tighter leading-tight group-hover:text-blue-600 transition-all">
                   {lib.name}
                 </h3>
-                <div className="flex items-center gap-2 text-[9px] lg:text-[10px] font-black uppercase text-slate-500 group">
-                  Open Library{" "}
+                <div className="flex items-center gap-3 text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                  Access Node{" "}
                   <ExternalLink
-                    size={12}
-                    className="group-hover:translate-x-1 transition-transform"
+                    size={14}
+                    className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"
                   />
                 </div>
               </a>
@@ -879,13 +851,13 @@ const SupervisorDashboard = () => {
       </main>
 
       <style>{`
-        .t-nav { width: 100%; display: flex; align-items: center; gap: 15px; padding: 18px 25px; border-radius: 20px; font-weight: 900; font-size: 11px; text-transform: uppercase; color: #64748b; transition: 0.3s; border:none; background:none; cursor:pointer; }
-        .t-active { background: #2563eb !important; color: white !important; box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4); }
-        .s-input { width: 100%; padding: 1.25rem; background: ${isDarkMode ? "#1e293b" : "#f8fafc"}; border: 2px solid transparent; border-radius: 1.5rem; font-weight: 800; font-size: 0.8rem; outline: none; transition: 0.3s; color: inherit; }
-        .s-input:focus { border-color: #2563eb; background: ${isDarkMode ? "#0f172a" : "white"}; }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #2563eb; border-radius: 10px; }
-        .text-shadow-glow { text-shadow: 0 0 15px rgba(37, 99, 235, 0.4); }
+        .t-nav { width: 100%; display: flex; align-items: center; gap: 15px; padding: 20px 25px; border-radius: 25px; font-weight: 900; font-size: 11px; text-transform: uppercase; color: #64748b; transition: 0.4s; border:none; background:none; cursor:pointer; tracking: 0.1em; }
+        .t-active { background: #2563eb !important; color: white !important; box-shadow: 0 15px 30px -10px rgba(37, 99, 235, 0.6); transform: translateX(10px); }
+        .s-input { width: 100%; padding: 1.5rem; background: ${isDarkMode ? "#0f172a" : "#f8fafc"}; border: 2px solid transparent; border-radius: 2rem; font-weight: 800; font-size: 0.85rem; outline: none; transition: 0.4s; color: inherit; border: 1px solid ${isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}; }
+        .s-input:focus { border-color: #2563eb; background: ${isDarkMode ? "#020617" : "white"}; box-shadow: 0 0 0 10px rgba(37,99,235,0.05); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #2563eb; border-radius: 20px; }
+        .shadow-glow { box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); }
       `}</style>
     </div>
   );
