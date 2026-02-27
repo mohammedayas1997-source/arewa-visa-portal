@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { auth, firestore as db } from "../firebase";
+// GYARA: Mun tabbatar an kira 'db' yadda aka yi export dinsa a firebase.js
+import { auth, db } from "../firebase";
 import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
@@ -23,14 +24,17 @@ const StudentLogin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // 1. Listen for Auth State
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userRef = doc(db, "users", user.uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists() && userSnap.data().role === "student") {
-          navigate("/student-portal");
+        try {
+          const userRef = doc(db, "users", user.uid);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists() && userSnap.data().role === "student") {
+            navigate("/student-portal");
+          }
+        } catch (err) {
+          console.error("Silent auth error:", err);
         }
       }
     });
@@ -45,14 +49,13 @@ const StudentLogin = () => {
     const cleanEmail = email.trim().toLowerCase();
 
     try {
-      // Step A: Firebase Auth Login
       const userCredential = await signInWithEmailAndPassword(
         auth,
         cleanEmail,
         password,
       );
 
-      // Step B: Role Verification
+      // Verify Role
       const userRef = doc(db, "users", userCredential.user.uid);
       const userSnap = await getDoc(userRef);
 
@@ -83,7 +86,7 @@ const StudentLogin = () => {
     }
   };
 
-  // INLINE STYLES - Don tabbatar design bai sake wargajewa ba ko da Tailwind ya ki loading
+  // Styles din suna nan daram...
   const containerStyle = {
     minHeight: "100vh",
     display: "flex",
