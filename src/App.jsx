@@ -126,17 +126,7 @@ function App() {
           <Route path="/student-login" element={<StudentLogin />} />
 
           {/* ADMIN GATEWAY */}
-          <Route
-            path="/admin-gateway"
-            element={
-              isAuthenticated ? (
-                <Navigate to="/rector-dashboard" />
-              ) : (
-                <AdminLogin onLogin={setIsAuthenticated} />
-              )
-            }
-          />
-
+          <Route path="/admin-gateway" element={<StaffLogin />} />
           <Route
             path="/rector-dashboard"
             element={
