@@ -39,45 +39,48 @@ const StaffLogin = () => {
     setError("");
 
     try {
-      console.log("Attempting login for:", email);
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email.trim(),
-        password,
-      );
-      console.log("Auth Success, UID:", userCredential.user.uid);
-      const userRef = doc(db, "users", userCredential.user.uid);
+      const cleanEmail = email.trim().toLowerCase();
+      console.log("Logging in with:", cleanEmail);
+
+      const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
+      const user = userCredential.user;
+      console.log("Auth Success! UID:", user.uid);
+
+      const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
-        const role = userSnap.data().role;
-        const authorized = [
-          "rector", "admin", "supervisor", "admission-officer", "super-admin",
-        ];
-        console.log("User Data from Firestore:", userData);
+        const userData = userSnap.data();
+        // MUHIMMI: Mun mayar da role din ya zama lowercase don magance matsalar babban harafi
+        const role = userData.role ? userData.role.toLowerCase() : "";
+        console.log("Found User Role:", role);
+
+        const authorized = ["rector", "admin", "supervisor", "admission-officer", "super-admin"];
 
         if (authorized.includes(role)) {
+          console.log("Access Granted. Redirecting...");
           if (role === "rector") navigate("/rector-dashboard");
-          else if (role === "admin" || role === "admission-officer")
-            navigate("/admin-dashboard");
+          else if (role === "admin" || role === "admission-officer") navigate("/admin-dashboard");
           else if (role === "supervisor") navigate("/supervisor-dashboard");
           else navigate("/instructor-hub");
         } else {
+          console.error("Role not authorized:", role);
           await signOut(auth);
-          setError("ACCESS DENIED: Staff only.");
+          setError("ACCESS DENIED: Role dinka bashi da izini.");
         }
       } else {
+        console.error("No Firestore document for UID:", user.uid);
         await signOut(auth);
-        setError("User profile not found.");
+        setError("DATABASE ERROR: Ba'a samu profile dinka a Firestore ba.");
       }
     } catch (err) {
-      console.error("Firebase Login Error:", err.code, err.message);
-      setError("Login failed. Check credentials.");
+      console.error("Full Firebase Error:", err.code, err.message);
+      // Wannan zai nuna maka takamaiman error din a screen
+      setError(`LOGIN FAILED: ${err.code === 'auth/invalid-credential' ? 'Email ko Password ba daidai ba' : err.message}`);
     } finally {
       setLoading(false);
     }
-  };
-
+};
   return (
     <div style={{ 
       minHeight: "100vh", 
