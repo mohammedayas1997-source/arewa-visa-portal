@@ -36,7 +36,7 @@ import AdminCourseDashboard from "./pages/AdminCourseDashboard";
 import AdminContentManager from "./components/AdminContentManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AcademicExam from "./components/AcademicExam";
-
+import StaffLogin from "./pages/StaffLogin";
 // GYARA NA KARSHE: Tabbatar sunan fayil din ya dace da folder pages
 import AdmissionOfficerDashboard from "./src/pages/AdmissionOfficerDashboard.jsx";
 import RectorDashboard from "./src/pages/RectorDashboard.jsx";
