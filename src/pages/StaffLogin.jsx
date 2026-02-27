@@ -39,11 +39,13 @@ const StaffLogin = () => {
     setError("");
 
     try {
+      console.log("Attempting login for:", email);
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email.trim(),
         password,
       );
+      console.log("Auth Success, UID:", userCredential.user.uid);
       const userRef = doc(db, "users", userCredential.user.uid);
       const userSnap = await getDoc(userRef);
 
@@ -52,6 +54,7 @@ const StaffLogin = () => {
         const authorized = [
           "rector", "admin", "supervisor", "admission-officer", "super-admin",
         ];
+        console.log("User Data from Firestore:", userData);
 
         if (authorized.includes(role)) {
           if (role === "rector") navigate("/rector-dashboard");
@@ -68,6 +71,7 @@ const StaffLogin = () => {
         setError("User profile not found.");
       }
     } catch (err) {
+      console.error("Firebase Login Error:", err.code, err.message);
       setError("Login failed. Check credentials.");
     } finally {
       setLoading(false);
