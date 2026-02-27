@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-// GYARA: Mun maida import din zuwa "./firebase" maimakon "../firebase"
-// domin Vercel ya daina bada kuskuren 'Module not found'
-import { auth, db } from "../firebase";
+// GYARA 1: Tabbatar path din ya dace da inda file din firebase yake (sau yawancin sa ../firebase)
+// GYARA 2: Mun kira 'firestore' maimakon 'db' don kaucewa rikici da Realtime Database
+import { auth, firestore as db } from "../firebase"; 
 import { doc, getDoc } from "firebase/firestore";
 import { Navigate, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
@@ -17,35 +17,36 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       try {
         if (currentUser) {
-          // Idan akwai matsala wajen kiran Firestore (db), kada mu bar loading ya tsaya
+          // Muna amfani da 'db' anan wanda yake nuna 'firestore' ta hanyar alias dinmu a sama
           const userRef = doc(db, "users", currentUser.uid);
           const userDoc = await getDoc(userRef);
 
           if (userDoc.exists()) {
             const userData = userDoc.data();
 
-            if (
-              userData.status === "suspended" ||
-              userData.status === "inactive"
-            ) {
+            if (userData.status === "suspended" || userData.status === "inactive") {
               await signOut(auth);
               setStatus("suspended");
+              setUser(null);
             } else {
               setRole(userData.role);
               setStatus("active");
               setUser(currentUser);
             }
           } else {
-            // Idan babu shi a Firestore, bar shi ya wuce amma ba shi role na student
-            setUser(currentUser);
+            // Idan babu shi a Firestore, ba shi damar zama student
             setRole("student");
+            setStatus("active");
+            setUser(currentUser);
           }
         } else {
           setUser(null);
+          setRole(null);
         }
       } catch (error) {
         console.error("AREWA SECURITY ERROR:", error);
-        // Idan error ya faru, karya loading screen din ko ta halin kaka
+        // Koda an samu error, kada mu bar shi a loading screen
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -56,12 +57,10 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#020617]">
-        <div className="flex flex-col items-center gap-6 text-white text-center">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">
-            AREWA SECURITY: VERIFYING...
-          </p>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#020617", color: "white" }}>
+        <div style={{ textAlign: "center" }}>
+          <div className="animate-spin" style={{ width: "40px", height: "40px", border: "4px solid #2563eb", borderTopColor: "transparent", borderRadius: "50%", margin: "0 auto 20px" }}></div>
+          <p style={{ fontSize: "10px", fontWeight: "900", letterSpacing: "2px", color: "#3b82f6" }}>AREWA SECURITY: VERIFYING...</p>
         </div>
       </div>
     );
@@ -69,24 +68,13 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
   // 1. Redirect idan ba'a yi login ba
   if (!user) {
-    const isStaffPath =
-      location.pathname.includes("admin") ||
-      location.pathname.includes("rector") ||
-      location.pathname.includes("supervisor");
-    return (
-      <Navigate
-        to={isStaffPath ? "/admin-gateway" : "/login"}
-        state={{ from: location }}
-        replace
-      />
-    );
+    const isStaffPath = ["admin", "rector", "supervisor"].some(path => location.pathname.includes(path));
+    return <Navigate to={isStaffPath ? "/admin-gateway" : "/login"} state={{ from: location }} replace />;
   }
 
   // 2. Redirect idan an dakatar
   if (status === "suspended") {
-    return (
-      <Navigate to="/login" state={{ error: "Account Suspended" }} replace />
-    );
+    return <Navigate to="/login" state={{ error: "Account Suspended" }} replace />;
   }
 
   // 3. Role-Based Access
