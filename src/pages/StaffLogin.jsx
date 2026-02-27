@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-// MUHIMMI: Tabbatar sunan file din nan ya dace da abinda ke cikin folder src
 import { auth, db } from "../firebase";
 import {
   signInWithEmailAndPassword,
@@ -17,7 +16,6 @@ const StaffLogin = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // Maimakon mu sa loading screen, bari mu bar shafin ya fito kawai
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -25,7 +23,6 @@ const StaffLogin = () => {
           const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
           if (userSnap.exists() && userSnap.data().role !== "student") {
-            // Idan kana so ya wuce dashboard kai tsaye:
             // navigate("/admin-dashboard");
           }
         } catch (err) {
@@ -53,11 +50,7 @@ const StaffLogin = () => {
       if (userSnap.exists()) {
         const role = userSnap.data().role;
         const authorized = [
-          "rector",
-          "admin",
-          "supervisor",
-          "admission-officer",
-          "super-admin",
+          "rector", "admin", "supervisor", "admission-officer", "super-admin",
         ];
 
         if (authorized.includes(role)) {
@@ -82,36 +75,83 @@ const StaffLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 px-6 relative">
+    <div style={{ 
+      minHeight: "100vh", 
+      display: "flex", 
+      alignItems: "center", 
+      justifyContent: "center", 
+      backgroundColor: "#020617", // Slate-950
+      padding: "24px",
+      position: "relative",
+      fontFamily: "sans-serif"
+    }}>
       <button
         onClick={() => navigate("/")}
-        className="absolute top-10 right-10 text-slate-500 hover:text-white transition-colors"
+        style={{
+          position: "absolute",
+          top: "40px",
+          right: "40px",
+          color: "#64748b",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          transition: "color 0.3s"
+        }}
       >
         <X size={32} />
       </button>
 
-      <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl max-w-md w-full">
-        <div className="flex justify-center mb-6">
-          <div className="p-4 bg-red-50 text-red-600 rounded-2xl">
+      <div style={{
+        backgroundColor: "#ffffff",
+        padding: "40px",
+        borderRadius: "40px",
+        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+        width: "100%",
+        maxWidth: "400px"
+      }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "24px" }}>
+          <div style={{ padding: "16px", backgroundColor: "#fef2f2", color: "#dc2626", borderRadius: "20px" }}>
             <ShieldCheck size={40} />
           </div>
         </div>
 
-        <h2 className="text-2xl font-black text-center mb-6 text-gray-900 uppercase italic">
-          AREWA <span className="text-red-600">COMMAND CENTER</span>
+        <h2 style={{ fontSize: "24px", fontWeight: "900", textAlign: "center", marginBottom: "24px", color: "#111827", textTransform: "uppercase", fontStyle: "italic" }}>
+          AREWA <span style={{ color: "#dc2626" }}>COMMAND CENTER</span>
         </h2>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-700 text-xs font-bold rounded-lg uppercase flex items-center gap-2">
+          <div style={{
+            marginBottom: "16px",
+            padding: "12px",
+            backgroundColor: "#fef2f2",
+            color: "#b91c1c",
+            fontSize: "12px",
+            fontWeight: "bold",
+            borderRadius: "12px",
+            textTransform: "uppercase",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            borderLeft: "4px solid #dc2626"
+          }}>
             <ShieldAlert size={16} /> {error}
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <input
             type="email"
             placeholder="Staff Email"
-            className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-red-600 font-bold"
+            style={{
+              width: "100%",
+              padding: "16px",
+              backgroundColor: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: "16px",
+              outline: "none",
+              fontWeight: "bold",
+              boxSizing: "border-box"
+            }}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -119,7 +159,16 @@ const StaffLogin = () => {
           <input
             type="password"
             placeholder="Security Key"
-            className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-red-600 font-bold"
+            style={{
+              width: "100%",
+              padding: "16px",
+              backgroundColor: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: "16px",
+              outline: "none",
+              fontWeight: "bold",
+              boxSizing: "border-box"
+            }}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -127,7 +176,22 @@ const StaffLogin = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-red-600 text-white rounded-xl font-black uppercase hover:bg-red-700 transition-all flex items-center justify-center gap-2"
+            style={{
+              width: "100%",
+              padding: "16px",
+              backgroundColor: "#dc2626",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "16px",
+              fontWeight: "900",
+              textTransform: "uppercase",
+              cursor: loading ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              transition: "background-color 0.3s"
+            }}
           >
             {loading ? <Loader2 className="animate-spin" /> : "Verify & Access"}
           </button>
