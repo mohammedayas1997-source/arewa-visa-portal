@@ -1,7 +1,8 @@
 import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
-import { getAuth } from "firebase/auth";
+import { getAuth } from "firebase/auth"
 
 const firebaseConfig = {
   // Ka tabbatar wannan API Key din shine yake a Firebase Console dinka yanzu
@@ -17,6 +18,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-export const db = getDatabase(app);
+export const db = getFirestore(app);      // Wannan shine wanda StaffLogin yake bukata
+export const rtdb = getDatabase(app);    // Mun kira wannan 'rtdb' (Realtime Database)
 export const storage = getStorage(app);
-export const auth = getAuth(app); // Wannan yana da muhimmanci ga Login
+export const auth = getAuth(app);
