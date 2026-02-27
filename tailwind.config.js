@@ -1,15 +1,19 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-    "./src/pages/**/*.{js,ts,jsx,tsx}", // Mun kara tabbatar masa ya duba folder pages
-    "./src/components/**/*.{js,ts,jsx,tsx}", // Da folder components
-  ],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
-        primary: "#0d6efd", // Wannan zai taimaka wa blue bar din dake Navbar dinka
+        // Na gyara wannan kalar zuwa Navy Blue din da kake amfani da shi a Navbar
+        primary: {
+          DEFAULT: "#003366",
+          light: "#0d6efd",
+        },
+        secondary: "#dc2626", // Red din AVA
+      },
+      // Mun kara wadannan domin tabbatar da cewa fonts da sauran abubuwa sun zauna
+      fontFamily: {
+        sans: ["Inter", "system-ui", "sans-serif"],
       },
     },
   },
