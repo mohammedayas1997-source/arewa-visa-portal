@@ -450,15 +450,23 @@ export default function Navbar() {
                 </ul>
               </li>
 
+              {/* STUDENT PORTAL BUTTON */}
               <li className="nav-item ms-lg-3">
-                <button className="btn btn-dark rounded-pill px-4">
-                  PORTAL
-                </button>
-              </li>
-              <li className="nav-item">
                 <Link
-                  to="/admin"
-                  className="btn btn-outline-dark rounded-pill px-4"
+                  to="/login"
+                  className="btn btn-dark rounded-pill px-4 fw-bold"
+                  style={{ transition: "all 0.3s ease" }}
+                >
+                  PORTAL
+                </Link>
+              </li>
+
+              {/* ADMIN GATEWAY BUTTON */}
+              <li className="nav-item ms-2">
+                <Link
+                  to="/admin-gateway"
+                  className="btn btn-outline-dark rounded-pill px-4 fw-bold"
+                  style={{ transition: "all 0.3s ease" }}
                 >
                   ADMIN
                 </Link>
