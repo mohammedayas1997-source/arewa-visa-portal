@@ -2408,61 +2408,47 @@ const Home = () => {
           </div>
         </div>
       </section>
-      {/* COURSES SECTION */}
-      <section ref={coursesRef} className="py-5 bg-white">
-        <div className="container-fluid px-lg-5">
+      <section className="py-5 bg-light">
+        <div className="container">
           <div className="text-center mb-5">
-            <h2 className="display-5 fw-bold mb-2" style={{ color: "#001f3f" }}>
-              OUR TRAINING COURSES
-            </h2>
+            <h2 className="fw-bold text-dark">OUR FEATURED COURSES</h2>
             <div
-              className="mx-auto"
-              style={{
-                width: "60px",
-                height: "4px",
-                backgroundColor: "#dc3545",
-              }}
+              className="mx-auto bg-danger"
+              style={{ width: "60px", height: "3px" }}
             ></div>
-            <p className="text-muted mt-3">
-              Select a specialized course to receive world-class professional
-              training.
-            </p>
           </div>
+
           <div className="row g-4">
+            {" "}
+            {/* "g-4" yana bayar da madaidaicin space tsakanin katinan */}
             {coursesData.map((course) => (
               <div className="col-lg-3 col-md-6" key={course.id}>
                 <div
                   className="card h-100 border-0 shadow-sm overflow-hidden"
-                  style={{ borderRadius: "20px", transition: "0.3s" }}
+                  style={{ borderRadius: "20px" }}
                 >
-                  {/* IMAGE SECTION - Wannan zai hana wargajewa */}
+                  {/* IMAGE CONTAINER - Wannan zai hana shafin wargajewa */}
                   <div
                     style={{
                       height: "180px",
                       width: "100%",
-                      backgroundColor: "#f0f0f0",
-                      overflow: "hidden",
+                      backgroundColor: "#e9ecef",
                       position: "relative",
                     }}
                   >
                     <img
                       src={course.image}
                       alt={course.title}
-                      loading="lazy"
                       style={{
                         width: "100%",
                         height: "100%",
                         objectFit: "cover",
-                        display: "block",
                       }}
-                      // Kariya idan hoton bai fito ba
                       onError={(e) => {
-                        e.target.onerror = null;
                         e.target.src =
                           "https://via.placeholder.com/400x250?text=Arewa+Visa+Academy";
                       }}
                     />
-                    {/* FLOATING ICON */}
                     <div
                       style={{
                         position: "absolute",
@@ -2472,21 +2458,20 @@ const Home = () => {
                         padding: "8px",
                         borderRadius: "12px",
                         color: course.color,
-                        boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
                       }}
                     >
                       {React.cloneElement(course.icon, { size: 20 })}
                     </div>
                   </div>
 
-                  {/* CONTENT SECTION */}
                   <div className="card-body p-4 text-center">
                     <h5 className="fw-bold mb-2" style={{ fontSize: "1rem" }}>
                       {course.title}
                     </h5>
                     <p
                       className="text-muted small mb-4"
-                      style={{ minHeight: "40px" }}
+                      style={{ minHeight: "45px" }}
                     >
                       {course.desc}
                     </p>
