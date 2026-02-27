@@ -79,9 +79,6 @@ import hero3 from "../assets/hero3.jpg";
 import hero4 from "../assets/hero4.jpg";
 import hero5 from "../assets/hero5.jpg";
 
-import courseImg1 from "../assets/1000084709.jpg";
-import courseImg2 from "../assets/1000088518.jpg";
-
 const Home = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showForm, setShowForm] = useState(false);
