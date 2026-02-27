@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 // GYARA 1: Tabbatar path din ya dace da inda file din firebase yake (sau yawancin sa ../firebase)
 // GYARA 2: Mun kira 'firestore' maimakon 'db' don kaucewa rikici da Realtime Database
-import { auth, db } from "../firebase";
+import { auth, firestore as db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { Navigate, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";

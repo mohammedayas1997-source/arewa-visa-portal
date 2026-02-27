@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { auth, db } from "../firebase"; // Path ya koma ../firebase
+import { db } from "../firebase"; // Path ya koma ../firebase
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import {
   PlusCircle,
