@@ -66,12 +66,12 @@ const StaffLogin = () => {
         } else {
           console.error("Role not authorized:", role);
           await signOut(auth);
-          setError("ACCESS DENIED: Role dinka bashi da izini.");
+          setError("Access Denied: Your account role does not have permission to access this portal.");
         }
       } else {
         console.error("No Firestore document for UID:", user.uid);
         await signOut(auth);
-        setError("DATABASE ERROR: Ba'a samu profile dinka a Firestore ba.");
+        setError("DATABASE ERROR: No administrative profile found in Firestore.");
       }
     } catch (err) {
       console.error("Full Firebase Error:", err.code, err.message);
