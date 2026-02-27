@@ -1,11 +1,12 @@
 /* Wannan zai share tsofaffin dokokin Vite ya ba Bootstrap dama */
 #root {
-  width: 100% !important;
-  max-width: 100% !important;
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
-  margin: 0 !important;
-  padding: 0 !important;
-  text-align: left !important; /* Don rubutu ya daina zama a tsakiya dole */
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  /* Mun cire !important a wasu wuraren don barin Navbar ta yi aikinta */
 }
 
 body,
@@ -14,12 +15,23 @@ html {
   padding: 0;
   width: 100%;
   overflow-x: hidden;
+  background-color: #f8fafc; /* Color mai kyau don shafin ya fito fes */
+}
+
+/* WANNAN SHINE MAGANIN ICONS DAKE BACEWA */
+.sticky-top {
+  z-index: 2000 !important; /* Dole Navbar ta fi komai girma a layers */
+}
+
+.navbar {
+  isolation: isolate; /* Yana kiyaye icons din daga shiga karkashin hotuna */
 }
 
 /* Custom Gallery Effects */
 .gallery-hover img:hover {
   transform: scale(1.1);
   cursor: pointer;
+  transition: transform 0.3s ease;
 }
 
 .object-fit-cover {
@@ -29,21 +41,28 @@ html {
 .transition {
   transition: all 0.3s ease-in-out;
 }
+
 /* Wannan zai sa Modal din ya zama full screen a waya */
 @media (max-width: 768px) {
   .modal-mobile-fix {
     max-width: 98% !important;
-    margin: 10px !important;
+    margin: 10px auto !important;
     border-radius: 15px !important;
   }
 
-  /* Zai sa Sidebar din ya koma sama maimakon gefe */
+  /* Gyara Sidebar don kada ya rufe Navbar a waya */
   .sidebar-mobile-hide {
-    padding: 20px !important;
+    padding: 15px !important;
     min-height: auto !important;
+    margin-top: 70px; /* Don ya bar wa Navbar gurbinta a sama */
   }
 
   .form-padding-mobile {
-    padding: 20px !important;
+    padding: 15px !important;
+  }
+
+  /* Tabbatar menu icons a waya suna da girma da kyan gani */
+  .navbar-toggler {
+    z-index: 2100 !important;
   }
 }
