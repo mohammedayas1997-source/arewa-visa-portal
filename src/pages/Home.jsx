@@ -79,6 +79,9 @@ import hero3 from "../assets/hero3.jpg";
 import hero4 from "../assets/hero4.jpg";
 import hero5 from "../assets/hero5.jpg";
 
+import courseImg1 from "../assets/1000084709.jpg";
+import courseImg2 from "../assets/1000088518.jpg";
+
 const Home = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showForm, setShowForm] = useState(false);
@@ -2430,83 +2433,74 @@ const Home = () => {
           </div>
           <div className="row g-4">
             {coursesData.map((course) => (
-              <div className="col-lg-3 col-md-6 mb-4" key={course.id}>
+              <div className="col-lg-3 col-md-6" key={course.id}>
                 <div
                   className="card h-100 border-0 shadow-sm overflow-hidden"
-                  style={{
-                    borderRadius: "20px",
-                    transition: "transform 0.3s ease",
-                    cursor: "pointer",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.transform = "translateY(-10px)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.transform = "translateY(0)")
-                  }
+                  style={{ borderRadius: "20px", transition: "0.3s" }}
                 >
-                  {/* 1. SASHE NA HOTON COURSE */}
+                  {/* IMAGE SECTION - Wannan zai hana wargajewa */}
                   <div
                     style={{
-                      position: "relative",
                       height: "180px",
+                      width: "100%",
+                      backgroundColor: "#f0f0f0",
                       overflow: "hidden",
+                      position: "relative",
                     }}
                   >
                     <img
                       src={course.image}
                       alt={course.title}
+                      loading="lazy"
                       style={{
                         width: "100%",
                         height: "100%",
                         objectFit: "cover",
+                        display: "block",
+                      }}
+                      // Kariya idan hoton bai fito ba
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src =
+                          "https://via.placeholder.com/400x250?text=Arewa+Visa+Academy";
                       }}
                     />
-                    {/* ICON DIN COURSE DA KAKE SO (Floating Icon) */}
+                    {/* FLOATING ICON */}
                     <div
                       style={{
                         position: "absolute",
-                        bottom: "15px",
-                        right: "15px",
+                        bottom: "10px",
+                        right: "10px",
                         backgroundColor: "white",
+                        padding: "8px",
+                        borderRadius: "12px",
                         color: course.color,
-                        padding: "10px",
-                        borderRadius: "15px",
-                        boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
+                        boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
                       }}
                     >
-                      {React.cloneElement(course.icon, { size: 24 })}
+                      {React.cloneElement(course.icon, { size: 20 })}
                     </div>
                   </div>
 
-                  {/* 2. SASHE NA BAYANAI */}
+                  {/* CONTENT SECTION */}
                   <div className="card-body p-4 text-center">
-                    <h5 className="fw-bold mb-2" style={{ color: "#003366" }}>
+                    <h5 className="fw-bold mb-2" style={{ fontSize: "1rem" }}>
                       {course.title}
                     </h5>
                     <p
                       className="text-muted small mb-4"
-                      style={{ minHeight: "45px" }}
+                      style={{ minHeight: "40px" }}
                     >
                       {course.desc}
                     </p>
-
                     <button
                       onClick={() => {
                         setShowCourseForm(true);
                         setSelectedCourse(course.title);
                       }}
                       className="btn btn-danger w-100 rounded-pill py-2 fw-bold"
-                      style={{
-                        backgroundColor: "#dc2626",
-                        border: "none",
-                        fontSize: "14px",
-                      }}
                     >
-                      Apply for this Course
+                      Apply Now
                     </button>
                   </div>
                 </div>
