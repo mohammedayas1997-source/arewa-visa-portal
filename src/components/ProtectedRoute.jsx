@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
-// GYARA 1: Tabbatar path din ya dace da inda file din firebase yake (sau yawancin sa ../firebase)
-// GYARA 2: Mun kira 'firestore' maimakon 'db' don kaucewa rikici da Realtime Database
-import { auth, firestore as db } from "../firebase";
+// Muna amfani da 'db' wanda yake nuna Firestore a cikin firebase.js
+import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { Navigate, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
@@ -12,13 +11,14 @@ const ProtectedRoute = ({ children, requiredRole }) => {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
-  const userRef = doc(firestore, "users", user.uid);
+
+  // MUN COGE WANCAN LAYIN 'userRef' DIN DA KE NAN DA YA KE KAWO ERROR
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       try {
         if (currentUser) {
-          // Muna amfani da 'db' anan wanda yake nuna 'firestore' ta hanyar alias dinmu a sama
+          // Anan muna amfani da 'db' da aka yi import daga firebase.js
           const userRef = doc(db, "users", currentUser.uid);
           const userDoc = await getDoc(userRef);
 
@@ -38,7 +38,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
               setUser(currentUser);
             }
           } else {
-            // Idan babu shi a Firestore, ba shi damar zama student
+            // Default role idan babu shi a Firestore
             setRole("student");
             setStatus("active");
             setUser(currentUser);
@@ -49,7 +49,6 @@ const ProtectedRoute = ({ children, requiredRole }) => {
         }
       } catch (error) {
         console.error("AREWA SECURITY ERROR:", error);
-        // Koda an samu error, kada mu bar shi a loading screen
         setUser(null);
       } finally {
         setLoading(false);
@@ -73,7 +72,6 @@ const ProtectedRoute = ({ children, requiredRole }) => {
       >
         <div style={{ textAlign: "center" }}>
           <div
-            className="animate-spin"
             style={{
               width: "40px",
               height: "40px",
@@ -81,6 +79,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
               borderTopColor: "transparent",
               borderRadius: "50%",
               margin: "0 auto 20px",
+              animation: "spin 1s linear infinite",
             }}
           ></div>
           <p
@@ -98,7 +97,6 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     );
   }
 
-  // 1. Redirect idan ba'a yi login ba
   if (!user) {
     const isStaffPath = ["admin", "rector", "supervisor"].some((path) =>
       location.pathname.includes(path),
@@ -112,24 +110,20 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     );
   }
 
-  // 2. Redirect idan an dakatar
   if (status === "suspended") {
     return (
       <Navigate to="/login" state={{ error: "Account Suspended" }} replace />
     );
   }
 
-  // 3. Role-Based Access
   if (requiredRole) {
     const isSuperAdmin = role === "super-admin";
     const isRector = role === "rector";
     const isAdmin = role === "admin" || role === "admission-officer";
 
     let hasAccess = role === requiredRole || isSuperAdmin || isRector;
-
-    if (requiredRole === "admin") {
+    if (requiredRole === "admin")
       hasAccess = isAdmin || isSuperAdmin || isRector;
-    }
 
     if (!hasAccess) {
       const fallback = role === "student" ? "/student-portal" : "/";
