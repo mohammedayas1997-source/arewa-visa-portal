@@ -781,9 +781,8 @@ const Home = () => {
       slot: "12 Slots Left",
       category: "Security",
       image:
-        "https://images.unsplash.com/photo-1628522711776-805051676644?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&q=80&w=800",
     },
-
     {
       id: 2,
       title: "Caregiver - Nanny",
@@ -791,9 +790,8 @@ const Home = () => {
       slot: "8 Slots Left",
       category: "Healthcare",
       image:
-        "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1516533075015-a3838414c3ca?auto=format&fit=crop&q=80&w=800",
     },
-
     {
       id: 3,
       title: "Professional Cleaner",
@@ -801,9 +799,8 @@ const Home = () => {
       slot: "25 Slots Left",
       category: "Cleaning",
       image:
-        "https://images.unsplash.com/photo-1581578731548-c64695cc6954?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1581578731548-c64695cc6954?auto=format&fit=crop&q=80&w=800",
     },
-
     {
       id: 4,
       title: "Visa Officer",
@@ -811,9 +808,8 @@ const Home = () => {
       slot: "5 Slots Left",
       category: "Schengen",
       image:
-        "https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&q=80&w=800",
     },
-
     {
       id: 5,
       title: "Hotel Housekeeper",
@@ -821,9 +817,8 @@ const Home = () => {
       slot: "15 Slots Left",
       category: "Hospitality",
       image:
-        "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&q=80&w=800",
     },
-
     {
       id: 6,
       title: "Laundry Specialist",
@@ -831,9 +826,8 @@ const Home = () => {
       slot: "10 Slots Left",
       category: "Service",
       image:
-        "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1545173153-5d0bad499755?auto=format&fit=crop&q=80&w=800",
     },
-
     {
       id: 7,
       title: "Ticketing Officer",
@@ -841,9 +835,8 @@ const Home = () => {
       slot: "4 Slots Left",
       category: "Travel",
       image:
-        "https://images.unsplash.com/photo-1530521954074-e64f6810b32d?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&q=80&w=800",
     },
-
     {
       id: 8,
       title: "Customer Support",
@@ -851,9 +844,8 @@ const Home = () => {
       slot: "20 Slots Left",
       category: "Gulf",
       image:
-        "https://images.unsplash.com/photo-1549923746-c50264f39a18?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&q=80&w=800",
     },
-
     {
       id: 9,
       title: "Travel Agency Manager",
@@ -861,9 +853,8 @@ const Home = () => {
       slot: "2 Slots Left",
       category: "Management",
       image:
-        "https://images.unsplash.com/photo-1454165833767-027ffea9e77b?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1454165833767-027ffea9e77b?auto=format&fit=crop&q=80&w=800",
     },
-
     {
       id: 10,
       title: "Aircraft Cleaner",
@@ -871,9 +862,8 @@ const Home = () => {
       slot: "12 Slots Left",
       category: "Aviation",
       image:
-        "https://images.unsplash.com/photo-1569154941061-e231b4725ef1?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1569154941061-e231b4725ef1?auto=format&fit=crop&q=80&w=800",
     },
-
     {
       id: 11,
       title: "Logistics Clerk",
@@ -881,9 +871,8 @@ const Home = () => {
       slot: "7 Slots Left",
       category: "Logistics",
       image:
-        "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=800",
     },
-
     {
       id: 12,
       title: "Tour Guide",
@@ -891,7 +880,7 @@ const Home = () => {
       slot: "6 Slots Left",
       category: "Tourism",
       image:
-        "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&q=80&w=800",
     },
   ];
   const countriesList = [
