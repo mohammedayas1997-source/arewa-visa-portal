@@ -36,9 +36,10 @@ import AdminContentManager from "./components/AdminContentManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AcademicExam from "./components/AcademicExam";
 import StaffLogin from "./pages/StaffLogin";
-// GYARA NA KARSHE: Tabbatar sunan fayil din ya dace da folder pages
-import AdmissionOfficerDashboard from "./src/pages/AdmissionOfficerDashboard.jsx";
-import RectorDashboard from "./src/pages/RectorDashboard.jsx";
+
+// GYARA: An cire "./src" domin kana riga kana cikin src folder
+import AdmissionOfficerDashboard from "./pages/AdmissionOfficerDashboard.jsx";
+import RectorDashboard from "./pages/RectorDashboard.jsx";
 
 import "./App.css";
 
@@ -126,6 +127,7 @@ function App() {
 
           {/* ADMIN GATEWAY */}
           <Route path="/admin-gateway" element={<StaffLogin />} />
+
           <Route
             path="/rector-dashboard"
             element={
@@ -207,14 +209,6 @@ function App() {
             element={
               <ProtectedRoute requiredRole="supervisor">
                 <SupervisorDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/rector-dashboard"
-            element={
-              <ProtectedRoute requiredRole="rector">
-                <RectorDashboard />
               </ProtectedRoute>
             }
           />
