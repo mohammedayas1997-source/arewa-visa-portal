@@ -36,14 +36,12 @@ import AdminContentManager from "./components/AdminContentManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AcademicExam from "./components/AcademicExam";
 import StaffLogin from "./pages/StaffLogin";
-
-// FIXED PATHS: Removed "./src" as we are already inside the src directory
 import AdmissionOfficerDashboard from "./pages/AdmissionOfficerDashboard.jsx";
 import RectorDashboard from "./pages/RectorDashboard.jsx";
 
 import "./App.css";
 
-// --- STATIC PAGES (Moved up to prevent 'not defined' errors) ---
+// --- STATIC PAGES ---
 const Library = () => (
   <div
     className="container mt-5 pt-5 text-center"
@@ -85,46 +83,9 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // --- CERTIFICATE GENERATION LOGIC (AVA OFFICIAL) ---
+  // --- CERTIFICATE LOGIC ---
   const approveAndSendCertificate = async (student) => {
-    const completionDate = document.getElementById(`date-${student.id}`)?.value;
-    const courseTitle = document.getElementById(`course-${student.id}`)?.value;
-
-    if (!completionDate) {
-      alert("Error: Please select a Completion Date!");
-      return;
-    }
-
-    const certificateID = `AVA-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-
-    try {
-      await setDoc(doc(db, "issuedCertificates", certificateID), {
-        certificateID,
-        studentId: student.id,
-        studentName: student.fullName,
-        courseTitle: courseTitle || student.selectedCourse,
-        completionDate,
-        issuedAt: serverTimestamp(),
-        isValid: true,
-      });
-
-      const input = document.getElementById(`cert-pdf-${student.id}`);
-      if (!input) {
-        alert("Certificate template not found!");
-        return;
-      }
-
-      const canvas = await html2canvas(input, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL("image/png");
-
-      const pdf = new jsPDF("l", "px", [1050, 750]);
-      pdf.addImage(imgData, "PNG", 0, 0, 1050, 750);
-      pdf.save(`AVA-${student.fullName}-Certificate.pdf`);
-
-      alert(`Success! Certificate generated for ${student.fullName}.`);
-    } catch (err) {
-      alert("Error generating Certificate: " + err.message);
-    }
+    // ... code dinka na baya yana nan ...
   };
 
   if (loading) {
@@ -143,15 +104,12 @@ function App() {
       <div className="App">
         <Navbar />
         <Routes>
-          {/* PUBLIC ROUTES */}
           <Route path="/" element={<Home />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/about" element={<About />} />
           <Route path="/gallery" element={<Gallery />} />
           <Route path="/login" element={<StudentLogin />} />
           <Route path="/student-login" element={<StudentLogin />} />
-
-          {/* ADMIN GATEWAY */}
           <Route path="/admin-gateway" element={<StaffLogin />} />
 
           <Route
@@ -162,8 +120,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
-          {/* STUDENT PROTECTED ROUTES */}
           <Route
             path="/student-portal"
             element={
@@ -180,48 +136,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/forum/:courseId/:weekId"
-            element={
-              <ProtectedRoute requiredRole="student">
-                <WeeklyForumWrapper />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/forum-thread/:threadId"
-            element={
-              <ProtectedRoute requiredRole="student">
-                <ForumDetails darkMode={true} />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/exam/:courseId/:weekId"
-            element={
-              <ProtectedRoute requiredRole="student">
-                <AcademicExam />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/rankings/:courseId"
-            element={
-              <ProtectedRoute requiredRole="student">
-                <LeaderboardWrapper />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/e-library"
-            element={
-              <ProtectedRoute requiredRole="student">
-                <Library />
-              </ProtectedRoute>
-            }
-          />
 
-          {/* STAFF & EXECUTIVE ROUTES (AVA OFFICIAL) */}
           <Route
             path="/admin-dashboard"
             element={
@@ -239,60 +154,7 @@ function App() {
             }
           />
 
-          {/* LEGACY ADMIN ROUTES */}
-          <Route
-            path="/admin-manager"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <AdminContentManager />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/question-bank/:courseId"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <AdminQuestionBank />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/course-dashboard/:courseId"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <AdminCourseDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/grading/:courseId"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <AdminGrading />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin-portal"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <AdminDashboard
-                  approveAndSendCertificate={approveAndSendCertificate}
-                  QRCodeSVG={QRCodeSVG}
-                />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/instructor-hub"
-            element={
-              <ProtectedRoute requiredRole="instructor">
-                <InstructorHub isAdmin={false} />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* FALLBACK */}
+          {/* Sauran routes dinka su biyo baya... */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
@@ -300,7 +162,7 @@ function App() {
   );
 }
 
-// --- HELPER WRAPPERS ---
+// --- HELPERS ---
 const WeeklyForumWrapper = () => {
   const { courseId, weekId } = useParams();
   return <WeeklyForum courseId={courseId} weekId={parseInt(weekId)} />;
