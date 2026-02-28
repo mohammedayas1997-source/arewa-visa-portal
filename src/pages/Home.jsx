@@ -659,7 +659,7 @@ const Home = () => {
       details:
         "Comprehensive training in modern cleaning techniques, chemical safety, and specialized equipment handling for global sectors.",
       icon: <Brush size={40} />,
-      image: "1000084709.jpg", // Hoton dake nuna tsarin aiki
+      image: "/WhatsApp Image 2026-02-27 at 12.26.50 PM.jpeg", // Hoton dalibai sanye da blue t-shirt rike da vacuum cleaner
       color: "#007bff",
     },
     {
@@ -669,7 +669,7 @@ const Home = () => {
       details:
         "Focuses on guest relations, room maintenance, and high-end service standards required in international resorts.",
       icon: <Hotel size={40} />,
-      image: "1000084709.jpg",
+      image: "/WhatsApp Image 2026-02-27 at 12.26.51 PM.jpeg", // Hoton dalibai a cikin dakin kwana (Hotel room training)
       color: "#6610f2",
     },
     {
@@ -679,7 +679,7 @@ const Home = () => {
       details:
         "Advanced dry cleaning techniques, textile science, and operational mastery of commercial laundry systems.",
       icon: <Wind size={40} />,
-      image: "1000084709.jpg",
+      image: "/WhatsApp Image 2026-02-27 at 12.26.51 PM (1).jpeg", // Hoton da aka jera module na Sorting, Washing, etc.
       color: "#0dcaf0",
     },
     {
@@ -689,7 +689,7 @@ const Home = () => {
       details:
         "Mastering application workflows, appointment scheduling, and embassy compliance for international travel.",
       icon: <FileText size={40} />,
-      image: "1000088518.jpg", // Hoton dake nuna tsarin "Secure Session"
+      image: "/WhatsApp Image 2026-02-27 at 12.26.51 PM (2).jpeg", // Hoton poster na Australia, Canada, UK, USA Visa
       color: "#dc3545",
     },
     {
@@ -699,7 +699,7 @@ const Home = () => {
       details:
         "Professional training in Amadeus and Galileo systems for flight booking, fare construction, and itinerary management.",
       icon: <Plane size={40} />,
-      image: "1000084761.jpg", // Hoton dake nuna "Specialization"
+      image: "/WhatsApp Image 2026-02-27 at 12.26.52 PM.jpeg", // Hoton ginin academy da rubutun "TICKETING AND RESERVATION"
       color: "#198754",
     },
     {
@@ -709,7 +709,7 @@ const Home = () => {
       details:
         "Strategic management of travel agencies, IATA standards, marketing, and global partnership logistics.",
       icon: <Briefcase size={40} />,
-      image: "1000084709.jpg",
+      image: "/WhatsApp Image 2026-02-27 at 12.26.52 PM (1).jpeg", // Hoton kwararru sanye da suit (Empowering Your Journey)
       color: "#fd7e14",
     },
     {
@@ -719,7 +719,7 @@ const Home = () => {
       details:
         "Professional etiquette, conflict resolution, and client relations training for high-level corporate environments.",
       icon: <Headphones size={40} />,
-      image: "1000084709.jpg",
+      image: "/WhatsApp Image 2026-02-27 at 12.26.57 PM.jpeg", // Hoton dakin taro (Classroom) mai dauke da screen din Customer Service
       color: "#ffc107",
     },
     {
@@ -729,7 +729,7 @@ const Home = () => {
       details:
         "Specialized modules on aircraft interior maintenance, hazardous materials handling, and aviation security compliance.",
       icon: <Ship size={40} />,
-      image: "1000084709.jpg",
+      image: "/WhatsApp Image 2026-02-27 at 12.26.57 PM (1).jpeg", // Hoton dalibai a gaban jirgin sama
       color: "#20c997",
     },
     {
@@ -739,7 +739,7 @@ const Home = () => {
       details:
         "Modern security protocols, emergency response, and surveillance technology management.",
       icon: <ShieldCheck size={40} />,
-      image: "1000088518.jpg",
+      image: "/WhatsApp Image 2026-02-27 at 12.26.58 PM.jpeg", // Hoton kwararrun jami'an tsaro (Security Training)
       color: "#343a40",
     },
     {
@@ -749,7 +749,7 @@ const Home = () => {
       details:
         "Certified training in first aid, child development, geriatric care, and domestic safety for global households.",
       icon: <Users size={40} />,
-      image: "WhatsApp Image 2026-02-27 at 12.27.04 PM.jpeg", // Hoton dalibai da takardar shaida
+      image: "/WhatsApp Image 2026-02-27 at 12.27.02 PM.jpeg", // Hoton dalibai sanye da scrubs (Caregiver-Nanny)
       color: "#d63384",
     },
     {
@@ -759,7 +759,7 @@ const Home = () => {
       details:
         "Mastery of freight forwarding, customs documentation, warehousing, and international shipping logistics.",
       icon: <Package size={40} />,
-      image: "WhatsApp Image 2026-02-27 at 12.27.03 PM.jpeg", // Hoton Cargo and Logistics firi-fai
+      image: "/WhatsApp Image 2026-02-27 at 12.27.03 PM.jpeg", // Hoton billboard din Cargo and Logistics
       color: "#6f42c1",
     },
     {
@@ -769,7 +769,7 @@ const Home = () => {
       details:
         "Comprehensive geography, tourism legislation, and strategic planning of global vacation and travel packages.",
       icon: <Globe2 size={40} />,
-      image: "WhatsApp Image 2026-02-27 at 12.27.04 PM.jpeg", // Hoton daliban Travel and Tourism
+      image: "/WhatsApp Image 2026-02-27 at 12.27.04 PM.jpeg", // Hoton dalibai rike da takardar shaida (Travel and Tourism)
       color: "#001f3f",
     },
   ];
