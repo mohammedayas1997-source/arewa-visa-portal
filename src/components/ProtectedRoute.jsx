@@ -12,6 +12,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
+  const userRef = doc(firestore, "users", user.uid);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
