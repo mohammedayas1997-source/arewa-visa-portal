@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { auth, db } from "../firebase"; // MUHIMMI: Mun gyara wannan
+import { auth, db } from "../firebase";
 import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
@@ -16,6 +16,7 @@ const StaffLogin = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  // 1. AUTO-REDIRECT LOGIC: Idan riga an yi login
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -24,17 +25,7 @@ const StaffLogin = () => {
           const userSnap = await getDoc(userRef);
           if (userSnap.exists()) {
             const role = userSnap.data().role?.toLowerCase();
-            const authorized = [
-              "rector",
-              "admin",
-              "supervisor",
-              "admission-officer",
-              "super-admin",
-            ];
-            if (authorized.includes(role)) {
-              // Idan kana so ya wuce dashboard kai tsaye:
-              // navigate("/admin-dashboard");
-            }
+            handleRouting(role); // Mun kira function din redirection
           }
         } catch (err) {
           console.error("Auth sync error:", err);
@@ -44,8 +35,33 @@ const StaffLogin = () => {
     return () => unsubscribe();
   }, [navigate]);
 
+  // 2. CENTRAL ROUTING ENGINE: Inda ake rarraba kowa zuwa gidansa
+  const handleRouting = (role) => {
+    switch (role) {
+      case "rector":
+        navigate("/rector-dashboard", { replace: true });
+        break;
+      case "admin":
+      case "super-admin":
+      case "admission-officer":
+        navigate("/admin-dashboard", { replace: true });
+        break;
+      case "supervisor":
+        navigate("/supervisor-dashboard", { replace: true });
+        break;
+      case "instructor":
+        navigate("/instructor-hub", { replace: true });
+        break;
+      default:
+        signOut(auth);
+        setError("UNAUTHORIZED: Your role is not recognized.");
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (loading) return;
+
     setLoading(true);
     setError("");
 
@@ -61,26 +77,18 @@ const StaffLogin = () => {
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
-        const userData = userSnap.data();
-        const role = userData.role ? userData.role.toLowerCase() : "";
-
+        const role = userSnap.data().role?.toLowerCase() || "";
         const authorized = [
           "rector",
           "admin",
           "supervisor",
           "admission-officer",
           "super-admin",
+          "instructor",
         ];
 
         if (authorized.includes(role)) {
-          // REDIRECTION PROTOCOL
-          if (role === "rector")
-            navigate("/rector-dashboard", { replace: true });
-          else if (role === "admin" || role === "admission-officer")
-            navigate("/admin-dashboard", { replace: true });
-          else if (role === "supervisor")
-            navigate("/supervisor-dashboard", { replace: true });
-          else navigate("/instructor-hub", { replace: true });
+          handleRouting(role);
         } else {
           await signOut(auth);
           setError("ACCESS DENIED: Administrative credentials required.");
@@ -90,15 +98,18 @@ const StaffLogin = () => {
         setError("DATABASE ERROR: Profile not found.");
       }
     } catch (err) {
-      console.error("Firebase Login Error:", err.code);
+      console.error("Login Error:", err.code);
       setError(
-        `LOGIN FAILED: ${err.code === "auth/invalid-credential" ? "Email/Password is incorrect" : "System authentication failure"}`,
+        err.code === "auth/invalid-credential"
+          ? "Incorrect Email or Security Key."
+          : "Authentication service unavailable.",
       );
     } finally {
       setLoading(false);
     }
   };
 
+  // UI REMAINS THE SAME (English labels only as requested)
   return (
     <div
       style={{
@@ -158,16 +169,15 @@ const StaffLogin = () => {
 
         <h2
           style={{
-            fontSize: "24px",
+            fontSize: "22px",
             fontWeight: "900",
             textAlign: "center",
             marginBottom: "8px",
             color: "#111827",
             textTransform: "uppercase",
-            fontStyle: "italic",
           }}
         >
-          AREWA <span style={{ color: "#dc2626" }}>COMMAND CENTER</span>
+          AVA <span style={{ color: "#dc2626" }}>Command Center</span>
         </h2>
         <p
           style={{
