@@ -42,10 +42,6 @@ import {
   RefreshCcw,
   UploadCloud,
   X,
-  Database,
-  Terminal,
-  Activity,
-  Cpu,
 } from "lucide-react";
 
 const SupervisorDashboard = () => {
@@ -172,6 +168,7 @@ const SupervisorDashboard = () => {
     if (!selectedCourse) return;
     const courseId = selectedCourse.toLowerCase().replace(/ /g, "_");
 
+    // FIX: Removed orderBy from students query to prevent index-related blank screen
     const unsubStudents = onSnapshot(
       query(
         collection(db, "users"),
@@ -336,9 +333,9 @@ const SupervisorDashboard = () => {
       <div
         className={`min-h-screen flex flex-col items-center justify-center ${isDarkMode ? "bg-slate-950 text-blue-500" : "bg-white text-blue-600"}`}
       >
-        <Loader2 className="animate-spin mb-4" size={56} />
-        <p className="font-black uppercase text-[10px] tracking-[0.5em] animate-pulse">
-          Authenticating Neural Access...
+        <Loader2 className="animate-spin mb-4" size={48} />
+        <p className="font-black uppercase tracking-[0.3em] text-xs">
+          Authenticating Node Access...
         </p>
       </div>
     );
@@ -346,41 +343,35 @@ const SupervisorDashboard = () => {
   if (!selectedCourse)
     return (
       <div
-        className={`min-h-screen flex items-center justify-center p-8 ${isDarkMode ? "bg-[#020617]" : "bg-[#f8fafc]"}`}
+        className={`min-h-screen flex items-center justify-center p-6 ${isDarkMode ? "bg-slate-950" : "bg-slate-50"}`}
       >
-        <div className="max-w-7xl w-full">
-          <div className="mb-20 text-center animate-in fade-in slide-in-from-top-10 duration-1000">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-600/10 border border-blue-600/20 text-blue-600 font-black text-[9px] uppercase tracking-[0.2em] mb-6">
-              <Terminal size={12} /> System Status: Online
-            </div>
-            <h1 className="text-8xl font-black italic tracking-tighter text-blue-600 mb-4 drop-shadow-2xl">
-              AVA.<span className="text-inherit opacity-40">CORE</span>
+        <div className="max-w-6xl w-full">
+          <div className="mb-12 text-center">
+            <h1 className="text-6xl font-black italic tracking-tighter text-blue-600 mb-2">
+              AVA.TERMINAL
             </h1>
             <p
-              className={`font-black uppercase tracking-[0.5em] text-[10px] ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
+              className={`font-black uppercase tracking-widest text-[10px] ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
             >
-              Global Operational Command Terminal
+              Operational Command Terminal
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in zoom-in duration-700 delay-300">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {availableCourses.map((course) => (
               <button
                 key={course}
                 onClick={() => setSelectedCourse(course)}
-                className={`group p-8 rounded-[2.5rem] text-left transition-all border relative overflow-hidden h-48 flex flex-col justify-between ${isDarkMode ? "bg-slate-900 border-white/5 hover:border-blue-500 hover:shadow-[0_0_40px_-10px_rgba(37,99,235,0.3)]" : "bg-white border-slate-200 shadow-sm hover:border-blue-600 hover:shadow-2xl"}`}
+                className={`p-10 rounded-[2.5rem] text-left transition-all border group relative overflow-hidden ${isDarkMode ? "bg-slate-900 border-white/5 hover:border-blue-600" : "bg-white border-slate-200 shadow-sm hover:border-blue-600"}`}
               >
                 <ShieldCheck
-                  size={28}
-                  className="text-blue-600 opacity-20 group-hover:opacity-100 group-hover:rotate-12 transition-all duration-500"
+                  size={20}
+                  className="mb-4 text-blue-600 opacity-40 group-hover:opacity-100 transition-opacity"
                 />
                 <span
-                  className={`font-black text-xs uppercase tracking-tight leading-tight ${isDarkMode ? "text-white" : "text-slate-900"}`}
+                  className={`font-black text-sm uppercase tracking-tight block ${isDarkMode ? "text-white" : "text-slate-900"}`}
                 >
                   {course}
                 </span>
-                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Activity size={14} className="text-blue-500" />
-                </div>
               </button>
             ))}
           </div>
@@ -390,24 +381,23 @@ const SupervisorDashboard = () => {
 
   return (
     <div
-      className={`flex flex-col lg:flex-row min-h-screen ${isDarkMode ? "bg-slate-950 text-white" : "bg-[#f8fafc] text-slate-900"} font-sans`}
+      className={`flex flex-col lg:flex-row min-h-screen ${isDarkMode ? "bg-slate-950 text-white" : "bg-[#f8fafc] text-slate-900"}`}
     >
       <aside
-        className={`fixed lg:sticky top-0 h-screen w-80 p-8 flex flex-col border-r z-[100] transition-all duration-500 ${isDarkMode ? "bg-[#0a0f1e] border-white/5" : "bg-white border-slate-200 shadow-2xl"}`}
+        className={`fixed lg:sticky top-0 h-screen w-80 p-8 flex flex-col border-r z-[100] transition-all ${isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200 shadow-xl"}`}
       >
         <div
-          className="flex items-center gap-4 mb-14 cursor-pointer group"
+          className="flex items-center gap-3 mb-12 cursor-pointer"
           onClick={() => setSelectedCourse(null)}
         >
-          <div className="p-3 bg-blue-600 rounded-2xl text-white shadow-[0_0_25px_rgba(37,99,235,0.4)] group-hover:rotate-6 transition-transform">
-            <Cpu size={22} />
+          <div className="p-2 bg-blue-600 rounded-xl text-white shadow-lg">
+            <ShieldCheck size={24} />
           </div>
           <h2 className="text-xl font-black italic text-blue-600 tracking-tighter">
             AVA CENTRAL
           </h2>
         </div>
-
-        <nav className="space-y-3 flex-1 overflow-y-auto custom-scrollbar">
+        <nav className="space-y-2 flex-1 overflow-y-auto custom-scrollbar">
           {[
             {
               id: "forum",
@@ -441,114 +431,67 @@ const SupervisorDashboard = () => {
             </button>
           ))}
         </nav>
-
-        <div className="mt-8 p-6 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 rounded-[2rem] text-white shadow-[0_20px_40px_-10px_rgba(37,99,235,0.5)] relative overflow-hidden group">
-          <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-700">
-            <Database size={100} />
-          </div>
-          <div className="flex items-center gap-2 mb-1 opacity-50 relative z-10">
-            <Wallet size={12} />
-            <span className="text-[9px] font-black uppercase tracking-widest">
+        <div className="mt-8 p-6 bg-gradient-to-br from-blue-600 to-blue-800 rounded-3xl text-white shadow-2xl">
+          <div className="flex items-center gap-2 mb-1 opacity-60">
+            <Wallet size={14} />
+            <span className="text-[10px] font-black uppercase tracking-widest">
               Active Credit
             </span>
           </div>
-          <div className="text-3xl font-black italic relative z-10 tracking-tighter">
+          <div className="text-2xl font-black italic">
             ₦{supervisorData?.salary?.toLocaleString()}
           </div>
         </div>
-
-        <div className="mt-8 space-y-4 pt-8 border-t border-white/5">
+        <div className="mt-8 space-y-3 pt-6 border-t border-white/5">
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
-            className="w-full flex items-center justify-between p-5 bg-slate-800/30 rounded-2xl font-black uppercase text-[9px] tracking-[0.2em] hover:bg-blue-600/10 transition-all border border-white/5"
+            className="w-full flex items-center justify-center gap-3 p-4 bg-slate-800/40 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600/20 transition-all"
           >
-            <span className="flex items-center gap-3">
-              {" "}
-              {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}{" "}
-              Spectrum{" "}
-            </span>
-            <div
-              className={`w-8 h-4 rounded-full relative ${isDarkMode ? "bg-blue-600" : "bg-slate-600"}`}
-            >
-              <div
-                className={`absolute top-1 w-2 h-2 rounded-full bg-white transition-all ${isDarkMode ? "right-1" : "left-1"}`}
-              ></div>
-            </div>
+            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />} SPECTRUM
           </button>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-3 p-5 bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white rounded-2xl font-black uppercase text-[9px] tracking-[0.2em] transition-all"
+            className="w-full flex items-center justify-center gap-3 p-4 bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all"
           >
-            <LogOut size={16} /> Abort Session
+            <LogOut size={18} /> ABORT SESSION
           </button>
         </div>
       </aside>
 
-      <main className="flex-1 p-8 lg:p-16 relative overflow-x-hidden">
-        <header className="flex justify-between items-start mb-20 animate-in fade-in duration-1000">
-          <div className="relative">
-            <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-1 h-12 bg-blue-600 rounded-full"></div>
-            <h1 className="text-5xl font-black italic uppercase tracking-tighter text-blue-600">
+      <main className="flex-1 p-6 lg:p-12">
+        <header className="flex justify-between items-center mb-12">
+          <div>
+            <h1 className="text-4xl font-black italic uppercase tracking-tighter text-blue-600">
               {activeTab} Node
             </h1>
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40 mt-2 flex items-center gap-2">
-              <Activity size={10} className="text-emerald-500" /> System Env:{" "}
-              {selectedCourse}
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40 mt-1">
+              Operational Environment: {selectedCourse}
             </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div
-                className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
-              >
-                Authenticated as
-              </div>
-              <div className="font-black text-sm uppercase italic">
-                {supervisorData?.fullName || "Supervisor"}
-              </div>
-            </div>
-            <div className="w-12 h-12 rounded-2xl border-2 border-blue-600/20 overflow-hidden shadow-xl">
-              {supervisorData?.photoURL ? (
-                <img
-                  src={supervisorData.photoURL}
-                  className="w-full h-full object-cover"
-                  alt="Profile"
-                />
-              ) : (
-                <div className="w-full h-full bg-slate-800 flex items-center justify-center text-blue-600 font-black">
-                  S
-                </div>
-              )}
-            </div>
           </div>
         </header>
 
         {activeTab === "settings" && (
-          <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-10 duration-700">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
+          <div className="max-w-4xl animate-in fade-in slide-in-from-right-10 duration-500">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
               <div className="relative group">
-                <div className="w-full aspect-square rounded-[3.5rem] overflow-hidden border-8 border-blue-600/10 bg-slate-800 flex items-center justify-center relative shadow-3xl">
+                <div className="w-full aspect-square rounded-[3rem] overflow-hidden border-4 border-blue-600/20 bg-slate-800 flex items-center justify-center relative shadow-2xl">
                   {supervisorData?.photoURL ? (
                     <img
                       src={supervisorData.photoURL}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      className="w-full h-full object-cover"
                       alt="Identity"
                     />
                   ) : (
-                    <Users size={80} className="opacity-10" />
+                    <Users size={64} className="opacity-20" />
                   )}
                   {isUpdating && (
-                    <div className="absolute inset-0 bg-slate-950/80 flex items-center justify-center backdrop-blur-sm">
-                      {" "}
-                      <RefreshCcw
-                        className="animate-spin text-blue-500"
-                        size={32}
-                      />{" "}
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                      <RefreshCcw className="animate-spin text-white" />
                     </div>
                   )}
                 </div>
-                <label className="absolute -bottom-6 -right-6 p-6 bg-blue-600 text-white rounded-[2rem] shadow-[0_20px_40px_rgba(37,99,235,0.4)] cursor-pointer hover:scale-110 transition-all border-4 border-slate-950">
-                  <Camera size={24} />
+                <label className="absolute -bottom-4 -right-4 p-5 bg-blue-600 text-white rounded-3xl shadow-2xl cursor-pointer hover:scale-110 transition-all">
+                  <Camera size={20} />
                   <input
                     type="file"
                     className="hidden"
@@ -557,83 +500,64 @@ const SupervisorDashboard = () => {
                   />
                 </label>
               </div>
-              <div className="md:col-span-2 space-y-8">
+              <div className="md:col-span-2 space-y-6">
                 {settingsMsg.text && (
                   <div
-                    className={`p-6 rounded-3xl flex items-center gap-4 font-black text-[10px] uppercase border animate-in zoom-in ${settingsMsg.type === "success" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-red-500/10 border-red-500/20 text-red-500"}`}
+                    className={`p-5 rounded-2xl flex items-center gap-3 font-black text-[10px] uppercase border ${settingsMsg.type === "success" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-red-500/10 border-red-500/20 text-red-500"}`}
                   >
                     {settingsMsg.type === "success" ? (
-                      <CheckCircle2 size={18} />
+                      <CheckCircle2 size={16} />
                     ) : (
-                      <AlertCircle size={18} />
+                      <AlertCircle size={16} />
                     )}{" "}
                     {settingsMsg.text}
                   </div>
                 )}
                 <form
                   onSubmit={handlePasswordUpdate}
-                  className={`p-12 rounded-[3.5rem] border space-y-8 ${isDarkMode ? "bg-[#0c1222] border-white/5 shadow-2xl" : "bg-white shadow-2xl border-slate-100"}`}
+                  className={`p-10 rounded-[3rem] border space-y-6 ${isDarkMode ? "bg-slate-900 border-white/5 shadow-2xl" : "bg-white shadow-xl border-slate-100"}`}
                 >
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 ml-4">
-                      Current Authorization
-                    </label>
+                  <input
+                    type="password"
+                    placeholder="Current Authorization Key"
+                    required
+                    className="s-input"
+                    value={passwords.current}
+                    onChange={(e) =>
+                      setPasswords({ ...passwords, current: e.target.value })
+                    }
+                  />
+                  <div className="grid grid-cols-2 gap-4">
                     <input
                       type="password"
-                      placeholder="••••••••••••"
+                      placeholder="New Secure Key"
                       required
                       className="s-input"
-                      value={passwords.current}
+                      value={passwords.new}
                       onChange={(e) =>
-                        setPasswords({ ...passwords, current: e.target.value })
+                        setPasswords({ ...passwords, new: e.target.value })
+                      }
+                    />
+                    <input
+                      type="password"
+                      placeholder="Confirm Key"
+                      required
+                      className="s-input"
+                      value={passwords.confirm}
+                      onChange={(e) =>
+                        setPasswords({ ...passwords, confirm: e.target.value })
                       }
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 ml-4">
-                        New Key
-                      </label>
-                      <input
-                        type="password"
-                        placeholder="••••••••"
-                        required
-                        className="s-input"
-                        value={passwords.new}
-                        onChange={(e) =>
-                          setPasswords({ ...passwords, new: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 ml-4">
-                        Confirm Key
-                      </label>
-                      <input
-                        type="password"
-                        placeholder="••••••••"
-                        required
-                        className="s-input"
-                        value={passwords.confirm}
-                        onChange={(e) =>
-                          setPasswords({
-                            ...passwords,
-                            confirm: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
                   <button
                     disabled={isUpdating}
-                    className="w-full py-6 bg-blue-600 text-white rounded-3xl font-black uppercase text-xs tracking-[0.3em] flex items-center justify-center gap-4 shadow-[0_20px_40px_rgba(37,99,235,0.3)] hover:translate-y-[-2px] active:translate-y-[1px] transition-all"
+                    className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-blue-600/30"
                   >
                     {isUpdating ? (
                       <RefreshCcw className="animate-spin" />
                     ) : (
                       <>
-                        {" "}
-                        <UploadCloud size={20} /> Synchronize Access{" "}
+                        <UploadCloud size={18} /> Update Security Profile
                       </>
                     )}
                   </button>
@@ -644,78 +568,55 @@ const SupervisorDashboard = () => {
         )}
 
         {activeTab === "forum" && (
-          <div className="flex gap-10 h-[75vh] animate-in fade-in slide-in-from-right-10 duration-700">
+          <div className="flex gap-8 h-[70vh] animate-in fade-in duration-500">
             <div
-              className={`w-1/3 rounded-[3.5rem] border overflow-hidden flex flex-col ${isDarkMode ? "bg-[#0c1222] border-white/5 shadow-2xl" : "bg-white border-slate-200 shadow-xl"}`}
+              className={`w-1/3 rounded-[3rem] border overflow-hidden flex flex-col ${isDarkMode ? "bg-slate-900 border-slate-800 shadow-2xl" : "bg-white border-slate-200 shadow-xl"}`}
             >
-              <div className="p-10 border-b border-white/5 font-black uppercase text-[10px] opacity-40 tracking-[0.2em] flex items-center gap-3">
-                <Database size={14} className="text-blue-600" /> Active Dispatch
+              <div className="p-8 border-b border-slate-800 font-black uppercase text-[10px] opacity-40 tracking-widest">
+                Active Dispatch Threads
               </div>
               <div className="overflow-y-auto flex-1 custom-scrollbar">
                 {forumThreads.map((thread) => (
                   <div
                     key={thread.id}
                     onClick={() => setActiveThread(thread)}
-                    className={`p-10 border-b border-white/5 cursor-pointer transition-all relative group ${activeThread?.id === thread.id ? "bg-blue-600 text-white" : "hover:bg-blue-600/5"}`}
+                    className={`p-8 border-b border-white/5 cursor-pointer transition-all ${activeThread?.id === thread.id ? "bg-blue-600 text-white shadow-lg" : "hover:bg-blue-600/10"}`}
                   >
-                    {activeThread?.id === thread.id && (
-                      <div className="absolute left-0 top-0 bottom-0 w-2 bg-white rounded-r-full"></div>
-                    )}
-                    <p
-                      className={`font-black text-sm uppercase italic line-clamp-2 mb-3 tracking-tight ${activeThread?.id === thread.id ? "text-white" : "text-inherit"}`}
-                    >
+                    <p className="font-black text-sm uppercase italic line-clamp-1 mb-2">
                       "{thread.title}"
                     </p>
-                    <div className="flex items-center gap-3 opacity-50 text-[10px] font-bold">
-                      <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center">
-                        <Users size={12} />
-                      </div>
-                      <span className="uppercase tracking-widest">
-                        Cadet {thread.studentName?.split(" ")[0]}
-                      </span>
+                    <div className="flex items-center gap-2 opacity-50 text-[10px] font-bold">
+                      <Users size={12} />
+                      <span>Cadet {thread.studentName?.split(" ")[0]}</span>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
             <div
-              className={`flex-1 rounded-[4rem] border flex flex-col overflow-hidden ${isDarkMode ? "bg-[#0c1222] border-white/5 shadow-3xl" : "bg-white border-slate-200 shadow-2xl"}`}
+              className={`flex-1 rounded-[3.5rem] border flex flex-col overflow-hidden ${isDarkMode ? "bg-slate-900 border-slate-800 shadow-2xl" : "bg-white border-slate-200 shadow-2xl"}`}
             >
               {activeThread ? (
                 <>
                   <div
-                    className={`p-12 border-b ${isDarkMode ? "bg-blue-600/5 border-white/5" : "bg-slate-50 border-slate-100"}`}
+                    className={`p-10 border-b ${isDarkMode ? "bg-blue-600/5 border-slate-800" : "bg-slate-50 border-slate-100"}`}
                   >
-                    <div className="flex items-center gap-4 mb-4">
-                      <span className="px-3 py-1 bg-blue-600 text-white text-[8px] font-black uppercase tracking-widest rounded-lg">
-                        Subject Line
-                      </span>
-                    </div>
-                    <h3 className="font-black text-4xl italic uppercase text-blue-600 tracking-tighter leading-none mb-6">
+                    <h3 className="font-black text-3xl italic uppercase text-blue-600 tracking-tighter">
                       {activeThread.title}
                     </h3>
-                    <div
-                      className={`p-6 rounded-3xl border ${isDarkMode ? "bg-slate-950/50 border-white/5" : "bg-white border-slate-200"} text-sm leading-relaxed font-medium opacity-80 italic`}
-                    >
+                    <p className="opacity-50 text-sm mt-4 leading-relaxed font-medium">
                       "{activeThread.content}"
-                    </div>
+                    </p>
                   </div>
-                  <div className="flex-1 p-12 overflow-y-auto space-y-8 flex flex-col custom-scrollbar bg-transparent">
+                  <div className="flex-1 p-10 overflow-y-auto space-y-6 flex flex-col custom-scrollbar">
                     {replies.map((msg) => (
                       <div
                         key={msg.id}
-                        className={`max-w-[75%] p-8 rounded-[2.5rem] relative ${msg.role === "supervisor" ? "bg-blue-600 text-white self-end rounded-tr-none shadow-[0_15px_30px_rgba(37,99,235,0.3)]" : "bg-slate-800 text-white self-start rounded-tl-none border border-white/5"}`}
+                        className={`max-w-[75%] p-6 rounded-[2rem] shadow-sm ${msg.role === "supervisor" ? "bg-blue-600 text-white self-end rounded-tr-none" : "bg-slate-800 text-white self-start rounded-tl-none border border-white/5"}`}
                       >
-                        <div className="flex items-center gap-3 mb-3">
-                          <div
-                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-black ${msg.role === "supervisor" ? "bg-white text-blue-600" : "bg-blue-600 text-white"}`}
-                          >
-                            {msg.sender?.charAt(0)}
-                          </div>
-                          <span className="text-[9px] font-black uppercase opacity-60 tracking-widest">
-                            {msg.sender}
-                          </span>
-                        </div>
+                        <p className="text-[9px] font-black uppercase mb-2 opacity-60 tracking-widest">
+                          {msg.sender}
+                        </p>
                         <p className="text-sm font-bold italic leading-relaxed">
                           "{msg.text}"
                         </p>
@@ -724,36 +625,27 @@ const SupervisorDashboard = () => {
                   </div>
                   <form
                     onSubmit={handleReply}
-                    className="p-10 border-t border-white/5 flex gap-6 bg-slate-950/20 backdrop-blur-md"
+                    className="p-8 border-t border-white/5 flex gap-4 bg-slate-900/20"
                   >
                     <input
-                      className="flex-1 bg-transparent outline-none font-black text-sm px-6 text-inherit placeholder:opacity-20"
-                      placeholder="Transmit secure response..."
+                      className="flex-1 bg-transparent outline-none font-black text-sm px-4 text-inherit"
+                      placeholder="Transmit response to thread..."
                       value={reply}
                       onChange={(e) => setReply(e.target.value)}
                     />
                     <button
                       type="submit"
-                      className="p-6 bg-blue-600 text-white rounded-3xl hover:scale-110 transition-all shadow-[0_15px_30px_rgba(37,99,235,0.4)]"
+                      className="p-5 bg-blue-600 text-white rounded-2xl hover:scale-105 transition-all shadow-xl shadow-blue-600/20"
                     >
-                      <Send size={24} />
+                      <Send size={20} />
                     </button>
                   </form>
                 </>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-20 text-center">
-                  <div className="w-32 h-32 rounded-full bg-blue-600/5 flex items-center justify-center mb-10 border border-blue-600/10 animate-pulse">
-                    <MessageSquare
-                      size={50}
-                      className="text-blue-600 opacity-20"
-                    />
-                  </div>
-                  <h2 className="font-black uppercase text-xl tracking-tighter opacity-20 italic">
-                    Awaiting Thread Selection
-                  </h2>
-                  <p className="font-black uppercase text-[10px] mt-4 tracking-[0.3em] opacity-10">
-                    Select an operational dispatch thread to begin monitoring
-                    communications
+                <div className="flex-1 flex flex-col items-center justify-center opacity-20 p-8">
+                  <MessageSquare size={80} />
+                  <p className="font-black uppercase text-xs mt-6 tracking-widest">
+                    Select an active thread to monitor communications
                   </p>
                 </div>
               )}
@@ -762,25 +654,20 @@ const SupervisorDashboard = () => {
         )}
 
         {activeTab === "dm" && (
-          <div className="flex gap-10 h-[75vh] animate-in zoom-in duration-700">
+          <div className="flex gap-8 h-[70vh] animate-in zoom-in duration-500">
             <div
-              className={`w-1/3 rounded-[3.5rem] border flex flex-col ${isDarkMode ? "bg-[#0c1222] border-white/5 shadow-2xl" : "bg-white shadow-2xl"}`}
+              className={`w-1/3 rounded-[3rem] border flex flex-col ${isDarkMode ? "bg-slate-900 border-white/5 shadow-2xl" : "bg-white shadow-2xl"}`}
             >
-              <div className="p-10 font-black uppercase text-[10px] opacity-40 border-b border-white/5 tracking-[0.2em] flex items-center gap-3">
-                <Target size={14} className="text-blue-600" /> Secure Directory
+              <div className="p-8 font-black uppercase text-[10px] opacity-40 border-b border-white/5 tracking-widest">
+                Target Cadets
               </div>
               <div className="overflow-y-auto flex-1 custom-scrollbar">
                 {students.map((s) => (
                   <div
                     key={s.id}
                     onClick={() => setSelectedStudentForDM(s)}
-                    className={`p-10 border-b border-white/5 cursor-pointer transition-all flex items-center gap-6 ${selectedStudentForDM?.id === s.id ? "bg-blue-600 text-white" : "hover:bg-blue-600/5"}`}
+                    className={`p-8 border-b border-white/5 cursor-pointer transition-all ${selectedStudentForDM?.id === s.id ? "bg-blue-600 text-white" : "hover:bg-blue-600/5"}`}
                   >
-                    <div
-                      className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs ${selectedStudentForDM?.id === s.id ? "bg-white text-blue-600" : "bg-slate-800 text-blue-500"}`}
-                    >
-                      {s.studentName?.charAt(0)}
-                    </div>
                     <p className="font-black uppercase text-sm tracking-tight">
                       {s.studentName}
                     </p>
@@ -789,76 +676,52 @@ const SupervisorDashboard = () => {
               </div>
             </div>
             <div
-              className={`flex-1 rounded-[4rem] border flex flex-col overflow-hidden ${isDarkMode ? "bg-[#0c1222] border-white/5 shadow-3xl" : "bg-white shadow-2xl"}`}
+              className={`flex-1 rounded-[3.5rem] border flex flex-col overflow-hidden ${isDarkMode ? "bg-slate-900 border-white/5 shadow-2xl" : "bg-white shadow-2xl"}`}
             >
               {selectedStudentForDM ? (
                 <>
-                  <div className="p-10 border-b border-white/5 bg-blue-600/5 flex items-center justify-between">
-                    <div>
-                      <div className="text-[8px] font-black uppercase text-blue-600 tracking-[0.4em] mb-1">
-                        Encrypted Link Established
-                      </div>
-                      <h3 className="font-black italic uppercase text-inherit tracking-tighter text-2xl">
-                        Cadet {selectedStudentForDM.studentName}
-                      </h3>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <div className="text-[8px] font-black uppercase opacity-40">
-                          Status
-                        </div>
-                        <div className="text-[10px] font-black text-emerald-500 uppercase">
-                          Synchronized
-                        </div>
-                      </div>
-                      <div className="w-4 h-4 bg-emerald-500 rounded-full animate-pulse shadow-glow"></div>
-                    </div>
+                  <div className="p-8 border-b border-white/5 bg-blue-600/5 flex items-center justify-between">
+                    <h3 className="font-black italic uppercase text-blue-600 tracking-tighter text-lg">
+                      Secure Protocol: {selectedStudentForDM.studentName}
+                    </h3>
+                    <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-glow"></div>
                   </div>
-                  <div className="flex-1 p-12 overflow-y-auto flex flex-col space-y-8 custom-scrollbar">
+                  <div className="flex-1 p-10 overflow-y-auto flex flex-col space-y-6 custom-scrollbar">
                     {privateMessages.map((m) => (
                       <div
                         key={m.id}
-                        className={`max-w-[70%] p-8 rounded-[2.5rem] font-bold text-sm shadow-xl ${m.senderRole === "supervisor" ? "bg-blue-600 text-white self-end rounded-tr-none shadow-[0_15px_40px_rgba(37,99,235,0.2)]" : "bg-slate-800 text-white self-start rounded-tl-none border border-white/5"}`}
+                        className={`max-w-[70%] p-6 rounded-[2rem] font-bold text-sm shadow-sm ${m.senderRole === "supervisor" ? "bg-blue-600 text-white self-end rounded-tr-none" : "bg-slate-800 text-white self-start rounded-tl-none border border-white/5"}`}
                       >
-                        <div className="opacity-80 leading-relaxed italic">
-                          "{m.text}"
-                        </div>
-                        <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/10">
-                          <span className="text-[8px] font-black uppercase tracking-widest opacity-40">
-                            {m.sender}
-                          </span>
+                        {m.text}
+                        <div className="text-[8px] opacity-40 mt-3 uppercase tracking-tighter">
+                          {m.sender}
                         </div>
                       </div>
                     ))}
                   </div>
                   <form
                     onSubmit={handleSendDM}
-                    className="p-10 border-t border-white/5 flex gap-6 bg-slate-950/30 backdrop-blur-md"
+                    className="p-8 border-t border-white/5 flex gap-4"
                   >
                     <input
                       value={dmText}
                       onChange={(e) => setDmText(e.target.value)}
-                      placeholder="Type classified transmission..."
-                      className="flex-1 bg-transparent outline-none font-black text-sm px-6 text-inherit placeholder:opacity-20"
+                      placeholder="Type classified message..."
+                      className="flex-1 bg-transparent outline-none font-black text-sm px-4 text-inherit"
                     />
                     <button
                       type="submit"
-                      className="p-6 bg-blue-600 text-white rounded-3xl hover:scale-110 transition-all shadow-[0_15px_30px_rgba(37,99,235,0.4)]"
+                      className="p-5 bg-blue-600 text-white rounded-2xl hover:scale-105 transition-all"
                     >
-                      <Send size={24} />
+                      <Send size={20} />
                     </button>
                   </form>
                 </>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-20 opacity-20 text-center">
-                  <div className="w-32 h-32 rounded-full border-4 border-dashed border-blue-600 flex items-center justify-center mb-10">
-                    <Lock size={60} />
-                  </div>
-                  <h2 className="font-black uppercase text-xl tracking-tighter italic">
-                    Security Clearance Required
-                  </h2>
-                  <p className="font-black uppercase text-[10px] mt-4 tracking-[0.3em]">
-                    Select a cadet to establish high-level encrypted link
+                <div className="flex-1 flex flex-col items-center justify-center opacity-20 p-8">
+                  <Lock size={80} />
+                  <p className="font-black uppercase text-xs mt-6 tracking-widest">
+                    Select a cadet to establish encrypted link
                   </p>
                 </div>
               )}
@@ -868,48 +731,36 @@ const SupervisorDashboard = () => {
 
         {activeTab === "students" && (
           <div
-            className={`rounded-[4rem] border overflow-hidden animate-in slide-in-from-bottom-20 duration-1000 ${isDarkMode ? "bg-[#0c1222] border-white/5 shadow-3xl" : "bg-white border-slate-100 shadow-3xl"}`}
+            className={`rounded-[3rem] border overflow-hidden animate-in fade-in duration-700 ${isDarkMode ? "bg-slate-900 border-slate-800 shadow-2xl" : "bg-white border-slate-100 shadow-2xl"}`}
           >
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left">
               <thead>
-                <tr className="text-[10px] font-black uppercase tracking-[0.3em] border-b border-white/5 bg-blue-600 text-white">
-                  <th className="p-12">Cadet Identity & Rank</th>
-                  <th className="p-12">Module Assignment</th>
-                  <th className="p-12 text-center">Node Status</th>
+                <tr className="text-[10px] font-black uppercase tracking-widest border-b border-white/5 bg-blue-600/5 text-slate-500">
+                  <th className="p-10">Cadet Identity</th>
+                  <th className="p-10">Specialization Assignment</th>
+                  <th className="p-10 text-center">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {students.map((std) => (
                   <tr
                     key={std.id}
-                    className="border-b border-white/5 hover:bg-blue-600/5 transition-all group cursor-default"
+                    className="border-b border-white/5 hover:bg-blue-600/5 transition-all group"
                   >
-                    <td className="p-12 flex items-center gap-8">
-                      <div className="w-16 h-16 bg-slate-800 rounded-[1.5rem] flex items-center justify-center text-blue-600 font-black text-xl shadow-2xl group-hover:rotate-12 group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 border border-white/5">
+                    <td className="p-10 flex items-center gap-6">
+                      <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-sm shadow-lg group-hover:rotate-6 transition-all">
                         {std.studentName?.charAt(0)}
                       </div>
-                      <div>
-                        <p className="font-black text-xl uppercase tracking-tighter group-hover:text-blue-600 transition-colors">
-                          {std.studentName}
-                        </p>
-                        <p className="text-[8px] font-black uppercase tracking-widest opacity-30 mt-1">
-                          ID: {std.id.substring(0, 12).toUpperCase()}
-                        </p>
-                      </div>
+                      <p className="font-black text-base uppercase tracking-tighter">
+                        {std.studentName}
+                      </p>
                     </td>
-                    <td className="p-12">
-                      <div className="inline-flex items-center gap-3 px-4 py-2 bg-blue-600/5 rounded-xl border border-blue-600/10">
-                        <Database size={12} className="text-blue-600" />
-                        <span className="text-xs font-black text-blue-600 italic tracking-widest">
-                          {std.selectedCourseId
-                            ?.replace(/_/g, " ")
-                            .toUpperCase()}
-                        </span>
-                      </div>
+                    <td className="p-10 text-xs font-black text-blue-500 italic tracking-widest">
+                      {std.selectedCourseId?.replace(/_/g, " ").toUpperCase()}
                     </td>
-                    <td className="p-12 text-center">
-                      <span className="px-6 py-3 bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase rounded-2xl border border-emerald-500/20 shadow-[0_10px_20px_rgba(16,185,129,0.1)]">
-                        Synchronized
+                    <td className="p-10 text-center">
+                      <span className="px-5 py-2 bg-emerald-500/10 text-emerald-500 text-[9px] font-black uppercase rounded-full border border-emerald-500/20">
+                        Active Node
                       </span>
                     </td>
                   </tr>
@@ -921,31 +772,29 @@ const SupervisorDashboard = () => {
 
         {activeTab === "history" && (
           <div
-            className={`rounded-[4rem] border overflow-hidden animate-in fade-in duration-1000 ${isDarkMode ? "bg-[#0c1222] border-white/5 shadow-3xl" : "bg-white shadow-3xl"}`}
+            className={`rounded-[3rem] border overflow-hidden animate-in slide-in-from-bottom-10 duration-500 ${isDarkMode ? "bg-slate-900 border-white/5 shadow-2xl" : "bg-white shadow-2xl"}`}
           >
             <table className="w-full text-left">
               <thead>
-                <tr className="text-[10px] font-black uppercase text-white border-b border-white/5 bg-slate-800 tracking-[0.3em]">
-                  <th className="p-10">Protocol Action</th>
-                  <th className="p-10">Operational Details</th>
-                  <th className="p-10 text-right">Timestamp</th>
+                <tr className="text-[10px] font-black uppercase text-slate-500 border-b border-white/5 bg-blue-600/5">
+                  <th className="p-8">Protocol Action</th>
+                  <th className="p-8">Operational Details</th>
+                  <th className="p-8 text-right">Timestamp</th>
                 </tr>
               </thead>
               <tbody>
                 {systemLogs.map((log) => (
                   <tr
                     key={log.id}
-                    className="border-b border-white/5 transition-all hover:bg-blue-600/5"
+                    className="border-b border-white/5 transition-all hover:bg-white/5"
                   >
-                    <td className="p-10">
-                      <span className="px-4 py-2 bg-blue-600/10 text-blue-600 font-black uppercase text-[10px] tracking-widest rounded-xl border border-blue-600/20">
-                        {log.action}
-                      </span>
+                    <td className="p-8 text-blue-600 font-black uppercase text-[10px] tracking-widest">
+                      {log.action}
                     </td>
-                    <td className="p-10 font-bold text-sm uppercase italic opacity-80 tracking-tight">
-                      "{log.details}"
+                    <td className="p-8 font-bold text-xs uppercase opacity-80">
+                      {log.details}
                     </td>
-                    <td className="p-10 text-[10px] font-black opacity-30 text-right uppercase tracking-widest">
+                    <td className="p-8 text-[10px] font-black opacity-30 text-right uppercase">
                       {log.timestamp?.toDate().toLocaleString()}
                     </td>
                   </tr>
@@ -956,30 +805,27 @@ const SupervisorDashboard = () => {
         )}
 
         {activeTab === "library" && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 animate-in zoom-in duration-700">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 animate-in zoom-in duration-500">
             {libraryLinks.map((lib, i) => (
               <a
                 key={i}
                 href={lib.url}
                 target="_blank"
                 rel="noreferrer"
-                className={`group p-12 rounded-[4rem] border transition-all hover:-translate-y-4 ${isDarkMode ? "bg-[#0c1222] border-white/5 hover:border-blue-600 shadow-3xl" : "bg-white border-slate-200 shadow-2xl hover:border-blue-600"}`}
+                className={`group p-10 rounded-[3rem] border transition-all hover:-translate-y-3 ${isDarkMode ? "bg-slate-900 border-white/5 hover:border-blue-600 shadow-2xl" : "bg-white border-slate-200 shadow-xl hover:border-blue-600"}`}
               >
-                <div className="flex justify-between items-start mb-8">
-                  <div className="text-[10px] font-black text-blue-600 uppercase bg-blue-600/10 px-5 py-2 rounded-2xl inline-block tracking-[0.2em]">
-                    {" "}
-                    {lib.cat}{" "}
-                  </div>
-                  <div className="w-12 h-12 rounded-2xl bg-slate-800/50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-xl">
-                    <ExternalLink size={20} />
-                  </div>
+                <div className="text-[10px] font-black text-blue-600 uppercase mb-4 bg-blue-600/10 px-3 py-1 rounded-lg inline-block tracking-widest">
+                  {lib.cat}
                 </div>
-                <h3 className="font-black text-3xl mb-8 uppercase italic tracking-tighter leading-none group-hover:text-blue-600 transition-all">
-                  {" "}
-                  {lib.name}{" "}
+                <h3 className="font-black text-2xl mb-6 uppercase italic tracking-tighter leading-tight group-hover:text-blue-600 transition-all">
+                  {lib.name}
                 </h3>
-                <div className="flex items-center gap-4 text-[10px] font-black uppercase text-slate-500 tracking-[0.3em] opacity-40">
-                  Secure Access Point Established
+                <div className="flex items-center gap-3 text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                  Access Node{" "}
+                  <ExternalLink
+                    size={14}
+                    className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"
+                  />
                 </div>
               </a>
             ))}
@@ -988,24 +834,13 @@ const SupervisorDashboard = () => {
       </main>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        
-        body { font-family: 'Inter', sans-serif; }
-        
-        .t-nav { width: 100%; display: flex; align-items: center; gap: 20px; padding: 22px 30px; border-radius: 30px; font-weight: 900; font-size: 11px; text-transform: uppercase; color: #64748b; transition: 0.5s; border:none; background:none; cursor:pointer; tracking: 0.2em; }
-        .t-active { background: #2563eb !important; color: white !important; box-shadow: 0 25px 50px -15px rgba(37, 99, 235, 0.7); transform: translateX(15px); }
-        .t-nav:hover:not(.t-active) { background: rgba(37, 99, 235, 0.1); color: #2563eb; transform: translateX(5px); }
-        
-        .s-input { width: 100%; padding: 1.8rem; background: ${isDarkMode ? "#050a18" : "#f8fafc"}; border: 2px solid transparent; border-radius: 2.5rem; font-weight: 900; font-size: 0.9rem; outline: none; transition: 0.5s; color: inherit; border: 1px solid ${isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}; letter-spacing: 1px; }
-        .s-input:focus { border-color: #2563eb; background: ${isDarkMode ? "#0c1222" : "white"}; box-shadow: 0 0 0 15px rgba(37,99,235,0.07); transform: scale(1.01); }
-        
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #2563eb; border-radius: 100px; }
-        .shadow-glow { box-shadow: 0 0 30px rgba(16, 185, 129, 0.6); }
-        .shadow-3xl { box-shadow: 0 35px 70px -15px rgba(0, 0, 0, 0.5); }
-        
-        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+        .t-nav { width: 100%; display: flex; align-items: center; gap: 15px; padding: 20px 25px; border-radius: 25px; font-weight: 900; font-size: 11px; text-transform: uppercase; color: #64748b; transition: 0.4s; border:none; background:none; cursor:pointer; tracking: 0.1em; }
+        .t-active { background: #2563eb !important; color: white !important; box-shadow: 0 15px 30px -10px rgba(37, 99, 235, 0.6); transform: translateX(10px); }
+        .s-input { width: 100%; padding: 1.5rem; background: ${isDarkMode ? "#0f172a" : "#f8fafc"}; border: 2px solid transparent; border-radius: 2rem; font-weight: 800; font-size: 0.85rem; outline: none; transition: 0.4s; color: inherit; border: 1px solid ${isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}; }
+        .s-input:focus { border-color: #2563eb; background: ${isDarkMode ? "#020617" : "white"}; box-shadow: 0 0 0 10px rgba(37,99,235,0.05); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #2563eb; border-radius: 20px; }
+        .shadow-glow { box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); }
       `}</style>
     </div>
   );

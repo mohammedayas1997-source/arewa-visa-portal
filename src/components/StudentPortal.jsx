@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { auth, db, storage } from "../firebase";
+import { auth, db } from "../firebase"; // Path corrected for your project
 import {
   signOut,
   onAuthStateChanged,
@@ -68,8 +68,6 @@ import {
   Ship,
   Package,
   Globe2,
-  Activity,
-  Zap,
 } from "lucide-react";
 
 // ==========================================
@@ -122,25 +120,31 @@ const libraryLinks = [
 
 const StudentPortal = () => {
   const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState("dashboard");
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem("stu-theme") === "dark",
   );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
   const [studentData, setStudentData] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(1);
   const [hasPassedMidterm, setHasPassedMidterm] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+
   const [weeksData, setWeeksData] = useState({});
   const [viewState, setViewState] = useState("list");
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedPath, setSelectedPath] = useState(null);
   const [forumThreads, setForumThreads] = useState([]);
   const [newPost, setNewPost] = useState({ title: "", content: "" });
+
   const [privateMessages, setPrivateMessages] = useState([]);
   const [newPrivateMsg, setNewPrivateMsg] = useState("");
+
+  // Settings States
   const [passwords, setPasswords] = useState({
     current: "",
     new: "",
@@ -150,11 +154,14 @@ const StudentPortal = () => {
     type: "",
     text: "",
   });
+
+  // Exam States
   const [examActive, setExamActive] = useState(false);
   const [answers, setAnswers] = useState({});
   const [examScore, setExamScore] = useState(null);
   const [timeLeft, setTimeLeft] = useState(3600);
 
+  // UPDATED COURSES DATA FOR AREWA VISA ACADEMY (TOTAL: 12)
   const availableCourses = [
     {
       id: "cleaning_course",
@@ -223,6 +230,7 @@ const StudentPortal = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Sync Weeks Data
   useEffect(() => {
     if (!selectedCourseId) return;
     const unsubWeeks = onSnapshot(
@@ -241,6 +249,7 @@ const StudentPortal = () => {
     return () => unsubWeeks();
   }, [selectedCourseId]);
 
+  // Exam Timer Logic
   useEffect(() => {
     let timer;
     if (examActive && timeLeft > 0) {
@@ -254,12 +263,14 @@ const StudentPortal = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        setLoading(false);
+        setLoading(false); // Dole ne ka kashe loading idan babu user
         navigate("/student-login");
         return;
       }
       try {
         const userRef = doc(db, "users", user.uid);
+
+        // Gyara 1: Tabbatar onSnapshot yana kashe loading bayan ya samu data
         const unsubUser = onSnapshot(userRef, async (snap) => {
           if (snap.exists()) {
             const data = snap.data();
@@ -274,15 +285,19 @@ const StudentPortal = () => {
               Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7)) + 1;
             setCurrentWeek(weekCount > 16 ? 16 : weekCount < 1 ? 1 : weekCount);
 
+            // Gyara 2: Saka Exam check a cikin snapshot din don komai ya zo lokaci daya
             const examRef = doc(db, `students/${user.uid}/exams/week_8`);
             const examSnap = await getDoc(examRef);
-            if (examSnap.exists() && examSnap.data().passed)
+            if (examSnap.exists() && examSnap.data().passed) {
               setHasPassedMidterm(true);
-            setLoading(false);
+            }
+
+            setLoading(false); // Yanzu portal din zai bude domin an samu duka data
           } else {
-            setLoading(false);
+            setLoading(false); // Ko da babu doc, a bar shi ya wuce don ya zabi kwas
           }
         });
+
         return () => unsubUser();
       } catch (error) {
         console.error("Portal Sync Error:", error);
@@ -327,6 +342,7 @@ const StudentPortal = () => {
     }
   }, [activeTab, viewState, selectedCourse, selectedPath]);
 
+  // --- SETTINGS PROTOCOLS ---
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -337,6 +353,7 @@ const StudentPortal = () => {
       });
       return;
     }
+
     setLoading(true);
     try {
       const storageRef = ref(
@@ -345,10 +362,12 @@ const StudentPortal = () => {
       );
       await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(storageRef);
+
       await updateDoc(doc(db, "users", studentData.id), {
         photoURL: downloadURL,
         lastUpdated: serverTimestamp(),
       });
+
       setSettingsMessage({
         type: "success",
         text: "Profile identity updated.",
@@ -369,6 +388,7 @@ const StudentPortal = () => {
       });
       return;
     }
+
     setLoading(true);
     try {
       const credential = EmailAuthProvider.credential(
@@ -377,6 +397,7 @@ const StudentPortal = () => {
       );
       await reauthenticateWithCredential(auth.currentUser, credential);
       await updatePassword(auth.currentUser, passwords.new);
+
       setSettingsMessage({
         type: "success",
         text: "Security credentials updated.",
@@ -417,6 +438,7 @@ const StudentPortal = () => {
     const releaseDate = weekSettings.startDate.toDate
       ? weekSettings.startDate.toDate()
       : new Date(weekSettings.startDate);
+    // ADJUSTED MIDTERM LOCK AT WEEK 8
     const isMidtermLocked = weekNumber > 8 && !hasPassedMidterm;
     return new Date() < releaseDate || isMidtermLocked;
   };
@@ -429,6 +451,7 @@ const StudentPortal = () => {
       if (answers[idx] === q.correctAnswer) correctCount++;
     });
     const finalScore = Math.round((correctCount / questions.length) * 100);
+
     const resultData = {
       score: finalScore,
       correctAnswers: correctCount,
@@ -438,11 +461,13 @@ const StudentPortal = () => {
       courseId: selectedCourseId,
       week: currentWeek,
     };
+
     await setDoc(
       doc(db, `students/${studentData.id}/exams/week_${currentWeek}`),
       resultData,
     );
     setExamScore(resultData);
+    // ADJUSTED MIDTERM PASS TRIGGER AT WEEK 8
     if (finalScore >= 50 && currentWeek === 8) setHasPassedMidterm(true);
   };
 
@@ -454,10 +479,10 @@ const StudentPortal = () => {
 
   if (loading)
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center font-black text-blue-600 bg-[#020617]">
-        <Loader2 className="animate-spin mb-6" size={64} />
-        <p className="tracking-[0.4em] animate-pulse uppercase text-[10px]">
-          AVA.CORE | Neural Syncing Protocols Active
+      <div className="min-h-screen flex flex-col items-center justify-center font-black text-blue-600 bg-slate-950">
+        <Loader2 className="animate-spin mb-4" size={48} />
+        <p className="tracking-widest animate-pulse uppercase">
+          AREWA VISA ACADEMY | SYNCING PROTOCOLS...
         </p>
       </div>
     );
@@ -465,38 +490,29 @@ const StudentPortal = () => {
   if (!selectedCourseId)
     return (
       <div
-        className={`min-h-screen flex items-center justify-center p-8 ${darkMode ? "bg-[#020617]" : "bg-gray-100"}`}
+        className={`min-h-screen flex items-center justify-center p-6 ${darkMode ? "bg-slate-950" : "bg-gray-100"}`}
       >
-        <div className="max-w-7xl w-full">
-          <div className="mb-16 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-600/10 border border-blue-600/20 text-blue-600 font-black text-[9px] uppercase tracking-[0.2em] mb-6">
-              <Zap size={12} /> Specialization Protocol Required
-            </div>
-            <h2
-              className={`text-7xl font-black italic uppercase tracking-tighter mb-4 ${darkMode ? "text-white" : "text-slate-900"}`}
-            >
-              Select <span className="text-blue-600">Specialization</span>
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-in fade-in zoom-in duration-700">
+        <div className="max-w-6xl w-full">
+          <h2
+            className={`text-5xl font-black italic uppercase text-center mb-12 ${darkMode ? "text-white" : "text-slate-900"}`}
+          >
+            Select Specialization
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {availableCourses.map((c) => (
               <div
                 key={c.id}
                 onClick={() => handleInitialCourseSelection(c.id)}
-                className={`p-10 rounded-[3rem] border-2 cursor-pointer transition-all hover:scale-105 group relative overflow-hidden h-64 flex flex-col justify-between ${darkMode ? "bg-slate-900 border-slate-800 hover:border-blue-600 shadow-2xl" : "bg-white border-white hover:border-blue-600 shadow-xl"}`}
+                className={`p-10 rounded-[3rem] border-2 cursor-pointer transition-all hover:scale-105 group ${darkMode ? "bg-slate-900 border-slate-800 hover:border-blue-600" : "bg-white border-white hover:border-blue-600 shadow-xl"}`}
               >
-                <div className="w-16 h-16 bg-blue-600/10 text-blue-600 rounded-[1.5rem] flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
+                <div className="w-16 h-16 bg-blue-600/10 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   {c.icon}
                 </div>
                 <h3
-                  className={`text-xl font-black uppercase italic leading-tight ${darkMode ? "text-white" : "text-slate-900"}`}
+                  className={`text-2xl font-black uppercase italic ${darkMode ? "text-white" : "text-slate-900"}`}
                 >
                   {c.name}
                 </h3>
-                <Activity
-                  size={20}
-                  className="absolute top-8 right-8 text-blue-600 opacity-20"
-                />
               </div>
             ))}
           </div>
@@ -508,31 +524,32 @@ const StudentPortal = () => {
 
   return (
     <div
-      className={`min-h-screen flex font-sans ${darkMode ? "bg-[#020617] text-white" : "bg-[#f8fafc] text-slate-900"} transition-colors duration-500`}
+      className={`min-h-screen flex font-sans ${darkMode ? "bg-slate-950 text-white" : "bg-gray-50 text-slate-900"} transition-colors duration-300`}
     >
+      {/* SIDEBAR */}
       <aside
-        className={`fixed lg:sticky top-0 z-[100] h-screen w-80 border-r flex flex-col transition-all duration-500 ${darkMode ? "bg-[#0a0f1e] border-white/5" : "bg-white border-gray-200 shadow-2xl"} ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+        className={`fixed lg:sticky top-0 z-50 h-screen w-80 border-r flex flex-col transition-transform ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-gray-100"} ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
-        <div className="p-10 flex flex-col gap-6">
-          <h1 className="text-3xl font-black text-blue-600 italic tracking-tighter">
-            AVA.
-            <span className={`${darkMode ? "text-white" : "text-gray-900"}`}>
-              TERMINAL
+        <div className="p-10 flex flex-col gap-4">
+          <h1 className="text-2xl font-black text-blue-600 italic">
+            AREWA{" "}
+            <span className={darkMode ? "text-white" : "text-gray-900"}>
+              VISA ACADEMY
             </span>
           </h1>
-          <div className="p-5 rounded-[2rem] bg-gradient-to-br from-blue-600 to-indigo-900 text-white shadow-xl shadow-blue-500/30">
-            <div className="flex items-center gap-3 opacity-60 mb-2">
-              <Clock size={12} className="animate-spin-slow" />
-              <span className="text-[9px] font-black uppercase tracking-[0.3em]">
-                Operational Time
+          <div className="p-4 rounded-2xl bg-blue-600/10 border border-blue-600/20">
+            <div className="flex items-center gap-3 text-blue-500 mb-1">
+              <Clock size={14} className="animate-spin-slow" />
+              <span className="text-[10px] font-black uppercase tracking-widest">
+                Terminal Time
               </span>
             </div>
-            <h4 className="text-2xl font-black font-mono tracking-tighter">
+            <h4 className="text-xl font-black font-mono tracking-tighter">
               {currentTime.toLocaleTimeString("en-GB", { hour12: false })}
             </h4>
           </div>
         </div>
-        <nav className="flex-1 px-8 space-y-3 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 px-6 space-y-2 overflow-y-auto custom-scrollbar">
           {[
             {
               id: "dashboard",
@@ -545,9 +562,13 @@ const StudentPortal = () => {
               name: "Academy Forum",
               icon: <MessageSquare size={18} />,
             },
-            { id: "library", name: "E-Library", icon: <Layers size={18} /> },
+            { id: "library", name: "E-Library", icon: <BookOpen size={18} /> },
             { id: "chat", name: "Faculty Direct", icon: <User size={18} /> },
-            { id: "settings", name: "Config", icon: <Settings size={18} /> },
+            {
+              id: "settings",
+              name: "Settings",
+              icon: <Settings size={18} />,
+            },
           ].map((item) => (
             <button
               key={item.id}
@@ -556,171 +577,141 @@ const StudentPortal = () => {
                 setViewState("list");
                 setMobileMenuOpen(false);
               }}
-              className={`t-nav ${activeTab === item.id ? "t-active" : ""}`}
+              className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === item.id ? "bg-blue-600 text-white shadow-lg" : "text-gray-400 hover:bg-blue-50/10"}`}
             >
               {item.icon} {item.name}
             </button>
           ))}
-          <div className="pt-10 pb-4 text-[9px] font-black text-blue-600/40 uppercase tracking-[0.3em] px-4">
-            Deployment Progress
+          <div className="pt-8 pb-4 text-[8px] font-black text-gray-500 uppercase tracking-widest px-2">
+            Curriculum Progress (4 Months)
           </div>
-          <div className="space-y-2 pb-12 px-2">
-            {Array.from({ length: 16 }, (_, i) => i + 1).map((w) => (
-              <div
-                key={w}
-                onClick={() => !isWeekLocked(w) && setCurrentWeek(w)}
-                className={`px-5 py-3.5 rounded-2xl flex items-center justify-between transition-all ${isWeekLocked(w) ? "opacity-20 cursor-not-allowed" : "hover:bg-blue-600/5 cursor-pointer"} ${currentWeek === w ? "bg-blue-600/10 border border-blue-600/20" : ""}`}
-              >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black ${w === 8 || w === 16 ? "bg-red-600 text-white" : isWeekLocked(w) ? "bg-slate-800" : "bg-blue-600 text-white"}`}
-                  >
-                    {w}
+          <div className="space-y-1 pb-10 px-2">
+            {/* ADJUSTED LOOP FOR 16 WEEKS */}
+            {Array.from({ length: 16 }, (_, i) => i + 1).map((w) => {
+              const weekInfo = weeksData[String(w)];
+              return (
+                <div
+                  key={w}
+                  onClick={() => !isWeekLocked(w) && setCurrentWeek(w)}
+                  className={`px-4 py-3 rounded-xl flex flex-col transition-all ${isWeekLocked(w) ? "opacity-30 cursor-not-allowed" : "hover:bg-blue-50/10 cursor-pointer"} ${currentWeek === w ? "bg-blue-600/10 border border-blue-600/20" : ""}`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`px-2 h-6 rounded-lg flex items-center justify-center text-[9px] font-black ${w === 8 || w === 16 ? "bg-red-600 text-white min-w-[70px]" : isWeekLocked(w) ? "bg-red-100 text-red-600" : "bg-emerald-100 text-emerald-600"}`}
+                      >
+                        {w === 8 ? "MIDTERM" : w === 16 ? "FINAL EXAM" : w}
+                      </div>
+                      <span className="text-[10px] font-black uppercase">
+                        Week {w}
+                      </span>
+                    </div>
+                    {isWeekLocked(w) ? (
+                      <Lock size={10} className="text-red-500" />
+                    ) : (
+                      <CheckCircle size={10} className="text-emerald-500" />
+                    )}
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest">
-                    Node {w}
-                  </span>
                 </div>
-                {isWeekLocked(w) ? (
-                  <Lock size={12} className="text-red-500" />
-                ) : (
-                  <ShieldCheck size={12} className="text-emerald-500" />
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </nav>
-        <div className="p-8 border-t border-white/5 space-y-4">
+        <div className="p-6 border-t border-slate-800 space-y-2">
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-800/50 text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:bg-blue-600/10"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest bg-slate-800/50`}
           >
-            <span className="flex items-center gap-3">
-              {" "}
-              {darkMode ? <Sun size={16} /> : <Moon size={16} />} Visual
-              Shift{" "}
-            </span>
+            {darkMode ? <Sun size={16} /> : <Moon size={16} />} Visual Shift
           </button>
           <button
             onClick={() => signOut(auth)}
-            className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-red-600/10 text-red-500 font-black text-[10px] uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-black text-[9px] uppercase bg-red-600 text-white shadow-lg"
           >
-            <LogOut size={16} /> Terminate
+            <LogOut size={16} /> Logout Session
           </button>
         </div>
       </aside>
 
-      <main className="flex-1 p-8 md:p-16 overflow-y-auto">
-        <header className="lg:hidden flex justify-between items-center mb-12">
+      <main className="flex-1 p-6 md:p-14 overflow-y-auto">
+        <header className="lg:hidden flex justify-between items-center mb-10">
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="p-4 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-500/30"
+            className="p-3 bg-blue-600 text-white rounded-xl"
           >
-            {" "}
-            <Menu size={24} />{" "}
+            <Menu />
           </button>
-          <h2 className="font-black italic uppercase text-blue-600 tracking-tighter text-2xl">
-            AVA
+          <h2 className="font-black italic uppercase text-blue-600">
+            AVA PORTAL
           </h2>
         </header>
 
         {activeTab === "dashboard" && (
-          <div className="space-y-12 animate-in fade-in duration-1000">
-            <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 p-20 rounded-[4rem] text-white shadow-3xl relative overflow-hidden group">
-              <Award className="absolute -right-16 -bottom-16 w-80 h-80 opacity-10 rotate-12 transition-transform duration-1000 group-hover:scale-110" />
+          <div className="space-y-10 animate-in fade-in duration-700">
+            <div className="bg-blue-600 p-16 rounded-[4rem] text-white shadow-2xl relative overflow-hidden group">
+              <Award className="absolute -right-10 -bottom-10 w-64 h-64 opacity-10 rotate-12" />
               <div className="relative z-10">
-                <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-black uppercase tracking-[0.3em] mb-8">
-                  <Activity size={14} /> Academic Node Authorized
-                </div>
-                <h2 className="text-7xl font-black italic tracking-tighter mb-6 uppercase leading-none">
+                <h2 className="text-6xl font-black italic tracking-tighter mb-4 uppercase">
                   {selectedCourseId?.replace("_", " ")}
                 </h2>
-                <p className="text-xl font-medium opacity-70 max-w-2xl leading-relaxed">
-                  Active Session: Module {currentWeek}. Global standard
-                  curriculum initiated for Cadet {studentData?.fullName}.
+                <p className="text-lg font-bold opacity-80 max-w-xl">
+                  Welcome, {studentData?.fullName}. Accessing Academic Node for
+                  Week {currentWeek}.
                 </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div
-                className={`p-10 rounded-[3.5rem] border ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-xl"}`}
-              >
-                <Trophy className="text-yellow-500 mb-6" size={40} />
-                <h4 className="text-xs font-black uppercase tracking-widest opacity-40 mb-2">
-                  Academic Rank
-                </h4>
-                <div className="text-3xl font-black uppercase italic tracking-tighter">
-                  Elite Cadet
-                </div>
-              </div>
-              <div
-                className={`p-10 rounded-[3.5rem] border ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-xl"}`}
-              >
-                <Cpu className="text-blue-600 mb-6" size={40} />
-                <h4 className="text-xs font-black uppercase tracking-widest opacity-40 mb-2">
-                  Module Status
-                </h4>
-                <div className="text-3xl font-black uppercase italic tracking-tighter">
-                  Synchronized
-                </div>
-              </div>
-              <div
-                className={`p-10 rounded-[3.5rem] border ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-xl"}`}
-              >
-                <ShieldCheck className="text-emerald-500 mb-6" size={40} />
-                <h4 className="text-xs font-black uppercase tracking-widest opacity-40 mb-2">
-                  Certification
-                </h4>
-                <div className="text-3xl font-black uppercase italic tracking-tighter">
-                  Verified
-                </div>
               </div>
             </div>
           </div>
         )}
 
+        {/* --- SETTINGS TAB UI --- */}
         {activeTab === "settings" && (
-          <div className="max-w-5xl mx-auto space-y-16 animate-in slide-in-from-right-10 duration-700">
-            <div className="flex items-center gap-6 border-b border-white/5 pb-10">
-              <div className="p-5 bg-blue-600 text-white rounded-3xl shadow-[0_0_30px_rgba(37,99,235,0.4)]">
-                <ShieldCheck size={36} />
+          <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-700">
+            <div className="flex items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-8">
+              <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg">
+                <ShieldCheck size={28} />
               </div>
               <div>
-                <h1 className="text-5xl font-black uppercase italic tracking-tighter leading-none">
-                  Account <span className="text-blue-600">Config</span>
+                <h1 className="text-3xl font-black uppercase italic tracking-tighter">
+                  Account <span className="text-blue-600">& Security</span>
                 </h1>
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40 mt-3">
-                  Node Identity Verification Mode
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-40">
+                  Student UID: {studentData?.id}
                 </p>
               </div>
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-16">
-              <div className="space-y-8">
-                <div className="relative group">
-                  <div className="w-full aspect-square rounded-[4rem] overflow-hidden border-8 border-blue-600/10 shadow-3xl bg-slate-800 flex items-center justify-center relative">
+            {settingsMessage.text && (
+              <div
+                className={`p-5 rounded-2xl flex items-center gap-3 font-black text-[10px] uppercase border animate-in zoom-in ${settingsMessage.type === "success" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-red-500/10 border-red-500/20 text-red-500"}`}
+              >
+                {settingsMessage.type === "success" ? (
+                  <CheckCircle2 size={18} />
+                ) : (
+                  <AlertCircle size={18} />
+                )}
+                {settingsMessage.text}
+              </div>
+            )}
+
+            <div className="grid md:grid-cols-3 gap-12">
+              <div className="space-y-6">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-600">
+                  Identity Image
+                </h3>
+                <div className="relative">
+                  <div className="w-full aspect-square rounded-[3rem] overflow-hidden border-4 border-white/10 shadow-2xl bg-slate-800 flex items-center justify-center relative">
                     {studentData?.photoURL ? (
                       <img
                         src={studentData.photoURL}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        className="w-full h-full object-cover"
                         alt="Profile"
                       />
                     ) : (
-                      <User size={80} className="text-slate-700" />
-                    )}
-                    {loading && (
-                      <div className="absolute inset-0 bg-slate-950/80 flex items-center justify-center backdrop-blur-md">
-                        {" "}
-                        <RefreshCcw
-                          className="animate-spin text-blue-500"
-                          size={32}
-                        />{" "}
-                      </div>
+                      <User size={60} className="text-slate-700" />
                     )}
                   </div>
-                  <label className="absolute -bottom-6 -right-6 p-6 bg-blue-600 text-white rounded-[2rem] shadow-3xl cursor-pointer hover:scale-110 active:scale-95 transition-all border-8 border-[#020617]">
-                    <Camera size={24} />
+                  <label className="absolute -bottom-4 -right-4 p-4 bg-blue-600 text-white rounded-2xl shadow-xl cursor-pointer hover:scale-110 transition-all">
+                    <Camera size={20} />
                     <input
                       type="file"
                       className="hidden"
@@ -732,71 +723,56 @@ const StudentPortal = () => {
                 </div>
               </div>
 
-              <div className="lg:col-span-2 space-y-10">
+              <div className="md:col-span-2 space-y-8">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-600">
+                  Security Access
+                </h3>
                 <form
                   onSubmit={handlePasswordUpdate}
-                  className={`p-14 rounded-[4rem] border space-y-8 ${darkMode ? "bg-[#0a0f1e] border-white/5 shadow-3xl" : "bg-white border-gray-100 shadow-2xl"}`}
+                  className={`p-10 rounded-[2.5rem] border shadow-xl space-y-6 ${darkMode ? "bg-slate-900 border-white/5" : "bg-white border-gray-100"}`}
                 >
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-6">
-                      Primary Authentication Key
-                    </label>
+                  <input
+                    type="password"
+                    placeholder="CURRENT ACCESS KEY"
+                    required
+                    className="s-input"
+                    value={passwords.current}
+                    onChange={(e) =>
+                      setPasswords({ ...passwords, current: e.target.value })
+                    }
+                  />
+                  <div className="grid grid-cols-2 gap-4">
                     <input
                       type="password"
-                      placeholder="••••••••••••"
+                      placeholder="NEW ACCESS KEY"
                       required
                       className="s-input"
-                      value={passwords.current}
+                      value={passwords.new}
                       onChange={(e) =>
-                        setPasswords({ ...passwords, current: e.target.value })
+                        setPasswords({ ...passwords, new: e.target.value })
+                      }
+                    />
+                    <input
+                      type="password"
+                      placeholder="CONFIRM NEW KEY"
+                      required
+                      className="s-input"
+                      value={passwords.confirm}
+                      onChange={(e) =>
+                        setPasswords({ ...passwords, confirm: e.target.value })
                       }
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-8">
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-6">
-                        New Secure Key
-                      </label>
-                      <input
-                        type="password"
-                        placeholder="••••••••"
-                        required
-                        className="s-input"
-                        value={passwords.new}
-                        onChange={(e) =>
-                          setPasswords({ ...passwords, new: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 ml-6">
-                        Confirm Key
-                      </label>
-                      <input
-                        type="password"
-                        placeholder="••••••••"
-                        required
-                        className="s-input"
-                        value={passwords.confirm}
-                        onChange={(e) =>
-                          setPasswords({
-                            ...passwords,
-                            confirm: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
                   <button
                     disabled={loading}
-                    className="w-full py-6 bg-blue-600 text-white rounded-3xl font-black uppercase text-xs tracking-[0.4em] flex items-center justify-center gap-4 shadow-3xl hover:translate-y-[-2px] transition-all active:translate-y-[1px]"
+                    className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-blue-500/20"
                   >
                     {loading ? (
                       <RefreshCcw className="animate-spin" />
                     ) : (
-                      <UploadCloud size={20} />
+                      <UploadCloud size={16} />
                     )}{" "}
-                    Update Security Layer
+                    Commit Updates
                   </button>
                 </form>
               </div>
@@ -805,122 +781,105 @@ const StudentPortal = () => {
         )}
 
         {activeTab === "courses" && (
-          <div className="space-y-12 animate-in zoom-in duration-700">
+          <div className="space-y-8 animate-in fade-in duration-500">
+            {/* ADJUSTED EXAM CHECK FOR WEEK 8 AND 16 */}
             {currentWeek === 8 || currentWeek === 16 ? (
               <div
-                className={`p-16 rounded-[4.5rem] border-8 ${darkMode ? "bg-[#0a0f1e] border-red-500/10 shadow-3xl" : "bg-white border-red-500/10 shadow-3xl"}`}
+                className={`p-10 rounded-[3rem] border-4 ${darkMode ? "bg-slate-900 border-red-500/20" : "bg-white border-red-500/20 shadow-2xl"}`}
               >
-                <div className="flex justify-between items-center mb-12">
-                  <div className="flex items-center gap-8">
-                    <div className="w-24 h-24 bg-red-600/10 rounded-[2.5rem] flex items-center justify-center border-4 border-red-500/20">
-                      {" "}
-                      <ShieldCheck className="text-red-600" size={56} />{" "}
-                    </div>
+                <div className="flex justify-between items-center mb-8">
+                  <div className="flex items-center gap-4">
+                    <ShieldCheck className="text-red-600" size={48} />
                     <div>
-                      <h2 className="text-5xl font-black italic uppercase tracking-tighter leading-none mb-3">
-                        Module {currentWeek}{" "}
-                        <span className="text-red-600">Assesment</span>
+                      <h2 className="text-4xl font-black italic uppercase">
+                        Week {currentWeek} Exam Mode
                       </h2>
-                      <p className="font-black text-[10px] text-red-500 uppercase tracking-[0.4em]">
-                        Timed Protocol Status: Restricted
+                      <p className="font-black text-xs text-red-500 uppercase tracking-widest">
+                        Timed Assessment: 60 Minutes
                       </p>
                     </div>
                   </div>
                   {examActive && (
-                    <div className="px-12 py-6 bg-red-600 text-white rounded-[2rem] font-black text-4xl font-mono shadow-[0_0_50px_rgba(220,38,38,0.4)] animate-pulse">
-                      {" "}
-                      {formatTimer(timeLeft)}{" "}
+                    <div className="px-8 py-4 bg-red-600 text-white rounded-2xl font-black text-2xl font-mono shadow-xl animate-pulse">
+                      {formatTimer(timeLeft)}
                     </div>
                   )}
                 </div>
-
                 {!examActive && !examScore ? (
-                  <div className="p-16 bg-slate-950/40 rounded-[3.5rem] border border-white/5 text-center">
-                    <div className="inline-flex items-center gap-4 text-orange-500 font-black uppercase text-xs tracking-[0.3em] mb-8">
-                      {" "}
-                      <AlertTriangle /> Critical Warning: Single Attempt
-                      Mode{" "}
-                    </div>
-                    <div className="text-lg font-medium opacity-60 mb-12 max-w-2xl mx-auto leading-relaxed italic">
-                      {" "}
-                      "
+                  <div className="p-10 bg-black/5 rounded-[2rem] border border-white/5">
+                    <h4 className="text-xl font-black uppercase mb-6 flex items-center gap-2">
+                      <AlertTriangle className="text-orange-500" /> Examination
+                      Protocol
+                    </h4>
+                    <div className="space-y-4 opacity-80 font-bold mb-10 whitespace-pre-wrap">
                       {currentWeekInfo.examRules ||
-                        "Standard examination protocols apply. Secure connection required for duration of assessment."}
-                      "{" "}
+                        "Standard examination protocols apply. You have one attempt."}
                     </div>
                     <button
                       onClick={() => setExamActive(true)}
-                      className="px-20 py-8 bg-red-600 text-white rounded-[2.5rem] font-black uppercase italic text-2xl shadow-3xl hover:scale-105 transition-all"
+                      className="w-full py-5 bg-red-600 text-white rounded-2xl font-black uppercase italic text-xl shadow-2xl"
                     >
-                      {" "}
-                      Initiate Assessment Protocol{" "}
+                      Initiate Final Assessment
                     </button>
                   </div>
                 ) : examScore !== null ? (
-                  <div className="text-center py-20 animate-in zoom-in">
+                  <div className="text-center py-16 animate-in zoom-in">
                     <Trophy
-                      className="mx-auto mb-10 text-yellow-500 drop-shadow-[0_0_30px_rgba(234,179,8,0.4)]"
-                      size={120}
+                      className="mx-auto mb-8 text-yellow-500"
+                      size={100}
                     />
-                    <h2 className="text-5xl font-black uppercase italic mb-16 tracking-tighter">
-                      Performance Analysis
+                    <h2 className="text-3xl font-black uppercase italic mb-12">
+                      Performance Summary
                     </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-5xl mx-auto px-10 mb-16">
-                      <div className="p-12 bg-blue-600 rounded-[3.5rem] text-white shadow-3xl">
-                        <p className="text-[10px] font-black uppercase tracking-widest mb-4 opacity-60">
-                          Neural Score
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto px-6 mb-12">
+                      <div className="p-8 bg-blue-600 rounded-[2rem] text-white">
+                        <p className="text-[10px] font-black uppercase mb-2">
+                          Score
                         </p>
-                        <h4 className="text-7xl font-black italic">
+                        <h4 className="text-6xl font-black italic">
                           {examScore.score}%
                         </h4>
                       </div>
-                      <div
-                        className={`p-12 rounded-[3.5rem] border ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-2xl"}`}
-                      >
-                        <p className="text-[10px] font-black uppercase tracking-widest mb-4 opacity-40">
-                          Verification
+                      <div className="p-8 bg-white dark:bg-slate-900 rounded-[2rem] border">
+                        <p className="text-[10px] font-black text-gray-400 uppercase mb-2">
+                          Results
                         </p>
-                        <h4 className="text-6xl font-black text-emerald-500">
+                        <h4 className="text-5xl font-black text-emerald-500">
                           {examScore.correctAnswers}/{examScore.totalQuestions}
                         </h4>
                       </div>
-                      <div
-                        className={`p-12 rounded-[3.5rem] border ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-2xl"}`}
-                      >
-                        <p className="text-[10px] font-black uppercase tracking-widest mb-4 opacity-40">
-                          Clearance
+                      <div className="p-8 bg-white dark:bg-slate-900 rounded-[2rem] border">
+                        <p className="text-[10px] font-black text-gray-400 uppercase mb-2">
+                          Authorization
                         </p>
                         <h4
-                          className={`text-4xl font-black uppercase italic ${examScore.passed ? "text-blue-600" : "text-red-600"}`}
+                          className={`text-3xl font-black uppercase ${examScore.passed ? "text-blue-600" : "text-red-600"}`}
                         >
-                          {" "}
-                          {examScore.passed ? "AUTHORIZED" : "FAILED"}{" "}
+                          {examScore.passed ? "PASSED" : "FAILED"}
                         </h4>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-12 h-[650px] overflow-y-auto px-6 custom-scrollbar">
+                  <div className="space-y-12 h-[600px] overflow-y-auto px-4 custom-scrollbar">
                     {currentWeekInfo.exams?.map((q, idx) => (
                       <div
                         key={idx}
-                        className={`p-12 rounded-[3.5rem] border transition-all ${answers[idx] ? "border-blue-600/40 bg-blue-600/5" : "border-white/5 bg-slate-950/20"}`}
+                        className="p-8 bg-black/5 rounded-[2rem] border border-white/5"
                       >
-                        <p className="text-2xl font-black mb-10 tracking-tight leading-tight">
-                          {" "}
-                          {idx + 1}. {q.question}{" "}
+                        <p className="text-xl font-black mb-6">
+                          {idx + 1}. {q.question}
                         </p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           {["A", "B", "C"].map((opt) => (
                             <button
                               key={opt}
                               onClick={() =>
                                 setAnswers({ ...answers, [idx]: opt })
                               }
-                              className={`p-8 rounded-3xl font-black border-2 transition-all text-sm uppercase italic tracking-widest ${answers[idx] === opt ? "bg-blue-600 border-blue-600 text-white shadow-3xl" : "border-transparent bg-slate-800 hover:bg-slate-700"}`}
+                              className={`p-5 rounded-xl font-black border-2 transition-all ${answers[idx] === opt ? "bg-blue-600 border-blue-600 text-white" : "border-transparent bg-black/10"}`}
                             >
-                              {" "}
-                              {opt}: {q[`option${opt}`]}{" "}
+                              {opt}: {q[`option${opt}`]}
                             </button>
                           ))}
                         </div>
@@ -928,29 +887,27 @@ const StudentPortal = () => {
                     ))}
                     <button
                       onClick={handleExamSubmit}
-                      className="w-full py-8 bg-emerald-600 text-white rounded-[3rem] font-black uppercase text-2xl sticky bottom-0 shadow-3xl hover:bg-emerald-500 transition-all"
+                      className="w-full py-6 bg-emerald-600 text-white rounded-[2rem] font-black uppercase text-xl sticky bottom-0"
                     >
-                      {" "}
-                      Transmit Assessment Data{" "}
+                      Verify & Submit Exam
                     </button>
                   </div>
                 )}
               </div>
             ) : (
               <>
-                <div className="bg-black aspect-video rounded-[4.5rem] overflow-hidden shadow-3xl relative border-8 border-white/5">
+                <div className="bg-black aspect-video rounded-[3rem] overflow-hidden shadow-2xl relative border-4 border-white/5">
                   {isWeekLocked(currentWeek) ? (
-                    <div className="absolute inset-0 bg-slate-950/98 flex flex-col items-center justify-center text-center p-16">
+                    <div className="absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center text-center p-10">
                       <Lock
-                        size={80}
-                        className="text-red-600 mb-8 animate-pulse"
+                        size={64}
+                        className="text-red-600 mb-6 animate-pulse"
                       />
-                      <h3 className="text-5xl font-black uppercase italic tracking-tighter leading-none mb-6">
-                        Neural Link Restricted
+                      <h3 className="text-3xl font-black uppercase italic">
+                        Node Temporarily Locked
                       </h3>
-                      <p className="font-bold opacity-30 text-lg uppercase tracking-[0.2em] max-w-xl">
-                        Complete previous module assessments or await global
-                        deployment release date.
+                      <p className="font-bold opacity-60">
+                        Complete previous modules or await release date.
                       </p>
                     </div>
                   ) : (
@@ -960,46 +917,38 @@ const StudentPortal = () => {
                       src={`https://www.youtube.com/embed/${currentWeekInfo.videoId}`}
                       frameBorder="0"
                       allowFullScreen
-                      className="opacity-90"
                     ></iframe>
                   )}
                 </div>
                 <div
-                  className={`p-16 rounded-[4.5rem] border ${darkMode ? "bg-[#0a0f1e] border-white/5 shadow-3xl" : "bg-white shadow-3xl border-gray-100"}`}
+                  className={`p-10 rounded-[3rem] border ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white shadow-xl"}`}
                 >
-                  <h3 className="text-5xl font-black uppercase italic mb-10 tracking-tighter leading-none">
-                    {currentWeekInfo.title || "Curriculum Node"}
+                  <h3 className="text-3xl font-black uppercase italic mb-6">
+                    {currentWeekInfo.title || "Module Curriculum"}
                   </h3>
-                  <div className="grid md:grid-cols-2 gap-10">
-                    <div className="p-12 bg-blue-600 rounded-[3.5rem] text-white shadow-3xl relative overflow-hidden group">
-                      <Download className="absolute -right-6 -bottom-6 w-32 h-32 opacity-10 group-hover:scale-110 transition-transform" />
-                      <h5 className="font-black text-[10px] uppercase mb-6 tracking-[0.3em] flex items-center gap-3">
-                        {" "}
-                        <FileText size={20} /> Academic Node PDF{" "}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="p-8 bg-blue-600 rounded-[2.5rem] text-white shadow-xl shadow-blue-500/20">
+                      <h5 className="font-black text-[10px] uppercase mb-4 flex items-center gap-2">
+                        <FileText size={18} /> Course PDF
                       </h5>
                       <a
                         href={currentWeekInfo.pdfNode}
                         target="_blank"
                         rel="noreferrer"
-                        className="block w-full py-6 bg-white text-blue-600 rounded-[1.5rem] font-black text-center text-[10px] uppercase shadow-2xl hover:scale-105 transition-all active:scale-95"
+                        className="block w-full py-4 bg-white text-blue-600 rounded-2xl font-black text-center text-[10px] uppercase shadow-lg"
                       >
-                        {" "}
-                        Initialize Download{" "}
+                        Download Resources
                       </a>
                     </div>
                     <div
-                      className={`p-12 rounded-[3.5rem] border ${darkMode ? "bg-slate-950/50 border-white/5" : "bg-slate-50 border-slate-200"}`}
+                      className={`p-8 rounded-[2.5rem] border ${darkMode ? "bg-white/5" : "bg-gray-50"}`}
                     >
-                      <h5 className="text-[10px] font-black text-blue-600 uppercase mb-6 tracking-[0.3em] flex items-center gap-3">
-                        {" "}
-                        <Clock size={20} /> Field Assignment{" "}
+                      <h5 className="text-[10px] font-black text-blue-600 uppercase mb-4 flex items-center gap-2">
+                        <Clock size={18} /> Assignment
                       </h5>
-                      <p className="text-lg font-bold opacity-80 italic leading-relaxed leading-tight uppercase">
-                        {" "}
-                        "
+                      <p className="text-sm font-bold opacity-70 italic">
                         {currentWeekInfo.assignment ||
-                          "Operational exercise: Apply weekly module protocols in field environment."}
-                        "{" "}
+                          "Complete weekly module exercise."}
                       </p>
                     </div>
                   </div>
@@ -1009,46 +958,39 @@ const StudentPortal = () => {
           </div>
         )}
 
+        {/* --- LIBRARY TAB --- */}
         {activeTab === "library" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 animate-in fade-in slide-in-from-bottom-20 duration-1000">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-bottom-6">
             {libraryLinks.map((lib, i) => (
               <a
                 key={i}
                 href={lib.url}
                 target="_blank"
                 rel="noreferrer"
-                className={`group p-12 rounded-[3.5rem] border-2 transition-all hover:-translate-y-4 ${darkMode ? "bg-[#0a0f1e] border-white/5 hover:border-blue-600 shadow-3xl" : "bg-white border-white shadow-2xl hover:border-blue-600"}`}
+                className={`p-8 rounded-[2.5rem] border-2 transition-all hover:scale-105 group ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-white shadow-xl"}`}
               >
-                <div className="flex justify-between items-start mb-8">
-                  <div className="w-16 h-16 bg-blue-600/10 text-blue-600 rounded-3xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-xl">
-                    {" "}
-                    <Layers size={28} />{" "}
+                <div className="flex justify-between items-start mb-6">
+                  <div className="p-3 bg-blue-600/10 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <BookOpen size={24} />
                   </div>
-                  <span className="text-[9px] font-black uppercase text-blue-500 bg-blue-500/10 px-5 py-2 rounded-2xl tracking-widest border border-blue-600/10">
-                    {" "}
-                    {lib.cat}{" "}
+                  <span className="text-[10px] font-black uppercase text-blue-500 bg-blue-500/10 px-3 py-1 rounded-full">
+                    {lib.cat}
                   </span>
                 </div>
-                <h3 className="text-2xl font-black uppercase italic mb-8 tracking-tighter leading-none group-hover:text-blue-600 transition-colors">
-                  {" "}
-                  {lib.name}{" "}
+                <h3 className="text-xl font-black uppercase italic mb-4">
+                  {lib.name}
                 </h3>
-                <div className="flex items-center gap-3 text-[10px] font-black uppercase text-slate-500 group-hover:text-blue-600 tracking-[0.2em]">
-                  {" "}
-                  Establish Node Access{" "}
-                  <ChevronRight
-                    size={16}
-                    className="group-hover:translate-x-2 transition-transform"
-                  />{" "}
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase text-gray-500 group-hover:text-blue-600">
+                  Access Portal <ChevronRight size={14} />
                 </div>
               </a>
             ))}
           </div>
         )}
 
-        {/* --- DISCUSSIONS UI (Maintaining all original logic) --- */}
+        {/* --- DISCUSSIONS TAB --- */}
         {activeTab === "discussions" && (
-          <div className="animate-in fade-in duration-700">
+          <div className="animate-in fade-in duration-500">
             {viewState === "list" && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {availableCourses.map((c) => (
@@ -1058,13 +1000,12 @@ const StudentPortal = () => {
                       setSelectedCourse(c);
                       setViewState("selection");
                     }}
-                    className={`p-12 rounded-[3.5rem] border-2 cursor-pointer transition-all hover:scale-105 hover:border-blue-600 group ${darkMode ? "bg-[#0a0f1e] border-white/5" : "bg-white border-white shadow-2xl"}`}
+                    className={`p-10 rounded-[2.5rem] border cursor-pointer hover:border-blue-600 transition-all ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-xl"}`}
                   >
-                    <div className="w-16 h-16 bg-blue-600 text-white rounded-[1.5rem] flex items-center justify-center mb-8 shadow-3xl group-hover:rotate-6 transition-all">
-                      {" "}
-                      {c.icon}{" "}
+                    <div className="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-blue-500/30">
+                      {c.icon}
                     </div>
-                    <h4 className="text-3xl font-black italic uppercase tracking-tighter leading-none">
+                    <h4 className="text-2xl font-black italic uppercase">
                       {c.name}
                     </h4>
                   </div>
@@ -1072,33 +1013,31 @@ const StudentPortal = () => {
               </div>
             )}
             {viewState === "selection" && (
-              <div className="flex flex-col md:flex-row items-center justify-center gap-12 min-h-[60vh]">
+              <div className="flex flex-col md:flex-row items-center justify-center gap-10 min-h-[50vh]">
                 <button
                   onClick={() => {
                     setSelectedPath("General Thread");
                     setViewState("forum");
                   }}
-                  className="group relative p-20 bg-blue-600 text-white rounded-[4.5rem] font-black italic text-6xl uppercase shadow-3xl hover:scale-110 transition-all active:scale-95 overflow-hidden"
+                  className="p-16 bg-blue-600 text-white rounded-[4rem] font-black italic text-5xl uppercase shadow-2xl hover:scale-105 transition-all"
                 >
-                  <span className="relative z-10">General</span>
-                  <Activity className="absolute -right-4 -bottom-4 w-40 h-40 opacity-10 group-hover:rotate-12 transition-transform" />
+                  General
                 </button>
                 <button
                   onClick={() => {
                     setSelectedPath("Advanced Discussion");
                     setViewState("forum");
                   }}
-                  className="group relative p-20 bg-slate-900 text-white rounded-[4.5rem] font-black italic text-6xl uppercase shadow-3xl hover:scale-110 transition-all active:scale-95 border-4 border-white/5 overflow-hidden"
+                  className="p-16 bg-slate-900 text-white rounded-[4rem] font-black italic text-5xl uppercase shadow-2xl hover:scale-105 transition-all"
                 >
-                  <span className="relative z-10">Advanced</span>
-                  <Cpu className="absolute -right-4 -bottom-4 w-40 h-40 opacity-10 group-hover:-rotate-12 transition-transform" />
+                  Advanced
                 </button>
               </div>
             )}
             {viewState === "forum" && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                 <div
-                  className={`p-12 rounded-[4rem] border sticky top-10 h-fit ${darkMode ? "bg-[#0a0f1e] border-white/5 shadow-3xl" : "bg-white border-gray-100 shadow-2xl"}`}
+                  className={`p-10 rounded-[3rem] border sticky top-0 h-fit ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-xl"}`}
                 >
                   <form
                     onSubmit={async (e) => {
@@ -1114,61 +1053,44 @@ const StudentPortal = () => {
                       });
                       setNewPost({ title: "", content: "" });
                     }}
-                    className="space-y-6"
+                    className="space-y-4"
                   >
-                    <div className="text-[10px] font-black uppercase text-blue-600 tracking-[0.4em] mb-6 px-4">
-                      Initialize Dispatch Thread
-                    </div>
                     <input
                       className="s-input"
-                      placeholder="THREAD TITLE"
+                      placeholder="POST TITLE"
                       value={newPost.title}
                       onChange={(e) =>
                         setNewPost({ ...newPost, title: e.target.value })
                       }
                     />
                     <textarea
-                      className="s-input h-52 pt-6"
-                      placeholder="TRANSMIT DETAILS..."
+                      className="s-input h-40 pt-4"
+                      placeholder="COMMUNITY DETAILS..."
                       value={newPost.content}
                       onChange={(e) =>
                         setNewPost({ ...newPost, content: e.target.value })
                       }
                     />
-                    <button className="w-full py-6 bg-blue-600 text-white rounded-3xl font-black uppercase text-xs tracking-[0.3em] shadow-3xl hover:translate-y-[-2px] transition-all active:translate-y-[1px]">
-                      {" "}
-                      Broadcast to Node{" "}
+                    <button className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">
+                      Publish Post
                     </button>
                   </form>
                 </div>
-                <div className="lg:col-span-2 space-y-8">
+                <div className="lg:col-span-2 space-y-6">
                   {forumThreads.map((t) => (
                     <div
                       key={t.id}
-                      className={`p-14 rounded-[4rem] border transition-all hover:border-blue-600/30 ${darkMode ? "bg-[#0a0f1e] border-white/5 shadow-3xl" : "bg-white border-white shadow-2xl"}`}
+                      className={`p-10 rounded-[3rem] border ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-sm"}`}
                     >
-                      <h3 className="text-3xl font-black italic uppercase mb-6 tracking-tighter leading-tight italic">
-                        {" "}
-                        "{t.title}"{" "}
+                      <h3 className="text-2xl font-black italic uppercase mb-4 tracking-tighter">
+                        "{t.title}"
                       </h3>
-                      <p className="opacity-60 text-lg leading-relaxed mb-10 font-medium">
-                        {" "}
-                        {t.content}{" "}
+                      <p className="opacity-60 text-sm leading-relaxed mb-8">
+                        {t.content}
                       </p>
-                      <div className="flex items-center justify-between pt-8 border-t border-white/5">
-                        <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
-                          Authorized Student: {t.studentName}
-                        </span>
-                        <div className="flex items-center gap-2 text-slate-500">
-                          {" "}
-                          <Clock size={12} />{" "}
-                          <span className="text-[8px] font-black">
-                            {t.createdAt
-                              ? formatDate(t.createdAt)
-                              : "Syncing..."}
-                          </span>{" "}
-                        </div>
-                      </div>
+                      <span className="text-[10px] font-black text-blue-600 uppercase">
+                        By Student: {t.studentName}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -1177,41 +1099,27 @@ const StudentPortal = () => {
           </div>
         )}
 
-        {/* --- CHAT UI --- */}
+        {/* --- CHAT TAB --- */}
         {activeTab === "chat" && (
           <div
-            className={`h-[85vh] flex flex-col rounded-[4.5rem] border overflow-hidden animate-in zoom-in duration-700 ${darkMode ? "bg-[#0a0f1e] border-white/5 shadow-3xl" : "bg-white border-gray-100 shadow-3xl"}`}
+            className={`h-[80vh] flex flex-col rounded-[3.5rem] border overflow-hidden ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-2xl"}`}
           >
-            <div className="p-12 bg-gradient-to-r from-blue-600 to-indigo-900 text-white flex justify-between items-center shadow-3xl relative overflow-hidden">
-              <Activity className="absolute -right-4 top-0 w-40 h-40 opacity-10" />
-              <div className="relative z-10">
-                <div className="text-[9px] font-black uppercase tracking-[0.5em] opacity-60 mb-2">
-                  Classified Encryption Protocol
-                </div>
-                <h3 className="text-4xl font-black uppercase italic tracking-tighter">
-                  Faculty{" "}
-                  <span className="text-inherit opacity-40">Direct</span>
-                </h3>
-              </div>
-              <div className="p-4 bg-white/10 rounded-3xl border border-white/20 backdrop-blur-md relative z-10">
-                {" "}
-                <ShieldCheck size={32} />{" "}
-              </div>
+            <div className="p-8 bg-blue-600 text-white flex justify-between items-center shadow-lg">
+              <h3 className="text-2xl font-black uppercase italic tracking-tighter">
+                Faculty Encryption Link
+              </h3>
+              <ShieldCheck size={30} />
             </div>
-            <div className="flex-1 p-12 overflow-y-auto space-y-8 flex flex-col custom-scrollbar bg-transparent">
+            <div className="flex-1 p-8 overflow-y-auto space-y-4 flex flex-col custom-scrollbar">
               {privateMessages.map((m) => (
                 <div
                   key={m.id}
-                  className={`max-w-[70%] p-8 rounded-[2.5rem] text-sm font-bold shadow-2xl ${m.senderRole === "student" ? "bg-blue-600 text-white self-end rounded-tr-none shadow-[0_20px_40px_rgba(37,99,235,0.3)]" : "bg-slate-800 text-white self-start rounded-tl-none border border-white/5"}`}
+                  className={`max-w-[75%] p-5 rounded-[2rem] text-sm font-bold shadow-sm ${m.senderRole === "student" ? "bg-blue-600 text-white self-end rounded-tr-none" : "bg-slate-800 text-white self-start rounded-tl-none border border-white/5"}`}
                 >
-                  <div className="leading-relaxed mb-6 italic">"{m.text}"</div>
-                  <div className="flex items-center justify-between pt-4 border-t border-white/10 text-[9px] font-black uppercase tracking-widest opacity-40">
-                    <span>{m.sender}</span>
-                    <span>
-                      {m.createdAt
-                        ? formatDate(m.createdAt)
-                        : "Transmitting..."}
-                    </span>
+                  {m.text}
+                  <div className="text-[8px] opacity-40 mt-2 uppercase">
+                    {m.sender} •{" "}
+                    {m.createdAt ? formatDate(m.createdAt) : "Transmitting..."}
                   </div>
                 </div>
               ))}
@@ -1229,17 +1137,16 @@ const StudentPortal = () => {
                 });
                 setNewPrivateMsg("");
               }}
-              className="p-10 border-t border-white/5 flex gap-6 bg-slate-950/20 backdrop-blur-md"
+              className="p-6 border-t border-white/5 flex gap-4 bg-slate-900/10"
             >
               <input
                 value={newPrivateMsg}
                 onChange={(e) => setNewPrivateMsg(e.target.value)}
-                className="flex-1 bg-transparent border-none outline-none font-black text-sm px-6 text-inherit placeholder:opacity-20"
-                placeholder="Type classified transmission..."
+                className="flex-1 bg-transparent border-none outline-none font-black text-sm"
+                placeholder="Secure message..."
               />
-              <button className="p-6 bg-blue-600 text-white rounded-3xl shadow-[0_15px_30px_rgba(37,99,235,0.4)] hover:scale-110 active:scale-95 transition-all">
-                {" "}
-                <Send size={24} />{" "}
+              <button className="p-5 bg-blue-600 text-white rounded-2xl shadow-xl">
+                <Send size={20} />
               </button>
             </form>
           </div>
@@ -1247,17 +1154,10 @@ const StudentPortal = () => {
       </main>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        .t-nav { width: 100%; display: flex; align-items: center; gap: 20px; padding: 22px 30px; border-radius: 30px; font-weight: 900; font-size: 11px; text-transform: uppercase; color: #64748b; transition: 0.5s; border:none; background:none; cursor:pointer; tracking: 0.2em; }
-        .t-active { background: #2563eb !important; color: white !important; box-shadow: 0 25px 50px -15px rgba(37, 99, 235, 0.7); transform: translateX(15px); }
-        .t-nav:hover:not(.t-active) { background: rgba(37, 99, 235, 0.1); color: #2563eb; transform: translateX(10px); }
-        .s-input { width: 100%; padding: 1.8rem; background: ${darkMode ? "#050a18" : "#f8fafc"}; border: 2px solid transparent; border-radius: 2.5rem; font-weight: 900; font-size: 0.9rem; outline: none; transition: 0.5s; color: inherit; border: 1px solid ${darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}; }
-        .s-input:focus { border-color: #2563eb; background: ${darkMode ? "#0c1222" : "white"}; box-shadow: 0 0 0 15px rgba(37,99,235,0.07); transform: scale(1.01); }
+        .s-input { width: 100%; padding: 1.25rem; background: ${darkMode ? "#1e293b" : "#f8fafc"}; border: 2px solid transparent; border-radius: 1.5rem; font-weight: 800; font-size: 0.8rem; outline: none; transition: 0.3s; color: inherit; }
+        .s-input:focus { border-color: #2563eb; background: ${darkMode ? "#0f172a" : "white"}; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #2563eb; border-radius: 100px; }
-        .shadow-glow { box-shadow: 0 0 30px rgba(16, 185, 129, 0.6); }
-        .shadow-3xl { box-shadow: 0 35px 70px -15px rgba(0, 0, 0, 0.5); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #2563eb; border-radius: 10px; }
         .animate-spin-slow { animation: spin 8s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
