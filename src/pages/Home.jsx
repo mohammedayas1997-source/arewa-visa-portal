@@ -780,98 +780,120 @@ const Home = () => {
       country: "Australia 🇦🇺",
       slot: "12 Slots Left",
       category: "Security",
-      image: "1000088518.jpg", // Hoton dake nuna "Secure Session" ya dace da Security
+      image:
+        "https://images.unsplash.com/photo-1628522711776-805051676644?q=80&w=1000&auto=format&fit=crop",
     },
+
     {
       id: 2,
       title: "Caregiver - Nanny",
       country: "Canada 🇨🇦",
       slot: "8 Slots Left",
       category: "Healthcare",
-      image: "WhatsApp Image 2026-02-27 at 12.27.04 PM.jpeg", // Hoton dalibai da takardar shaida (Professionalism)
+      image:
+        "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=1000&auto=format&fit=crop",
     },
+
     {
       id: 3,
       title: "Professional Cleaner",
       country: "USA 🇺🇸",
       slot: "25 Slots Left",
       category: "Cleaning",
-      image: "1000084709.jpg", // Hoton dashboard dake nuna tsarin ayyukan Academy
+      image:
+        "https://images.unsplash.com/photo-1581578731548-c64695cc6954?q=80&w=1000&auto=format&fit=crop",
     },
+
     {
       id: 4,
       title: "Visa Officer",
       country: "Schengen Area 🇪🇺",
       slot: "5 Slots Left",
       category: "Schengen",
-      image: "1000088518.jpg", // Yanayin tsaro da portal ya dace da aikin Visa
+      image:
+        "https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=1000&auto=format&fit=crop",
     },
+
     {
       id: 5,
       title: "Hotel Housekeeper",
       country: "Japan 🇯🇵",
       slot: "15 Slots Left",
       category: "Hospitality",
-      image: "1000084709.jpg",
+      image:
+        "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=1000&auto=format&fit=crop",
     },
+
     {
       id: 6,
       title: "Laundry Specialist",
       country: "South Korea 🇰🇷",
       slot: "10 Slots Left",
       category: "Service",
-      image: "1000084709.jpg",
+      image:
+        "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?q=80&w=1000&auto=format&fit=crop",
     },
+
     {
       id: 7,
       title: "Ticketing Officer",
       country: "New Zealand 🇳🇿",
       slot: "4 Slots Left",
       category: "Travel",
-      image: "1000084761.jpg", // Hoton kwas din Specialization
+      image:
+        "https://images.unsplash.com/photo-1530521954074-e64f6810b32d?q=80&w=1000&auto=format&fit=crop",
     },
+
     {
       id: 8,
       title: "Customer Support",
       country: "Gulf Countries 🇶🇦 🇦🇪",
       slot: "20 Slots Left",
       category: "Gulf",
-      image: "1000088518.jpg",
+      image:
+        "https://images.unsplash.com/photo-1549923746-c50264f39a18?q=80&w=1000&auto=format&fit=crop",
     },
+
     {
       id: 9,
       title: "Travel Agency Manager",
       country: "United Kingdom 🇬🇧",
       slot: "2 Slots Left",
       category: "Management",
-      image: "WhatsApp Image 2026-02-27 at 12.27.04 PM.jpeg", // Hoton masu takardar shaida
+      image:
+        "https://images.unsplash.com/photo-1454165833767-027ffea9e77b?q=80&w=1000&auto=format&fit=crop",
     },
+
     {
       id: 10,
       title: "Aircraft Cleaner",
       country: "Russia 🇷🇺",
       slot: "12 Slots Left",
       category: "Aviation",
-      image: "1000084709.jpg",
+      image:
+        "https://images.unsplash.com/photo-1569154941061-e231b4725ef1?q=80&w=1000&auto=format&fit=crop",
     },
+
     {
       id: 11,
       title: "Logistics Clerk",
       country: "Mauritius 🇲🇺",
       slot: "7 Slots Left",
       category: "Logistics",
-      image: "WhatsApp Image 2026-02-27 at 12.27.03 PM.jpeg", // Hoton Cargo and Logistics firi-fai
+      image:
+        "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1000&auto=format&fit=crop",
     },
+
     {
       id: 12,
       title: "Tour Guide",
       country: "Seychelles 🇸🇨",
       slot: "6 Slots Left",
       category: "Tourism",
-      image: "WhatsApp Image 2026-02-27 at 12.27.04 PM.jpeg",
+      image:
+        "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=1000&auto=format&fit=crop",
     },
   ];
-
   const countriesList = [
     "Australia",
     "Canada",
