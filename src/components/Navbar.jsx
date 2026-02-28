@@ -95,15 +95,14 @@ export default function Navbar() {
           </Link>
 
           <button
-            className="navbar-toggler border-0 shadow-none"
+            className="navbar-toggler border-0"
             type="button"
             data-bs-toggle="collapse"
             data-bs-target="#navbarNav"
-            style={{ zIndex: 1102 }} // Tabbatar toggler icon din baya boyuwa
+            style={{ outline: "none", boxShadow: "none" }}
           >
-            <Menu size={24} color="#003366" />
+            <Menu size={28} color="#003366" />
           </button>
-
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav ms-auto gap-3 fw-bold align-items-center">
               <li className="nav-item">

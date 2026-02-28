@@ -1,14 +1,25 @@
-@import "tailwindcss";
-
-/* Tabbatar Bootstrap yana aiki yadda ya kamata */
-body {
-  margin: 0;
-  font-family: "Inter", sans-serif;
-  background-color: #f8fafc;
+/* Wannan zai gyara wargajewar Navbar */
+.navbar {
+  display: flex !important;
+  flex-wrap: nowrap !important; /* Hana abubuwan Navbar tarwatsewa */
+  align-items: center;
+  justify-content: 间-between;
+  width: 100%;
 }
 
-/* Kariya ga Icons */
-svg {
-  display: inline-block !important;
-  vertical-align: middle;
+.navbar-collapse {
+  flex-grow: 1;
+}
+
+/* Tabbatar Logo bai girme Navbar ba */
+.navbar-brand img {
+  max-height: 50px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Wannan zai hana Content din shafin (kamar hotuna) tura Navbar */
+body {
+  padding-top: 0 !important;
+  overflow-x: hidden; /* Hana shafin yin hargitsewa zuwa gefe */
 }
