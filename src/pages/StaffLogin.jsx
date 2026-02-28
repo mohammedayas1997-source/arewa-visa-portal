@@ -16,7 +16,21 @@ const StaffLogin = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // 1. AUTO-REDIRECT LOGIC: Idan riga an yi login
+  // Function din rarraba Staff zuwa Dashboards daban-daban
+  const handleRouting = (role) => {
+    const r = role?.toLowerCase().trim();
+    if (r === "rector") navigate("/rector-dashboard", { replace: true });
+    else if (r === "admin" || r === "super-admin" || r === "admission-officer")
+      navigate("/admin-dashboard", { replace: true });
+    else if (r === "supervisor")
+      navigate("/supervisor-dashboard", { replace: true });
+    else if (r === "instructor") navigate("/instructor-hub", { replace: true });
+    else {
+      signOut(auth);
+      setError("UNAUTHORIZED: Your account role is not recognized.");
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -24,8 +38,7 @@ const StaffLogin = () => {
           const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
           if (userSnap.exists()) {
-            const role = userSnap.data().role?.toLowerCase();
-            handleRouting(role); // Mun kira function din redirection
+            handleRouting(userSnap.data().role);
           }
         } catch (err) {
           console.error("Auth sync error:", err);
@@ -34,29 +47,6 @@ const StaffLogin = () => {
     });
     return () => unsubscribe();
   }, [navigate]);
-
-  // 2. CENTRAL ROUTING ENGINE: Inda ake rarraba kowa zuwa gidansa
-  const handleRouting = (role) => {
-    switch (role) {
-      case "rector":
-        navigate("/rector-dashboard", { replace: true });
-        break;
-      case "admin":
-      case "super-admin":
-      case "admission-officer":
-        navigate("/admin-dashboard", { replace: true });
-        break;
-      case "supervisor":
-        navigate("/supervisor-dashboard", { replace: true });
-        break;
-      case "instructor":
-        navigate("/instructor-hub", { replace: true });
-        break;
-      default:
-        signOut(auth);
-        setError("UNAUTHORIZED: Your role is not recognized.");
-    }
-  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -67,49 +57,41 @@ const StaffLogin = () => {
 
     try {
       const cleanEmail = email.trim().toLowerCase();
+      // Step 1: Authentication
       const userCredential = await signInWithEmailAndPassword(
         auth,
         cleanEmail,
         password,
       );
 
+      // Step 2: Fetch Role from Firestore
       const userRef = doc(db, "users", userCredential.user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
-        const role = userSnap.data().role?.toLowerCase() || "";
-        const authorized = [
-          "rector",
-          "admin",
-          "supervisor",
-          "admission-officer",
-          "super-admin",
-          "instructor",
-        ];
-
-        if (authorized.includes(role)) {
-          handleRouting(role);
-        } else {
-          await signOut(auth);
-          setError("ACCESS DENIED: Administrative credentials required.");
-        }
+        const role = userSnap.data().role;
+        handleRouting(role);
       } else {
         await signOut(auth);
-        setError("DATABASE ERROR: Profile not found.");
+        setError("DATABASE ERROR: No profile found for this account.");
       }
     } catch (err) {
       console.error("Login Error:", err.code);
-      setError(
-        err.code === "auth/invalid-credential"
-          ? "Incorrect Email or Security Key."
-          : "Authentication service unavailable.",
-      );
+      if (
+        err.code === "auth/invalid-credential" ||
+        err.code === "auth/wrong-password"
+      ) {
+        setError("Invalid Email or Security Key.");
+      } else if (err.code === "auth/user-not-found") {
+        setError("No staff account found with this email.");
+      } else {
+        setError("System error. Please check your internet connection.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // UI REMAINS THE SAME (English labels only as requested)
   return (
     <div
       style={{

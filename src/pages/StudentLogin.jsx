@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-// GYARA: Mun tabbatar an kira 'db' yadda aka yi export dinsa a firebase.js
 import { auth, db } from "../firebase";
 import {
   signInWithEmailAndPassword,
@@ -24,17 +23,23 @@ const StudentLogin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // 1. REAL-TIME NAVIGATION ENGINE: Wannan zai duba kowa nan take
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
           const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
-          if (userSnap.exists() && userSnap.data().role === "student") {
-            navigate("/student-portal");
+
+          if (userSnap.exists()) {
+            const role = userSnap.data().role?.toLowerCase();
+            // Idan dalibi ne, tura shi portal dinsa nan take
+            if (role === "student") {
+              navigate("/student-portal", { replace: true });
+            }
           }
         } catch (err) {
-          console.error("Silent auth error:", err);
+          console.error("Auth sync error:", err);
         }
       }
     });
@@ -55,21 +60,23 @@ const StudentLogin = () => {
         password,
       );
 
-      // Verify Role
+      // Verify Role nan take bayan login
       const userRef = doc(db, "users", userCredential.user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
         const userData = userSnap.data();
-        if (userData.role === "student") {
-          navigate("/student-portal");
+        const role = userData.role?.toLowerCase();
+
+        if (role === "student") {
+          navigate("/student-portal", { replace: true });
         } else {
           await signOut(auth);
-          alert("RESTRICTED: Access denied. This portal is for students only.");
+          alert("RESTRICTED: This portal is for students only.");
         }
       } else {
         await signOut(auth);
-        alert("ERROR: No student record found in database.");
+        alert("ERROR: No record found.");
       }
     } catch (error) {
       console.error("Login Error:", error.code);
@@ -77,7 +84,7 @@ const StudentLogin = () => {
         error.code === "auth/wrong-password" ||
         error.code === "auth/invalid-credential"
       ) {
-        alert("INVALID CREDENTIALS: Duba Email ko Password dinka.");
+        alert("INVALID: Duba Email ko Password dinka.");
       } else {
         alert("SYSTEM ERROR: " + error.message);
       }
@@ -86,7 +93,7 @@ const StudentLogin = () => {
     }
   };
 
-  // Styles din suna nan daram...
+  // UI (Styles and Return remains exactly as you provided)
   const containerStyle = {
     minHeight: "100vh",
     display: "flex",
@@ -96,7 +103,6 @@ const StudentLogin = () => {
     padding: "20px",
     fontFamily: "sans-serif",
   };
-
   const cardStyle = {
     backgroundColor: "#0f172a",
     padding: "40px",
@@ -108,7 +114,6 @@ const StudentLogin = () => {
     boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
     position: "relative",
   };
-
   const inputStyle = {
     width: "100%",
     padding: "16px 16px 16px 48px",
@@ -139,7 +144,6 @@ const StudentLogin = () => {
         >
           <X size={24} />
         </button>
-
         <div style={{ marginBottom: "32px" }}>
           <div
             style={{
@@ -179,7 +183,6 @@ const StudentLogin = () => {
             Student Terminal Access
           </p>
         </div>
-
         <form
           onSubmit={handleLogin}
           style={{ display: "flex", flexDirection: "column", gap: "20px" }}
@@ -211,7 +214,6 @@ const StudentLogin = () => {
               required
             />
           </div>
-
           <div style={{ position: "relative", textAlign: "left" }}>
             <label
               style={{
@@ -239,7 +241,6 @@ const StudentLogin = () => {
               required
             />
           </div>
-
           <button
             type="submit"
             style={{
@@ -270,7 +271,6 @@ const StudentLogin = () => {
             )}
           </button>
         </form>
-
         <div
           style={{
             marginTop: "32px",
