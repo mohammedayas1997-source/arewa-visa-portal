@@ -3,7 +3,7 @@
   display: flex !important;
   flex-wrap: nowrap !important; /* Hana abubuwan Navbar tarwatsewa */
   align-items: center;
-  justify-content: 间-between;
+  justify-content: space-between; /* FIXED: Changed '间' to 'space' */
   width: 100%;
 }
 
