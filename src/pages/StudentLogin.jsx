@@ -23,7 +23,7 @@ const StudentLogin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // 1. REAL-TIME NAVIGATION ENGINE: Wannan zai duba kowa nan take
+  // 1. SESSION MANAGEMENT ENGINE
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -33,7 +33,6 @@ const StudentLogin = () => {
 
           if (userSnap.exists()) {
             const role = userSnap.data().role?.toLowerCase();
-            // Idan dalibi ne, tura shi portal dinsa nan take
             if (role === "student") {
               navigate("/student-portal", { replace: true });
             }
@@ -60,7 +59,7 @@ const StudentLogin = () => {
         password,
       );
 
-      // Verify Role nan take bayan login
+      // 2. IDENTITY & ROLE VERIFICATION
       const userRef = doc(db, "users", userCredential.user.uid);
       const userSnap = await getDoc(userRef);
 
@@ -82,9 +81,10 @@ const StudentLogin = () => {
       console.error("Login Error:", error.code);
       if (
         error.code === "auth/wrong-password" ||
-        error.code === "auth/invalid-credential"
+        error.code === "auth/invalid-credential" ||
+        error.code === "auth/user-not-found"
       ) {
-        alert("INVALID: Duba Email ko Password dinka.");
+        alert("INVALID: Please verify your Email or Security Key.");
       } else {
         alert("SYSTEM ERROR: " + error.message);
       }
@@ -93,7 +93,7 @@ const StudentLogin = () => {
     }
   };
 
-  // UI (Styles and Return remains exactly as you provided)
+  // 3. INTERFACE CONFIGURATION
   const containerStyle = {
     minHeight: "100vh",
     display: "flex",
@@ -103,6 +103,7 @@ const StudentLogin = () => {
     padding: "20px",
     fontFamily: "sans-serif",
   };
+
   const cardStyle = {
     backgroundColor: "#0f172a",
     padding: "40px",
@@ -114,6 +115,7 @@ const StudentLogin = () => {
     boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
     position: "relative",
   };
+
   const inputStyle = {
     width: "100%",
     padding: "16px 16px 16px 48px",

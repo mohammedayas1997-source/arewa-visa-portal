@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
-// GYARA 1: Tabbatar path din ya dace da inda file din firebase yake (sau yawancin sa ../firebase)
-// GYARA 2: Mun kira 'firestore' maimakon 'db' don kaucewa rikici da Realtime Database
-import { auth, firestore as db } from "../firebase";
+import { auth, db } from "../firebase"; // Adjusted to match your firebase.js exports
 import { doc, getDoc } from "firebase/firestore";
 import { Navigate, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
@@ -12,19 +10,19 @@ const ProtectedRoute = ({ children, requiredRole }) => {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
-  const userRef = doc(firestore, "users", user.uid);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       try {
         if (currentUser) {
-          // Muna amfani da 'db' anan wanda yake nuna 'firestore' ta hanyar alias dinmu a sama
+          // Accessing the 'users' collection using the provided Firestore instance
           const userRef = doc(db, "users", currentUser.uid);
           const userDoc = await getDoc(userRef);
 
           if (userDoc.exists()) {
             const userData = userDoc.data();
 
+            // Check for Account Status Restrictions
             if (
               userData.status === "suspended" ||
               userData.status === "inactive"
@@ -38,7 +36,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
               setUser(currentUser);
             }
           } else {
-            // Idan babu shi a Firestore, ba shi damar zama student
+            // Default role assignment if no Firestore record exists
             setRole("student");
             setStatus("active");
             setUser(currentUser);
@@ -49,7 +47,6 @@ const ProtectedRoute = ({ children, requiredRole }) => {
         }
       } catch (error) {
         console.error("AREWA SECURITY ERROR:", error);
-        // Koda an samu error, kada mu bar shi a loading screen
         setUser(null);
       } finally {
         setLoading(false);
@@ -59,6 +56,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     return () => unsubscribe();
   }, []);
 
+  // LOADING TERMINAL UI
   if (loading) {
     return (
       <div
@@ -89,16 +87,17 @@ const ProtectedRoute = ({ children, requiredRole }) => {
               fontWeight: "900",
               letterSpacing: "2px",
               color: "#3b82f6",
+              textTransform: "uppercase",
             }}
           >
-            AREWA SECURITY: VERIFYING...
+            AREWA SECURITY: VERIFYING NODE...
           </p>
         </div>
       </div>
     );
   }
 
-  // 1. Redirect idan ba'a yi login ba
+  // 1. UNAUTHORIZED REDIRECT
   if (!user) {
     const isStaffPath = ["admin", "rector", "supervisor"].some((path) =>
       location.pathname.includes(path),
@@ -112,14 +111,14 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     );
   }
 
-  // 2. Redirect idan an dakatar
+  // 2. SUSPENSION ENFORCEMENT
   if (status === "suspended") {
     return (
       <Navigate to="/login" state={{ error: "Account Suspended" }} replace />
     );
   }
 
-  // 3. Role-Based Access
+  // 3. HIERARCHICAL ROLE VALIDATION
   if (requiredRole) {
     const isSuperAdmin = role === "super-admin";
     const isRector = role === "rector";
@@ -127,6 +126,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
     let hasAccess = role === requiredRole || isSuperAdmin || isRector;
 
+    // Admin Group Privilege Check
     if (requiredRole === "admin") {
       hasAccess = isAdmin || isSuperAdmin || isRector;
     }
