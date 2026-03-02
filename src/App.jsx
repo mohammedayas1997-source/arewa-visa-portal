@@ -6,7 +6,7 @@ import {
   Navigate,
   useParams,
 } from "react-router-dom";
-import { auth, db, storage } from "./firebase"; // Path synchronized
+import { auth, db, storage } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, updateDoc, serverTimestamp, setDoc } from "firebase/firestore";
 
@@ -37,12 +37,13 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AcademicExam from "./components/AcademicExam";
 import StaffLogin from "./pages/StaffLogin";
 
+// PATH CORRECTION: Ensures Vite/Vercel finds the files correctly
 import AdmissionOfficerDashboard from "./pages/AdmissionOfficerDashboard.jsx";
 import RectorDashboard from "./pages/RectorDashboard.jsx";
 
 import "./App.css";
 
-// --- STATIC PAGES (Defined before App to avoid rendering conflicts) ---
+// --- STATIC PAGES ---
 const Library = () => (
   <div
     className="container mt-5 pt-5 text-center"
@@ -72,6 +73,27 @@ const Gallery = () => (
   </div>
 );
 
+// --- HELPER WRAPPERS ---
+const WeeklyForumWrapper = () => {
+  const { courseId, weekId } = useParams();
+  return <WeeklyForum courseId={courseId} weekId={parseInt(weekId)} />;
+};
+
+const LeaderboardWrapper = () => {
+  const { courseId } = useParams();
+  return (
+    <div
+      style={{
+        padding: "100px 20px",
+        backgroundColor: "#f8fafc",
+        minHeight: "100vh",
+      }}
+    >
+      <Leaderboard courseId={courseId} />
+    </div>
+  );
+};
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -84,6 +106,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  // --- CERTIFICATE GENERATION LOGIC (AVA OFFICIAL) ---
   const approveAndSendCertificate = async (student) => {
     const completionDate = document.getElementById(`date-${student.id}`)?.value;
     const courseTitle = document.getElementById(`course-${student.id}`)?.value;
@@ -96,6 +119,7 @@ function App() {
     const certificateID = `AVA-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
     try {
+      // 1. Update Firestore (AVA Issued Certificates)
       await setDoc(doc(db, "issuedCertificates", certificateID), {
         certificateID,
         studentId: student.id,
@@ -106,6 +130,7 @@ function App() {
         isValid: true,
       });
 
+      // 2. Generate PDF from DOM
       const input = document.getElementById(`cert-pdf-${student.id}`);
       if (!input) {
         alert("Certificate template not found!");
@@ -117,6 +142,8 @@ function App() {
 
       const pdf = new jsPDF("l", "px", [1050, 750]);
       pdf.addImage(imgData, "PNG", 0, 0, 1050, 750);
+
+      // 3. Download PDF
       pdf.save(`AVA-${student.fullName}-Certificate.pdf`);
 
       alert(`Success! Certificate generated for ${student.fullName}.`);
@@ -148,9 +175,10 @@ function App() {
           <Route path="/gallery" element={<Gallery />} />
           <Route path="/login" element={<StudentLogin />} />
           <Route path="/student-login" element={<StudentLogin />} />
+
+          {/* ADMIN GATEWAY */}
           <Route path="/admin-gateway" element={<StaffLogin />} />
 
-          {/* PROTECTED ROUTES */}
           <Route
             path="/rector-dashboard"
             element={
@@ -159,6 +187,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* STUDENT PROTECTED ROUTES */}
           <Route
             path="/student-portal"
             element={
@@ -175,24 +205,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/admin-dashboard"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <AdmissionOfficerDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/supervisor-dashboard"
-            element={
-              <ProtectedRoute requiredRole="supervisor">
-                <SupervisorDashboard />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* UTILITY ROUTES */}
           <Route
             path="/forum/:courseId/:weekId"
             element={
@@ -234,6 +246,77 @@ function App() {
             }
           />
 
+          {/* STAFF & EXECUTIVE ROUTES (AVA OFFICIAL) */}
+          <Route
+            path="/admin-dashboard"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdmissionOfficerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/supervisor-dashboard"
+            element={
+              <ProtectedRoute requiredRole="supervisor">
+                <SupervisorDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* LEGACY ADMIN ROUTES */}
+          <Route
+            path="/admin-manager"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminContentManager />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/question-bank/:courseId"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminQuestionBank />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/course-dashboard/:courseId"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminCourseDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/grading/:courseId"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminGrading />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-portal"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboard
+                  approveAndSendCertificate={approveAndSendCertificate}
+                  QRCodeSVG={QRCodeSVG}
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/instructor-hub"
+            element={
+              <ProtectedRoute requiredRole="instructor">
+                <InstructorHub isAdmin={false} />
+              </ProtectedRoute>
+            }
+          />
+
           {/* FALLBACK */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -241,26 +324,5 @@ function App() {
     </Router>
   );
 }
-
-// --- HELPER WRAPPERS ---
-const WeeklyForumWrapper = () => {
-  const { courseId, weekId } = useParams();
-  return <WeeklyForum courseId={courseId} weekId={parseInt(weekId)} />;
-};
-
-const LeaderboardWrapper = () => {
-  const { courseId } = useParams();
-  return (
-    <div
-      style={{
-        padding: "100px 20px",
-        backgroundColor: "#f8fafc",
-        minHeight: "100vh",
-      }}
-    >
-      <Leaderboard courseId={courseId} />
-    </div>
-  );
-};
 
 export default App;
