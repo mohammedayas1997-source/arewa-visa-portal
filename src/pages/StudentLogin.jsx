@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { auth, db, storage } from "../firebase";
+// FIXED: Removed 'storage' as it is not used in this file
+import { auth, db } from "../firebase";
 import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
@@ -93,7 +94,7 @@ const StudentLogin = () => {
     }
   };
 
-  // 3. INTERFACE CONFIGURATION
+  // 3. INTERFACE CONFIGURATION (Unchanged)
   const containerStyle = {
     minHeight: "100vh",
     display: "flex",
