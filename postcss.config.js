@@ -1,6 +1,6 @@
 export default {
   plugins: {
-    tailwindcss: {}, // Yi amfani da 'tailwindcss' maimakon '@tailwindcss/postcss'
+    "@tailwindcss/postcss": {}, // This must be exactly like this
     autoprefixer: {},
   },
 };
