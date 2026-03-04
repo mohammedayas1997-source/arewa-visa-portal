@@ -1,6 +1,6 @@
 export default {
   plugins: {
-    "@tailwindcss/postcss": {}, // This must be exactly like this
-    autoprefixer: {},
+    "@tailwindcss/postcss": {},
+    autoprefixer: {}, // Wannan zai taimaka wurin nuna icons a kowace browser
   },
 };

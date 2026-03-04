@@ -6,7 +6,7 @@ import {
   Navigate,
   useParams,
 } from "react-router-dom";
-import { auth, db, storage } from "./firebase";
+import { auth, db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, updateDoc, serverTimestamp, setDoc } from "firebase/firestore";
 
@@ -36,63 +36,11 @@ import AdminContentManager from "./components/AdminContentManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AcademicExam from "./components/AcademicExam";
 import StaffLogin from "./pages/StaffLogin";
-
-// PATH CORRECTION: Ensures Vite/Vercel finds the files correctly
-import AdmissionOfficerDashboard from "./pages/AdmissionOfficerDashboard.jsx";
-import RectorDashboard from "./pages/RectorDashboard.jsx";
+// GYARA NA KARSHE: Tabbatar sunan fayil din ya dace da folder pages
+import AdmissionOfficerDashboard from "./src/pages/AdmissionOfficerDashboard.jsx";
+import RectorDashboard from "./src/pages/RectorDashboard.jsx";
 
 import "./App.css";
-
-// --- STATIC PAGES ---
-const Library = () => (
-  <div
-    className="container mt-5 pt-5 text-center"
-    style={{ minHeight: "80vh" }}
-  >
-    <h1 className="fw-black italic text-blue-600">AVA E-LIBRARY</h1>
-    <p className="font-bold text-muted">
-      Access our global travel and hospitality resources here.
-    </p>
-  </div>
-);
-
-const Gallery = () => (
-  <div className="container mt-5 pt-5" style={{ minHeight: "80vh" }}>
-    <h1 className="text-center mb-4 fw-black italic">AVA GALLERY</h1>
-    <div className="row g-3">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="col-md-4">
-          <img
-            src={`https://via.placeholder.com/300?text=AVA+Event+${i}`}
-            className="img-fluid rounded-4 shadow-sm"
-            alt="Gallery"
-          />
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-// --- HELPER WRAPPERS ---
-const WeeklyForumWrapper = () => {
-  const { courseId, weekId } = useParams();
-  return <WeeklyForum courseId={courseId} weekId={parseInt(weekId)} />;
-};
-
-const LeaderboardWrapper = () => {
-  const { courseId } = useParams();
-  return (
-    <div
-      style={{
-        padding: "100px 20px",
-        backgroundColor: "#f8fafc",
-        minHeight: "100vh",
-      }}
-    >
-      <Leaderboard courseId={courseId} />
-    </div>
-  );
-};
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -112,7 +60,7 @@ function App() {
     const courseTitle = document.getElementById(`course-${student.id}`)?.value;
 
     if (!completionDate) {
-      alert("Error: Please select a Completion Date!");
+      alert("Kuskure: Zabi ranar kammalawa (Completion Date)!");
       return;
     }
 
@@ -133,7 +81,7 @@ function App() {
       // 2. Generate PDF from DOM
       const input = document.getElementById(`cert-pdf-${student.id}`);
       if (!input) {
-        alert("Certificate template not found!");
+        alert("Ba a samu template din Certificate ba!");
         return;
       }
 
@@ -146,9 +94,9 @@ function App() {
       // 3. Download PDF
       pdf.save(`AVA-${student.fullName}-Certificate.pdf`);
 
-      alert(`Success! Certificate generated for ${student.fullName}.`);
+      alert(`Nasara! An samar da Certificate na ${student.fullName}.`);
     } catch (err) {
-      alert("Error generating Certificate: " + err.message);
+      alert("Kuskure wajen samar da Certificate: " + err.message);
     }
   };
 
@@ -178,7 +126,6 @@ function App() {
 
           {/* ADMIN GATEWAY */}
           <Route path="/admin-gateway" element={<StaffLogin />} />
-
           <Route
             path="/rector-dashboard"
             element={
@@ -263,8 +210,16 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/rector-dashboard"
+            element={
+              <ProtectedRoute requiredRole="rector">
+                <RectorDashboard />
+              </ProtectedRoute>
+            }
+          />
 
-          {/* LEGACY ADMIN ROUTES */}
+          {/* LEGACY ADMIN ROUTES (KEEPING FOR COMPATIBILITY) */}
           <Route
             path="/admin-manager"
             element={
@@ -324,5 +279,56 @@ function App() {
     </Router>
   );
 }
+
+// --- HELPER WRAPPERS ---
+const WeeklyForumWrapper = () => {
+  const { courseId, weekId } = useParams();
+  return <WeeklyForum courseId={courseId} weekId={parseInt(weekId)} />;
+};
+
+const LeaderboardWrapper = () => {
+  const { courseId } = useParams();
+  return (
+    <div
+      style={{
+        padding: "100px 20px",
+        backgroundColor: "#f8fafc",
+        minHeight: "100vh",
+      }}
+    >
+      <Leaderboard courseId={courseId} />
+    </div>
+  );
+};
+
+// --- STATIC PAGES ---
+const Library = () => (
+  <div
+    className="container mt-5 pt-5 text-center"
+    style={{ minHeight: "80vh" }}
+  >
+    <h1 className="fw-black italic text-blue-600">AVA E-LIBRARY</h1>
+    <p className="font-bold text-muted">
+      Access our global travel and hospitality resources here.
+    </p>
+  </div>
+);
+
+const Gallery = () => (
+  <div className="container mt-5 pt-5" style={{ minHeight: "80vh" }}>
+    <h1 className="text-center mb-4 fw-black italic">AVA GALLERY</h1>
+    <div className="row g-3">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="col-md-4">
+          <img
+            src={`https://via.placeholder.com/300?text=AVA+Event+${i}`}
+            className="img-fluid rounded-4 shadow-sm"
+            alt="Gallery"
+          />
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 export default App;
