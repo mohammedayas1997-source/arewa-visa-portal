@@ -16,32 +16,47 @@ const StaffLogin = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // Function din rarraba Staff zuwa Dashboards daban-daban
+  // Optimized Routing Logic
   const handleRouting = (role) => {
-    const r = role?.toLowerCase().trim();
-    if (r === "rector") navigate("/rector-dashboard", { replace: true });
-    else if (r === "admin" || r === "super-admin" || r === "admission-officer")
-      navigate("/admin-dashboard", { replace: true });
-    else if (r === "supervisor")
-      navigate("/supervisor-dashboard", { replace: true });
-    else if (r === "instructor") navigate("/instructor-hub", { replace: true });
-    else {
+    if (!role) {
       signOut(auth);
-      setError("UNAUTHORIZED: Your account role is not recognized.");
+      setError("UNAUTHORIZED: No role assigned to this account.");
+      return;
+    }
+
+    const r = role.toLowerCase().trim();
+
+    if (r === "rector") {
+      navigate("/rector-dashboard", { replace: true });
+    } else if (["admin", "super-admin", "admission-officer"].includes(r)) {
+      navigate("/admin-dashboard", { replace: true });
+    } else if (r === "supervisor") {
+      navigate("/supervisor-dashboard", { replace: true });
+    } else if (r === "instructor") {
+      navigate("/instructor-hub", { replace: true });
+    } else {
+      signOut(auth);
+      setError("UNAUTHORIZED: Access denied for this role.");
     }
   };
 
+  // Real-time Auth Listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        setLoading(true);
         try {
           const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
           if (userSnap.exists()) {
             handleRouting(userSnap.data().role);
+          } else {
+            // User authenticated but no Firestore record
+            setLoading(false);
           }
         } catch (err) {
           console.error("Auth sync error:", err);
+          setLoading(false);
         }
       }
     });
@@ -57,35 +72,26 @@ const StaffLogin = () => {
 
     try {
       const cleanEmail = email.trim().toLowerCase();
-      // Step 1: Authentication
       const userCredential = await signInWithEmailAndPassword(
         auth,
         cleanEmail,
         password,
       );
 
-      // Step 2: Fetch Role from Firestore
       const userRef = doc(db, "users", userCredential.user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
-        const role = userSnap.data().role;
-        handleRouting(role);
+        handleRouting(userSnap.data().role);
       } else {
         await signOut(auth);
-        setError("DATABASE ERROR: No profile found for this account.");
+        setError("DATABASE ERROR: Profile missing.");
       }
     } catch (err) {
-      console.error("Login Error:", err.code);
-      if (
-        err.code === "auth/invalid-credential" ||
-        err.code === "auth/wrong-password"
-      ) {
+      if (err.code === "auth/invalid-credential") {
         setError("Invalid Email or Security Key.");
-      } else if (err.code === "auth/user-not-found") {
-        setError("No staff account found with this email.");
       } else {
-        setError("System error. Please check your internet connection.");
+        setError("Access Denied. Please verify credentials.");
       }
     } finally {
       setLoading(false);
@@ -161,18 +167,6 @@ const StaffLogin = () => {
         >
           AVA <span style={{ color: "#dc2626" }}>Command Center</span>
         </h2>
-        <p
-          style={{
-            textAlign: "center",
-            fontSize: "10px",
-            color: "#64748b",
-            marginBottom: "24px",
-            fontWeight: "bold",
-            letterSpacing: "2px",
-          }}
-        >
-          ADMINISTRATIVE TERMINAL
-        </p>
 
         {error && (
           <div
