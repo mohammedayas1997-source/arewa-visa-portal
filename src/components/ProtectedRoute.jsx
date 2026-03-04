@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { auth, db, storage } from "../firebase"; // Tabbatar 'db' ne ba 'firestore' ba
+// FIXED: Removed 'storage' because it is not used in this file
+import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { Navigate, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
@@ -33,6 +34,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
               setUser(currentUser);
             }
           } else {
+            // Default role if record doesn't exist yet
             setRole("student");
             setStatus("active");
             setUser(currentUser);
@@ -76,6 +78,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
       </div>
     );
 
+  // 1. Redirect if not logged in
   if (!user) {
     const isStaffPath = ["admin", "rector", "supervisor"].some((path) =>
       location.pathname.includes(path),
@@ -89,11 +92,13 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     );
   }
 
+  // 2. Redirect if suspended
   if (status === "suspended")
     return (
       <Navigate to="/login" state={{ error: "Account Suspended" }} replace />
     );
 
+  // 3. Role-Based Access Control
   if (requiredRole) {
     const isAdminGroup = [
       "admin",
@@ -101,8 +106,10 @@ const ProtectedRoute = ({ children, requiredRole }) => {
       "rector",
       "admission-officer",
     ].includes(role);
+
     let hasAccess =
       role === requiredRole || role === "super-admin" || role === "rector";
+
     if (requiredRole === "admin") hasAccess = isAdminGroup;
 
     if (!hasAccess) {
