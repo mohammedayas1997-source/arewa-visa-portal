@@ -11,13 +11,15 @@ const firebaseConfig = {
   storageBucket: "arewa-visa-new1.firebasestorage.app",
   messagingSenderId: "609831868003",
   appId: "1:609831868003:web:90eaecaa973a147e7d8a56",
-  databaseURL: "https://arewa-visa-new1-default-rtdb.firebaseio.com" // Tabbatar wannan ya dace da sabon project ɗinka
+  databaseURL: "https://arewa-visa-new1-default-rtdb.firebaseio.com" 
 };
 
 const app = initializeApp(firebaseConfig);
 
-// MUN BAMBANTA SUNAYEN DOMIN KOWANE SHAFIN YA SAMU ABINDA YAKE BUQATA
-export const firestore = getFirestore(app); // StaffLogin zai yi amfani da wannan
-export const db = getDatabase(app); // Sauran shafukan za su ci gaba da amfani da 'db'
+// GYARA NA KWARAI:
+export const db = getFirestore(app);      // Maida Firestore zuwa 'db' domin shi ne login yake nema
+export const rtdb = getDatabase(app);    // Maida Realtime Database zuwa 'rtdb'
 export const storage = getStorage(app);
 export const auth = getAuth(app);
+
+export default app;
