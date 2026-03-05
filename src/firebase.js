@@ -17,8 +17,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // GYARA NA KWARAI:
-export const db = getFirestore(app);      // Maida Firestore zuwa 'db' domin shi ne login yake nema
-export const rtdb = getDatabase(app);    // Maida Realtime Database zuwa 'rtdb'
+// Muna amfani da 'db' don Firestore domin shi ne dukkan sauran files din suke nema
+export const db = getFirestore(app); 
+
+// Muna amfani da 'rtdb' don Realtime Database (domin kada su rikice)
+export const rtdb = getDatabase(app); 
+
 export const storage = getStorage(app);
 export const auth = getAuth(app);
 
