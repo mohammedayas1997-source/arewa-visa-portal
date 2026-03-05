@@ -11,19 +11,13 @@ const firebaseConfig = {
   storageBucket: "arewa-visa-new1.firebasestorage.app",
   messagingSenderId: "609831868003",
   appId: "1:609831868003:web:90eaecaa973a147e7d8a56",
-  databaseURL: "https://arewa-visa-new1-default-rtdb.firebaseio.com" 
+  databaseURL: "https://arewa-visa-new1-default-rtdb.firebaseio.com" // Tabbatar wannan ya dace da sabon project ɗinka
 };
 
 const app = initializeApp(firebaseConfig);
 
-// GYARA NA KWARAI:
-// Muna amfani da 'db' don Firestore domin shi ne dukkan sauran files din suke nema
-export const db = getFirestore(app); 
-
-// Muna amfani da 'rtdb' don Realtime Database (domin kada su rikice)
-export const rtdb = getDatabase(app); 
-
+// MUN BAMBANTA SUNAYEN DOMIN KOWANE SHAFIN YA SAMU ABINDA YAKE BUQATA
+export const firestore = getFirestore(app); // StaffLogin zai yi amfani da wannan
+export const db = getDatabase(app); // Sauran shafukan za su ci gaba da amfani da 'db'
 export const storage = getStorage(app);
 export const auth = getAuth(app);
-
-export default app;
