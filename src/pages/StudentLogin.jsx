@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 // FIXED: Removed 'storage' as it is not used in this file
-import { auth, db } from "../firebase";
+import { rtdb, storage } from "../firebase";
 import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
