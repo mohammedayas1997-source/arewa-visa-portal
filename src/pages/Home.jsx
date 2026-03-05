@@ -3091,19 +3091,20 @@ const Home = () => {
           </button>
         </div>
 
-        {isVerified && (
+        {isVerified && selectedCourse && (
           <div className="animate__animated animate__fadeIn">
             <div className="alert alert-success">
-              ID Verified! You are paying for {selectedCourse.title}
+              {/* Mun sa ?. domin tsaro */}
+              ID Verified! You are paying for {selectedCourse?.title}
             </div>
             <h2 className="fw-bold text-danger">
-              Total: ₦{selectedCourse.price.toLocaleString()}
+              Total: ₦{selectedCourse?.price?.toLocaleString()}
             </h2>
-            {/* Maimakon tsohon button din, saka wannan: */}
+
             <ApplyPayment
-              amount={finalAmount} // Kudin da muka lissafa (5k, 100k, ko 300k)
-              email={applicationData.email}
-              applicationId={currentAppId} // Tabbatar kana da ID din application din
+              amount={selectedCourse?.price || 5000}
+              email={applicationData?.email || ""}
+              applicationId={admissionId} // Amfani da ID din da ya sa
               onSuccessAction={() => {
                 setIsSuccess(true);
                 setShowPaymentStep(false);
