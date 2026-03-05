@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 // FIXED: Removed 'storage' because it is not used in this file
-import { auth } from "./firebase";
+import { auth } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { Navigate, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
