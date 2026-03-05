@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { db, storage } from "../firebase";
-import ApplyPayment from "./components/ApplyPayment";
+import ApplyPayment from "../components/ApplyPayment";
 import { ref, onValue, push, set } from "firebase/database";
 import {
   ref as storageRef,
