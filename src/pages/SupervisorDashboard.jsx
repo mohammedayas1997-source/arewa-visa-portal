@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { rtdb, storage } from "../firebase";
+// FIXED: Added 'auth' and 'db' to imports
+import { auth, db, rtdb, storage } from "../firebase"; 
 import {
   onAuthStateChanged,
   signOut,
@@ -19,30 +20,7 @@ import {
   getDoc,
   updateDoc,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { useNavigate } from "react-router-dom";
-import {
-  Users,
-  LogOut,
-  MessageSquare,
-  Loader2,
-  Sun,
-  Moon,
-  ShieldCheck,
-  Send,
-  BookOpen,
-  History,
-  Lock,
-  ExternalLink,
-  Wallet,
-  Settings,
-  Camera,
-  CheckCircle2,
-  AlertCircle,
-  RefreshCcw,
-  UploadCloud,
-  X,
-} from "lucide-react";
+// ... (rest of your lucide-react imports remain the same)
 
 const SupervisorDashboard = () => {
   const navigate = useNavigate();
