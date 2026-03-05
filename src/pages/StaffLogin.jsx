@@ -1,24 +1,13 @@
 import React, { useState, useEffect } from "react";
-// GYARA: Mun kara 'auth' da 'db' a cikin imports
-import { auth, db, rtdb, storage } from "../firebase"; 
+import { auth, db } from "../firebase";
 import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
   signOut,
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import { ShieldCheck, Loader2, ShieldAlert, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import {
-  BookOpen,
-  ArrowRight,
-  Loader2,
-  UserCheck,
-  X,
-  Lock,
-  Mail,
-} from "lucide-react";
-
-// ... sauran code din ya cigaba yadda yake
 
 const StaffLogin = () => {
   const [email, setEmail] = useState("");
