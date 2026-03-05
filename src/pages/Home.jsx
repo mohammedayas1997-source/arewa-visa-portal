@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { db, storage } from "../firebase";
+import ApplyPayment from "./components/ApplyPayment";
 import { ref, onValue, push, set } from "firebase/database";
 import {
   ref as storageRef,
@@ -315,38 +316,50 @@ const Home = () => {
   const handleFinalPayment = async () => {
     setIsSubmitting(true);
 
-    // Gano kudin da ya kamata a biya
-    const finalAmount =
-      applicationData.selectedCourseTitle === "VISA PROCESSING COURSE"
-        ? 200000
-        : 100000;
+    // 1. Gano adadin kudin da ya kamata a biya dangane da irin application din
+    let finalAmount = 0;
+
+    if (showCourseForm) {
+      // Kudin Application na Training Course
+      finalAmount = 5000;
+    } else if (showForm) {
+      // Kudin Job Consultation
+      finalAmount = 100000;
+    } else if (showInsuranceForm) {
+      // Kudin Insurance & Clearance
+      finalAmount = 300000;
+    } else if (selectedAirline) {
+      // Kudin Flight Booking
+      finalAmount = currentPrice;
+    }
 
     const updatedData = {
       ...applicationData,
       amountPaid: finalAmount,
       paymentStatus: "Completed",
-      type: "Course Enrollment",
+      // Idan akwai selectedCourseTitle a sa shi, idan kuma Job ne a sa hakan
+      type: applicationData.selectedCourseTitle
+        ? "Course Application"
+        : "Service Application",
     };
 
     try {
+      // Tura bayanai zuwa Firebase
       await handleSubmitApplication(updatedData);
+
       setIsSuccess(true);
       setShowPaymentStep(false);
-      if (
-        !updatedData.photoFile ||
-        !updatedData.passportFile ||
-        !updatedData.resumeFile ||
-        !updatedData.cvFile
-      ) {
-        // Receipt Download
-        setTimeout(() => {
-          window.print();
-        }, 1000);
-      }
+
+      // Receipt Download logic
+      setTimeout(() => {
+        window.print();
+      }, 1000);
     } catch (error) {
-      alert("Submission failed. Please check your network.");
+      console.error("Payment Error:", error);
+      alert("Payment submission failed. Please check your network.");
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -655,121 +668,133 @@ const Home = () => {
     {
       id: 1,
       title: "CLEANING COURSE",
+      price: 100000,
       desc: "Industrial and commercial sanitation standards.",
       details:
         "Comprehensive training in modern cleaning techniques, chemical safety, and specialized equipment handling for global sectors.",
       icon: <Brush size={40} />,
-      image: "/WhatsApp Image 2026-02-27 at 12.26.50 PM.jpeg", // Hoton dalibai sanye da blue t-shirt rike da vacuum cleaner
+      image: "/WhatsApp Image 2026-02-27 at 12.26.50 PM.jpeg",
       color: "#007bff",
     },
     {
       id: 2,
       title: "HOUSEKEEPING COURSE",
+      price: 100000,
       desc: "Professional hospitality management for luxury hotels.",
       details:
         "Focuses on guest relations, room maintenance, and high-end service standards required in international resorts.",
       icon: <Hotel size={40} />,
-      image: "/WhatsApp Image 2026-02-27 at 12.26.51 PM.jpeg", // Hoton dalibai a cikin dakin kwana (Hotel room training)
+      image: "/WhatsApp Image 2026-02-27 at 12.26.51 PM.jpeg",
       color: "#6610f2",
     },
     {
       id: 3,
       title: "LAUNDRY SERVICE COURSE",
+      price: 100000,
       desc: "Fabric care and industrial laundry operations.",
       details:
         "Advanced dry cleaning techniques, textile science, and operational mastery of commercial laundry systems.",
       icon: <Wind size={40} />,
-      image: "/WhatsApp Image 2026-02-27 at 12.26.51 PM (1).jpeg", // Hoton da aka jera module na Sorting, Washing, etc.
+      image: "/WhatsApp Image 2026-02-27 at 12.26.51 PM (1).jpeg",
       color: "#0dcaf0",
     },
     {
       id: 4,
       title: "VISA PROCESSING COURSE",
+      price: 200000, // Higher price for specialized course
       desc: "Global immigration and documentation training.",
       details:
         "Mastering application workflows, appointment scheduling, and embassy compliance for international travel.",
       icon: <FileText size={40} />,
-      image: "/WhatsApp Image 2026-02-27 at 12.26.51 PM (2).jpeg", // Hoton poster na Australia, Canada, UK, USA Visa
+      image: "/WhatsApp Image 2026-02-27 at 12.26.51 PM (2).jpeg",
       color: "#dc3545",
     },
     {
       id: 5,
       title: "TICKETING & RESERVATION",
+      price: 100000,
       desc: "Aviation booking and GDS system mastery.",
       details:
         "Professional training in Amadeus and Galileo systems for flight booking, fare construction, and itinerary management.",
       icon: <Plane size={40} />,
-      image: "/WhatsApp Image 2026-02-27 at 12.26.52 PM.jpeg", // Hoton ginin academy da rubutun "TICKETING AND RESERVATION"
+      image: "/WhatsApp Image 2026-02-27 at 12.26.52 PM.jpeg",
       color: "#198754",
     },
     {
       id: 6,
       title: "AGENCY MANAGEMENT",
+      price: 100000,
       desc: "Business architecture for travel firms.",
       details:
         "Strategic management of travel agencies, IATA standards, marketing, and global partnership logistics.",
       icon: <Briefcase size={40} />,
-      image: "/WhatsApp Image 2026-02-27 at 12.26.52 PM (1).jpeg", // Hoton kwararru sanye da suit (Empowering Your Journey)
+      image: "/WhatsApp Image 2026-02-27 at 12.26.52 PM (1).jpeg",
       color: "#fd7e14",
     },
     {
       id: 7,
       title: "CUSTOMER SERVICE COURSE",
+      price: 100000,
       desc: "Corporate communication and office administration.",
       details:
         "Professional etiquette, conflict resolution, and client relations training for high-level corporate environments.",
       icon: <Headphones size={40} />,
-      image: "/WhatsApp Image 2026-02-27 at 12.26.57 PM.jpeg", // Hoton dakin taro (Classroom) mai dauke da screen din Customer Service
+      image: "/WhatsApp Image 2026-02-27 at 12.26.57 PM.jpeg",
       color: "#ffc107",
     },
     {
       id: 8,
       title: "AIRCRAFT CLEANER COURSE",
+      price: 100000,
       desc: "Aviation-grade sterilization and safety protocols.",
       details:
         "Specialized modules on aircraft interior maintenance, hazardous materials handling, and aviation security compliance.",
       icon: <Ship size={40} />,
-      image: "/WhatsApp Image 2026-02-27 at 12.26.57 PM (1).jpeg", // Hoton dalibai a gaban jirgin sama
+      image: "/WhatsApp Image 2026-02-27 at 12.26.57 PM (1).jpeg",
       color: "#20c997",
     },
     {
       id: 9,
       title: "SECURITY TRAINING",
+      price: 100000,
       desc: "Professional security and surveillance training.",
       details:
         "Modern security protocols, emergency response, and surveillance technology management.",
       icon: <ShieldCheck size={40} />,
-      image: "/WhatsApp Image 2026-02-27 at 12.26.58 PM.jpeg", // Hoton kwararrun jami'an tsaro (Security Training)
+      image: "/WhatsApp Image 2026-02-27 at 12.26.58 PM.jpeg",
       color: "#343a40",
     },
     {
       id: 10,
       title: "CAREGIVER - NANNY COURSE",
+      price: 100000,
       desc: "Professional pediatric and elderly healthcare.",
       details:
         "Certified training in first aid, child development, geriatric care, and domestic safety for global households.",
       icon: <Users size={40} />,
-      image: "/WhatsApp Image 2026-02-27 at 12.27.02 PM.jpeg", // Hoton dalibai sanye da scrubs (Caregiver-Nanny)
+      image: "/WhatsApp Image 2026-02-27 at 12.27.02 PM.jpeg",
       color: "#d63384",
     },
     {
       id: 11,
       title: "CARGO & LOGISTICS COURSE",
+      price: 100000,
       desc: "Global supply chain and freight operations.",
       details:
         "Mastery of freight forwarding, customs documentation, warehousing, and international shipping logistics.",
       icon: <Package size={40} />,
-      image: "/WhatsApp Image 2026-02-27 at 12.27.03 PM.jpeg", // Hoton billboard din Cargo and Logistics
+      image: "/WhatsApp Image 2026-02-27 at 12.27.03 PM.jpeg",
       color: "#6f42c1",
     },
     {
       id: 12,
       title: "TRAVELS AND TOURISM",
+      price: 100000,
       desc: "International tourism and package development.",
       details:
         "Comprehensive geography, tourism legislation, and strategic planning of global vacation and travel packages.",
       icon: <Globe2 size={40} />,
-      image: "/WhatsApp Image 2026-02-27 at 12.27.04 PM.jpeg", // Hoton dalibai rike da takardar shaida (Travel and Tourism)
+      image: "/WhatsApp Image 2026-02-27 at 12.27.04 PM.jpeg",
       color: "#001f3f",
     },
   ];
@@ -2029,45 +2054,36 @@ const Home = () => {
                       {/* 2. PAYMENT GATEWAY */}
                       {view === "payment" && (
                         <div className="text-center py-4 animate__animated animate__fadeIn">
-                          <h4 className="fw-bold mb-4">Secure Checkout</h4>
-                          <div className="p-4 border rounded-4 mb-4 bg-light text-start">
-                            <div className="d-flex justify-content-between mb-2">
-                              <span>Airline:</span>{" "}
-                              <strong>{selectedAirline}</strong>
+                          <div className="mb-4">
+                            <div className="bg-primary bg-opacity-10 p-3 rounded-circle d-inline-block mb-3">
+                              <Plane size={40} className="text-primary" />
                             </div>
-                            <div className="d-flex justify-content-between mb-3 border-top pt-2">
-                              <span className="fw-bold">Total Amount:</span>
-                              <strong className="text-primary h5">
+                            <h4 className="fw-bold">Secure Flight Checkout</h4>
+                            <p className="text-muted small text-uppercase tracking-widest">
+                              Arewa Air Services
+                            </p>
+                          </div>
+
+                          <div className="p-4 border rounded-4 mb-4 bg-light text-start shadow-sm">
+                            <div className="d-flex justify-content-between mb-2">
+                              <span className="text-secondary small fw-bold text-uppercase">
+                                Selected Airline:
+                              </span>
+                              <strong className="text-dark">
+                                {selectedAirline}
+                              </strong>
+                            </div>
+                            <div className="d-flex justify-content-between mb-3 border-top pt-3">
+                              <span className="fw-bold text-uppercase small">
+                                Total Ticket Fare:
+                              </span>
+                              <strong className="text-primary h5 mb-0">
                                 ₦{currentPrice.toLocaleString()}
                               </strong>
                             </div>
-                            <div className="input-group mb-3 border rounded-3 overflow-hidden bg-white">
-                              <span className="input-group-text bg-white border-0">
-                                <CreditCard size={20} />
-                              </span>
-                              <input
-                                type="text"
-                                className="form-control border-0 py-3"
-                                placeholder="0000 0000 0000 0000"
-                              />
-                            </div>
-                            <div className="row g-2">
-                              <div className="col-6">
-                                <input
-                                  type="text"
-                                  className="form-control py-3"
-                                  placeholder="MM/YY"
-                                />
-                              </div>
-                              <div className="col-6">
-                                <input
-                                  type="text"
-                                  className="form-control py-3"
-                                  placeholder="CVV"
-                                />
-                              </div>
-                            </div>
                           </div>
+
+                          {/* Updated Button to Match Application Fee Style */}
                           <button
                             onClick={() => {
                               setIsSubmitting(true);
@@ -2076,17 +2092,28 @@ const Home = () => {
                                 setView("success");
                               }, 3000);
                             }}
-                            className="btn btn-success btn-lg w-100 py-3 rounded-pill fw-bold shadow"
+                            disabled={isSubmitting}
+                            className="btn btn-success btn-lg w-100 py-3 rounded-pill fw-bold shadow-lg d-flex align-items-center justify-content-center gap-2 text-uppercase"
                           >
-                            {isSubmitting
-                              ? "PROCESSING..."
-                              : `PAY ₦${currentPrice.toLocaleString()}`}
+                            {isSubmitting ? (
+                              <>
+                                <Loader2 className="animate-spin" size={20} />
+                                Processing Payment...
+                              </>
+                            ) : (
+                              <>
+                                <CreditCard size={20} />
+                                Pay Application Fee & Confirm Seat
+                              </>
+                            )}
                           </button>
+
                           <button
-                            className="btn btn-link text-muted mt-2"
+                            className="btn btn-link text-muted fw-bold text-decoration-none mt-3 small text-uppercase"
                             onClick={() => setView("book")}
+                            style={{ fontSize: "11px", letterSpacing: "1px" }}
                           >
-                            Cancel
+                            Cancel & Return to Search
                           </button>
                         </div>
                       )}
@@ -2998,10 +3025,11 @@ const Home = () => {
               /* --- BANGAREN BIYAN KUDI (TUITION FEES) --- */
               <div className="p-4 p-md-5 text-center bg-white">
                 <div className="bg-light p-3 rounded-circle d-inline-block mb-3">
-                  <GraduationCap size={45} className="text-danger" />
+                  {/* Mun canza icon zuwa Wallet don ya dace da Application Fee */}
+                  <Wallet size={45} className="text-danger" />
                 </div>
                 <h3 className="fw-bold mb-1 text-uppercase">
-                  Tuition Fee Payment
+                  Application Fee Payment
                 </h3>
                 <p className="text-muted mb-4">
                   Course: <strong>{applicationData.selectedCourseTitle}</strong>
@@ -3009,24 +3037,18 @@ const Home = () => {
 
                 <div className="py-3 px-4 bg-light rounded-4 mb-4 border-start border-danger border-5 shadow-sm text-center">
                   <span className="text-muted small d-block mb-1 text-uppercase fw-bold">
-                    Amount to Pay
+                    Required Amount
                   </span>
-                  <h2 className="display-4 fw-bold text-danger mb-0">
-                    ₦
-                    {applicationData.selectedCourseTitle ===
-                    "VISA PROCESSING COURSE"
-                      ? "200,000"
-                      : "100,000"}
-                  </h2>
+                  <h2 className="display-4 fw-bold text-danger mb-0">₦5,000</h2>
                 </div>
 
                 <div
                   className="alert alert-danger border-0 small text-start mb-4"
                   style={{ borderRadius: "15px" }}
                 >
-                  <strong>Enrollment Policy:</strong> This tuition fee covers
-                  your full training, materials, and certification. Fees are
-                  non-refundable.
+                  <strong>Payment Policy:</strong> This application fee is
+                  required to process your admission. Please note that all
+                  application fees are non-refundable.
                 </div>
 
                 <div className="d-grid gap-2">
@@ -3040,7 +3062,7 @@ const Home = () => {
                     ) : (
                       <CreditCard size={20} />
                     )}
-                    Pay Tuition & Download Receipt
+                    Pay Application Fee & Get Receipt
                   </button>
                   <button
                     onClick={() => setShowPaymentStep(false)}
@@ -3055,6 +3077,41 @@ const Home = () => {
           </div>
         </div>
       )}
+      <div className="payment-validation-gate py-4">
+        <h5 className="fw-bold mb-3">Tuition Fee Verification</h5>
+        <div className="input-group mb-3">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Enter your Admission ID (e.g. AVA-12345)"
+            onChange={(e) => setAdmissionId(e.target.value)}
+          />
+          <button className="btn btn-primary" onClick={handleVerifyID}>
+            Verify ID
+          </button>
+        </div>
+
+        {isVerified && (
+          <div className="animate__animated animate__fadeIn">
+            <div className="alert alert-success">
+              ID Verified! You are paying for {selectedCourse.title}
+            </div>
+            <h2 className="fw-bold text-danger">
+              Total: ₦{selectedCourse.price.toLocaleString()}
+            </h2>
+            {/* Maimakon tsohon button din, saka wannan: */}
+            <ApplyPayment
+              amount={finalAmount} // Kudin da muka lissafa (5k, 100k, ko 300k)
+              email={applicationData.email}
+              applicationId={currentAppId} // Tabbatar kana da ID din application din
+              onSuccessAction={() => {
+                setIsSuccess(true);
+                setShowPaymentStep(false);
+              }}
+            />
+          </div>
+        )}
+      </div>
       {/* COURSE DETAIL MODAL - UPDATED WORLD CLASS VERSION */}
       {selectedCourse && typeof selectedCourse === "object" && (
         <div
@@ -4299,7 +4356,9 @@ const Home = () => {
                     <div className="bg-light p-3 rounded-circle d-inline-block mb-3">
                       <Wallet size={40} className="text-success" />
                     </div>
-                    <h3 className="fw-bold mb-2">Job Consultation Fee</h3>
+                    <h3 className="fw-bold mb-2 text-uppercase">
+                      Job Consultation Fee
+                    </h3>
                     <h2 className="display-6 fw-bold text-success mb-3">
                       ₦100,000
                     </h2>
@@ -4308,25 +4367,27 @@ const Home = () => {
                       className="alert alert-warning border-0 small text-start mb-4 shadow-sm"
                       style={{ borderRadius: "15px", fontSize: "0.85rem" }}
                     >
-                      <strong>Disclaimer:</strong> Consultation fee is charged
-                      for professional guidance and screening services only and
-                      does not guarantee employment. This fee is non-refundable.
+                      <strong>Disclaimer:</strong> This application fee is
+                      charged for professional guidance and screening services
+                      only and does not guarantee employment. This fee is
+                      non-refundable.
                     </div>
 
                     <div className="d-grid gap-2">
                       <button
                         onClick={handleFinalPayment}
                         disabled={isSubmitting}
-                        className="btn btn-success py-3 rounded-pill fw-bold shadow-lg d-flex align-items-center justify-content-center gap-2"
+                        className="btn btn-success py-3 rounded-pill fw-bold shadow-lg d-flex align-items-center justify-content-center gap-2 text-uppercase"
                       >
                         {isSubmitting ? (
                           <span className="d-flex align-items-center gap-2">
-                            <Loader2 className="spinner-border spinner-border-sm" />{" "}
+                            <Loader2 className="spinner-border spinner-border-sm" />
                             PROCESSING...
                           </span>
                         ) : (
                           <span className="d-flex align-items-center gap-2">
-                            <CreditCard size={20} /> PAY & DOWNLOAD RECEIPT
+                            <CreditCard size={20} /> PAY APPLICATION FEE & GET
+                            RECEIPT
                           </span>
                         )}
                       </button>
