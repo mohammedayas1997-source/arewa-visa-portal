@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db, storage } from "../firebase";
-import { ref, push, set, onValue } from "firebase/database"; // Mun kara onValue
+import { ref, push, set, onValue } from "firebase/database";
 import ApplyPayment from "./ApplyPayment";
 import {
   ref as storageRef,
@@ -12,10 +12,12 @@ import {
   GraduationCap,
   ArrowRight,
   Loader2,
-  CreditCard,
   Wallet,
   CheckCircle,
-  Lock, // Mun kara Lock icon
+  Lock,
+  User,
+  MapPin,
+  FileText,
 } from "lucide-react";
 
 const CourseApplicationForm = ({
@@ -28,8 +30,8 @@ const CourseApplicationForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
-  const [isPortalOpen, setIsPortalOpen] = useState(true); // State na kulle portal
-  const [loadingPortal, setLoadingPortal] = useState(true); // Loading status na portal
+  const [isPortalOpen, setIsPortalOpen] = useState(true);
+  const [loadingPortal, setLoadingPortal] = useState(true);
 
   const [applicationData, setApplicationData] = useState({
     name: "",
@@ -53,15 +55,23 @@ const CourseApplicationForm = ({
     cvFile: null,
   });
 
-  // --- 1. DUBA STATUS DIN PORTAL DAGA FIREBASE ---
+  // --- FIX: DUBA STATUS DIN PORTAL ---
   useEffect(() => {
     const portalRef = ref(db, "settings/coursePortalStatus");
-    const unsubscribe = onValue(portalRef, (snapshot) => {
-      const data = snapshot.val();
-      // Idan babu komai a database, mu bar shi a true (open)
-      setIsPortalOpen(data === null ? true : data);
-      setLoadingPortal(false);
-    });
+    const unsubscribe = onValue(
+      portalRef,
+      (snapshot) => {
+        const data = snapshot.val();
+        // Idan null ne (babu komai), mu bar shi a true (open)
+        setIsPortalOpen(data === null ? true : data);
+        setLoadingPortal(false);
+      },
+      (error) => {
+        console.error(error);
+        setIsPortalOpen(true); // Default to open on error
+        setLoadingPortal(false);
+      },
+    );
 
     return () => unsubscribe();
   }, []);
@@ -183,7 +193,6 @@ const CourseApplicationForm = ({
           marginBottom: "40px",
         }}
       >
-        {/* --- BUTTON NA RUFEWA --- */}
         <button
           onClick={() => setShowCourseForm(false)}
           className="position-absolute top-0 end-0 m-2 btn btn-light rounded-circle shadow-sm"
@@ -198,16 +207,13 @@ const CourseApplicationForm = ({
             <p className="mt-2 fw-bold">Checking Portal Status...</p>
           </div>
         ) : !isPortalOpen ? (
-          /* --- SAKON IDAN PORTAL A KULLE YAKE --- */
           <div className="text-center py-5 bg-white rounded-4 px-4">
             <div className="bg-danger bg-opacity-10 p-4 rounded-circle d-inline-block mb-4">
               <Lock size={60} className="text-danger" />
             </div>
             <h2 className="fw-bold text-dark">Portal Closed</h2>
             <p className="text-muted mx-auto" style={{ maxWidth: "500px" }}>
-              Admission for the current session is currently closed. Please
-              check back later or contact the Arewa Visa Academy support team
-              for more information.
+              Admission is currently closed.
             </p>
             <button
               onClick={() => setShowCourseForm(false)}
@@ -217,7 +223,6 @@ const CourseApplicationForm = ({
             </button>
           </div>
         ) : isSuccess ? (
-          /* --- SUCCESS SCREEN --- */
           <div className="text-center py-5 bg-white rounded-4">
             <CheckCircle size={60} className="text-success mb-4 mx-auto" />
             <h2 className="fw-bold">Success!</h2>
@@ -233,7 +238,6 @@ const CourseApplicationForm = ({
             </button>
           </div>
         ) : !showPaymentStep ? (
-          /* --- FORM SCREEN --- */
           <div className="row g-0">
             <div className="col-md-3 bg-danger p-4 text-white text-center d-flex flex-column justify-content-center">
               {photoPreview ? (
@@ -253,7 +257,8 @@ const CourseApplicationForm = ({
               )}
               <h4 className="fw-bold text-uppercase">Course Admission</h4>
             </div>
-            <div className="col-md-9 p-4 p-md-5 bg-white">
+
+            <div className="col-md-9 p-4 p-md-5 bg-white text-dark">
               <form
                 className="row g-3"
                 onSubmit={(e) => {
@@ -261,24 +266,15 @@ const CourseApplicationForm = ({
                   setShowPaymentStep(true);
                 }}
               >
-                <div className="col-12 mb-2 border-bottom pb-2">
-                  <h6 className="fw-bold text-danger">Upload Documents</h6>
+                {/* --- BIOGRAPHICAL DATA --- */}
+                <div className="col-12 border-bottom pb-2">
+                  <h6 className="fw-bold text-danger">
+                    <User size={16} className="me-2" />
+                    Personal Details
+                  </h6>
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label fw-bold small">
-                    Passport Photo
-                  </label>
-                  <input
-                    type="file"
-                    name="photoFile"
-                    className="form-control"
-                    accept="image/*"
-                    required
-                    onChange={handlePhotoChange}
-                  />
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label fw-bold small">Full Name</label>
+                  <label className="form-label small fw-bold">Full Name</label>
                   <input
                     type="text"
                     name="name"
@@ -289,7 +285,7 @@ const CourseApplicationForm = ({
                   />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label fw-bold small">Email</label>
+                  <label className="form-label small fw-bold">Email</label>
                   <input
                     type="email"
                     name="email"
@@ -299,9 +295,123 @@ const CourseApplicationForm = ({
                     required
                   />
                 </div>
+                <div className="col-md-4">
+                  <label className="form-label small fw-bold">Gender</label>
+                  <select
+                    name="gender"
+                    value={applicationData.gender}
+                    onChange={handleChange}
+                    className="form-select"
+                    required
+                  >
+                    <option value="">Select</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+                <div className="col-md-4">
+                  <label className="form-label small fw-bold">Age</label>
+                  <input
+                    type="number"
+                    name="age"
+                    value={applicationData.age}
+                    onChange={handleChange}
+                    className="form-control"
+                    required
+                  />
+                </div>
+                <div className="col-md-4">
+                  <label className="form-label small fw-bold">
+                    WhatsApp Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="whatsapp"
+                    value={applicationData.whatsapp}
+                    onChange={handleChange}
+                    className="form-control"
+                    required
+                  />
+                </div>
+
+                {/* --- IDENTITY & ORIGIN --- */}
+                <div className="col-12 border-bottom pb-2 mt-4">
+                  <h6 className="fw-bold text-danger">
+                    <FileText size={16} className="me-2" />
+                    Identity & Location
+                  </h6>
+                </div>
                 <div className="col-md-6">
-                  <label className="form-label fw-bold small">
-                    Select Course (12 Available)
+                  <label className="form-label small fw-bold">NIN Number</label>
+                  <input
+                    type="text"
+                    name="nin"
+                    value={applicationData.nin}
+                    onChange={handleChange}
+                    className="form-control"
+                    required
+                  />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label small fw-bold">
+                    Passport Number (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    name="passportNo"
+                    value={applicationData.passportNo}
+                    onChange={handleChange}
+                    className="form-control"
+                  />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label small fw-bold">
+                    State of Origin
+                  </label>
+                  <input
+                    type="text"
+                    name="state"
+                    value={applicationData.state}
+                    onChange={handleChange}
+                    className="form-control"
+                    required
+                  />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label small fw-bold">LGA</label>
+                  <input
+                    type="text"
+                    name="lga"
+                    value={applicationData.lga}
+                    onChange={handleChange}
+                    className="form-control"
+                    required
+                  />
+                </div>
+                <div className="col-12">
+                  <label className="form-label small fw-bold">
+                    Full Home Address
+                  </label>
+                  <textarea
+                    name="address"
+                    value={applicationData.address}
+                    onChange={handleChange}
+                    className="form-control"
+                    rows="2"
+                    required
+                  ></textarea>
+                </div>
+
+                {/* --- COURSE SELECTION --- */}
+                <div className="col-12 border-bottom pb-2 mt-4">
+                  <h6 className="fw-bold text-danger">
+                    <GraduationCap size={16} className="me-2" />
+                    Course Selection
+                  </h6>
+                </div>
+                <div className="col-12">
+                  <label className="form-label small fw-bold">
+                    Select Your Desired Course
                   </label>
                   <select
                     className="form-select"
@@ -310,7 +420,7 @@ const CourseApplicationForm = ({
                     onChange={handleChange}
                     required
                   >
-                    <option value="">-- Select Course --</option>
+                    <option value="">-- Choose from 12 Courses --</option>
                     {coursesData.map((course) => (
                       <option key={course.id} value={course.title}>
                         {course.title}
@@ -318,9 +428,30 @@ const CourseApplicationForm = ({
                     ))}
                   </select>
                 </div>
-                <div className="col-md-12">
-                  <label className="form-label fw-bold small">
-                    Passport Data Page
+
+                {/* --- UPLOADS --- */}
+                <div className="col-12 border-bottom pb-2 mt-4">
+                  <h6 className="fw-bold text-danger">
+                    <MapPin size={16} className="me-2" />
+                    Required Documents
+                  </h6>
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label small fw-bold">
+                    Passport Photo
+                  </label>
+                  <input
+                    type="file"
+                    name="photoFile"
+                    className="form-control"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    required
+                  />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label small fw-bold">
+                    Passport Data Page / ID
                   </label>
                   <input
                     type="file"
@@ -331,17 +462,20 @@ const CourseApplicationForm = ({
                   />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label fw-bold small">Resume</label>
+                  <label className="form-label small fw-bold">
+                    Resume (Optional)
+                  </label>
                   <input
                     type="file"
                     name="resumeFile"
                     className="form-control"
                     onChange={handleFileChange}
-                    required
                   />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label fw-bold small">CV</label>
+                  <label className="form-label small fw-bold">
+                    Academic Credentials (CV)
+                  </label>
                   <input
                     type="file"
                     name="cvFile"
@@ -350,10 +484,11 @@ const CourseApplicationForm = ({
                     required
                   />
                 </div>
+
                 <div className="col-12 mt-4">
                   <button
                     type="submit"
-                    className="btn btn-warning w-100 py-3 fw-bold rounded-pill"
+                    className="btn btn-warning w-100 py-3 fw-bold rounded-pill shadow"
                   >
                     PROCEED TO PAYMENT <ArrowRight size={20} className="ms-2" />
                   </button>
@@ -362,17 +497,19 @@ const CourseApplicationForm = ({
             </div>
           </div>
         ) : (
-          /* --- PAYMENT SCREEN --- */
-          <div className="p-4 p-md-5 text-center bg-white rounded-4">
+          <div className="p-4 p-md-5 text-center bg-white rounded-4 text-dark">
             <div className="bg-light p-3 rounded-circle d-inline-block mb-3">
               <Wallet size={45} className="text-danger" />
             </div>
-            <h3 className="fw-bold mb-1">Payment Gateway</h3>
+            <h3 className="fw-bold mb-1">Tuition Payment</h3>
             <p className="text-muted">
-              Pay for: <strong>{applicationData.selectedCourseTitle}</strong>
+              You are applying for:{" "}
+              <strong>{applicationData.selectedCourseTitle}</strong>
             </p>
             <div className="py-3 px-4 bg-light rounded-4 mb-4 border-start border-danger border-5">
-              <span className="text-muted small d-block">Application Fee</span>
+              <span className="text-muted small d-block">
+                Admission Processing Fee
+              </span>
               <h2 className="display-4 fw-bold text-danger mb-0">₦5,000</h2>
             </div>
             <div className="payment-btn-container shadow-sm p-3 rounded-4 border">
@@ -387,7 +524,7 @@ const CourseApplicationForm = ({
               onClick={() => setShowPaymentStep(false)}
               className="btn btn-link text-muted mt-3"
             >
-              Back to Form Review
+              Back to Review Form
             </button>
           </div>
         )}
