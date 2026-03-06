@@ -55,26 +55,41 @@ const CourseApplicationForm = ({
     cvFile: null,
   });
 
-  // --- FIX: DUBA STATUS DIN PORTAL ---
+  // --- FIXED: STATUS CHECK WITH FALLBACK ---
   useEffect(() => {
+    if (!showCourseForm) return;
+
     const portalRef = ref(db, "settings/coursePortalStatus");
+
+    // Safety Timeout: If Firebase takes too long, stop loading and default to open
+    const timeoutFallback = setTimeout(() => {
+      if (loadingPortal) {
+        setLoadingPortal(false);
+        setIsPortalOpen(true);
+      }
+    }, 2000);
+
     const unsubscribe = onValue(
       portalRef,
       (snapshot) => {
+        clearTimeout(timeoutFallback);
         const data = snapshot.val();
-        // Idan null ne (babu komai), mu bar shi a true (open)
         setIsPortalOpen(data === null ? true : data);
         setLoadingPortal(false);
       },
       (error) => {
+        clearTimeout(timeoutFallback);
         console.error(error);
-        setIsPortalOpen(true); // Default to open on error
+        setIsPortalOpen(true);
         setLoadingPortal(false);
       },
     );
 
-    return () => unsubscribe();
-  }, []);
+    return () => {
+      unsubscribe();
+      clearTimeout(timeoutFallback);
+    };
+  }, [showCourseForm]);
 
   // --- FUNCTIONS ---
   const uploadFile = async (file, path) => {
