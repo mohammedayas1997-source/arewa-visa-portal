@@ -127,23 +127,32 @@ const CourseApplicationForm = ({
       const timestamp = Date.now();
       const applicantName = formData.name.replace(/\s+/g, "_");
 
+      // Only upload if the file exists, otherwise return null
       const [photoUrl, passportUrl, resumeUrl, cvUrl] = await Promise.all([
-        uploadFile(
-          formData.photoFile,
-          `applications/${timestamp}_${applicantName}/photo`,
-        ),
-        uploadFile(
-          formData.passportFile,
-          `applications/${timestamp}_${applicantName}/passport`,
-        ),
-        uploadFile(
-          formData.resumeFile,
-          `applications/${timestamp}_${applicantName}/resume`,
-        ),
-        uploadFile(
-          formData.cvFile,
-          `applications/${timestamp}_${applicantName}/cv`,
-        ),
+        formData.photoFile
+          ? uploadFile(
+              formData.photoFile,
+              `applications/${timestamp}_${applicantName}/photo`,
+            )
+          : null,
+        formData.passportFile
+          ? uploadFile(
+              formData.passportFile,
+              `applications/${timestamp}_${applicantName}/passport`,
+            )
+          : null,
+        formData.resumeFile
+          ? uploadFile(
+              formData.resumeFile,
+              `applications/${timestamp}_${applicantName}/resume`,
+            )
+          : null,
+        formData.cvFile
+          ? uploadFile(
+              formData.cvFile,
+              `applications/${timestamp}_${applicantName}/cv`,
+            )
+          : null,
       ]);
 
       const newApplicationRef = push(ref(db, "applications"));
@@ -451,9 +460,11 @@ const CourseApplicationForm = ({
                     Required Documents
                   </h6>
                 </div>
+
+                {/* Passport Photo - STILL REQUIRED */}
                 <div className="col-md-6">
                   <label className="form-label small fw-bold">
-                    Passport Photo
+                    Passport Photo (Required)
                   </label>
                   <input
                     type="file"
@@ -464,18 +475,21 @@ const CourseApplicationForm = ({
                     required
                   />
                 </div>
+
+                {/* Passport Data Page - NOW OPTIONAL */}
                 <div className="col-md-6">
                   <label className="form-label small fw-bold">
-                    Passport Data Page / ID
+                    Passport Data Page / ID (Optional)
                   </label>
                   <input
                     type="file"
                     name="passportFile"
                     className="form-control"
                     onChange={handleFileChange}
-                    required
                   />
                 </div>
+
+                {/* Resume - STILL OPTIONAL */}
                 <div className="col-md-6">
                   <label className="form-label small fw-bold">
                     Resume (Optional)
@@ -487,16 +501,17 @@ const CourseApplicationForm = ({
                     onChange={handleFileChange}
                   />
                 </div>
+
+                {/* CV / Credentials - NOW OPTIONAL */}
                 <div className="col-md-6">
                   <label className="form-label small fw-bold">
-                    Academic Credentials (CV)
+                    Academic Credentials / CV (Optional)
                   </label>
                   <input
                     type="file"
                     name="cvFile"
                     className="form-control"
                     onChange={handleFileChange}
-                    required
                   />
                 </div>
 
