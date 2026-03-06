@@ -14,7 +14,7 @@ import FlightBookingSystem from "../components/FlightBookingSystem";
 import ManpowerRequestForm from "../components/ManpowerRequestForm";
 import ApplyPayment from "../components/ApplyPayment";
 
-// Icons (An rage su zuwa wadanda Home kadai yake amfani dasu)
+// Icons
 import {
   Plane,
   Users,
@@ -59,6 +59,7 @@ import {
   Edit3,
   Banknote,
   ArrowLeft,
+  Wind,
 } from "lucide-react";
 
 // Assets
@@ -70,6 +71,11 @@ import hero4 from "../assets/hero4.jpg";
 import hero5 from "../assets/hero5.jpg";
 
 const Home = () => {
+  const navigate = useNavigate();
+  const coursesRef = useRef(null);
+  const jobsRef = useRef(null);
+
+  // --- STATES ---
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -77,14 +83,41 @@ const Home = () => {
   const [gallery, setGallery] = useState([]);
   const [admissionId, setAdmissionId] = useState("");
   const [isVerified, setIsVerified] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  // Masu kula da bude forms (Toggle States)
+  // Toggle States
   const [showForm, setShowForm] = useState(false);
   const [showCourseForm, setShowCourseForm] = useState(false);
   const [showManpowerForm, setShowManpowerForm] = useState(false);
   const [showInsuranceForm, setShowInsuranceForm] = useState(false);
   const [showCBIForm, setShowCBIForm] = useState(false);
   const [showPaymentStep, setShowPaymentStep] = useState(false);
+  const [expandedApplyInfo, setExpandedApplyInfo] = useState(false);
+  const [expandedManpower, setExpandedManpower] = useState(false);
+  const [showCBIDetails, setShowCBIDetails] = useState(false);
+
+  // Form Data States
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [isOtherCountry, setIsOtherCountry] = useState(false);
+  const [isOtherJob, setIsOtherJob] = useState(false);
+  const [isOtherManpower, setIsOtherManpower] = useState(false);
+
+  const [applicationData, setApplicationData] = useState({
+    name: "",
+    email: "",
+    country: "",
+    job: "",
+  });
+
+  const [formData, setFormData] = useState({
+    fullName: "",
+    phone: "",
+    passportNumber: "",
+    insuranceType: "",
+  });
 
   // Flight System States
   const [view, setView] = useState("");
@@ -92,10 +125,79 @@ const Home = () => {
   const [currentPrice, setCurrentPrice] = useState(0);
   const [isLoadingFlight, setIsLoadingFlight] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [ticketID, setTicketID] = useState("");
 
-  const navigate = useNavigate();
-  const coursesRef = useRef(null);
-  const jobsRef = useRef(null);
+  // Assets Arrays
+  const heroImages = [hero1, hero2, hero3, hero4, hero5];
+  const backgroundImages = [hero1, hero2, hero3];
+  const nigerianStates = ["Kano", "Kaduna", "Abuja", "Lagos", "Katsina"];
+  const airlinePrices = {
+    "Air Peace": 95000,
+    "Max Air": 90000,
+    "Arik Air": 85000,
+  };
+  const flightTimes = ["08:00 AM", "12:00 PM", "04:00 PM", "09:00 PM"];
+
+  // --- FUNCTIONS (Placeholders to prevent blank screen) ---
+  const handlePhotoChange = (e) => {
+    /* Logic here */
+  };
+  const handleChange = (e) => {
+    /* Logic here */
+  };
+  const handleFileChange = (e) => {
+    /* Logic here */
+  };
+  const handleFinalPayment = () => {
+    /* Logic here */
+  };
+  const handleVerifyID = () => {
+    setIsVerified(true);
+  };
+  const handleInitialSubmit = (e) => {
+    e.preventDefault();
+  };
+  const handleCBISubmit = (e) => {
+    e.preventDefault();
+  };
+  const handleInsuranceApplication = (e) => {
+    e.preventDefault();
+  };
+  const handleAirlineChange = (e) => {
+    setSelectedAirline(e.target.value);
+  };
+  const handleProceedToPayment = () => {
+    /* Logic */
+  };
+  const handleFindTicket = () => {
+    /* Logic */
+  };
+  const scrollToCourses = () =>
+    coursesRef.current?.scrollIntoView({ behavior: "smooth" });
+
+  // Auto Slider
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [heroImages.length]);
+
+  // Fetch News & Gallery from Firebase
+  useEffect(() => {
+    const newsRef = ref(db, "news");
+    onValue(newsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) setNews(Object.values(data));
+    });
+
+    const galleryRef = ref(db, "gallery");
+    onValue(galleryRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) setGallery(Object.values(data));
+    });
+  }, []);
 
   const whatWeDoList = [
     "JOBS SEARCH",
@@ -1232,13 +1334,14 @@ const Home = () => {
           </div>
         </div>
       </section>
+      {/* FLIGHT SYSTEM */}
       <div className="flight-system-wrapper">
         <FlightBookingSystem
           isLoadingFlight={isLoadingFlight}
           view={view}
           setView={setView}
           backgroundImages={backgroundImages}
-          bgIndex={bgIndex}
+          bgIndex={currentSlide}
           nigerianStates={nigerianStates}
           airlinePrices={airlinePrices}
           flightTimes={flightTimes}
