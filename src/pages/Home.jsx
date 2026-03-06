@@ -107,7 +107,8 @@ const Home = () => {
   const [showInsuranceForm, setShowInsuranceForm] = useState(false);
   const navigate = useNavigate();
   const heroImages = [hero1, hero2, hero3, hero4, hero5];
-
+  const [admissionId, setAdmissionId] = useState(""); // Wannan zai dauki ID din da dalibi ya sa
+  const [isVerified, setIsVerified] = useState(false); // Wannan zai tabbatar idan ID din yayi daidai
   // 1. Timer na Hero Slider
   useEffect(() => {
     const timer = setInterval(() => {
@@ -546,6 +547,16 @@ const Home = () => {
       setIsLoadingFlight(false);
       alert("Flight Search Completed! Connecting to server...");
     }, 3500);
+  };
+
+  const handleVerifyID = () => {
+    if (!admissionId) {
+      alert("Please enter a valid Admission ID");
+      return;
+    }
+    // Domin gwaji, kowane ID zai wuce. Amma nan gaba za'a hada shi da Database
+    setIsVerified(true);
+    alert("ID Verified Successfully!");
   };
 
   // 1. Tabbatar dukkan wadannan sunayen suna ciki
@@ -3101,15 +3112,15 @@ const Home = () => {
               Total: ₦{selectedCourse?.price?.toLocaleString()}
             </h2>
 
-            <ApplyPayment
-              amount={selectedCourse?.price || 5000}
-              email={applicationData?.email || ""}
-              applicationId={admissionId} // Amfani da ID din da ya sa
-              onSuccessAction={() => {
-                setIsSuccess(true);
-                setShowPaymentStep(false);
-              }}
-            />
+           <ApplyPayment
+  amount={selectedCourse?.price || 5000}
+  email={applicationData?.email || "arewavisaacademy@gmail.com"}
+  applicationId={admissionId}
+  onSuccessAction={() => {
+    setIsSuccess(true);
+    setShowPaymentStep(false);
+  }}
+/>
           </div>
         )}
       </div>
