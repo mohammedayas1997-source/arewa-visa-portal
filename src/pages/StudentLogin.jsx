@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { auth, firestore as db } from "../firebase";
+import { auth, db } from "../firebase";
 import {
   signInWithEmailAndPassword,
   signOut,

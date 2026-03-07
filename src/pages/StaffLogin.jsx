@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { auth, firestore as db } from "../firebase";
+import { auth, firestore } from "../firebase";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { ShieldCheck, Loader2, ShieldAlert, X } from "lucide-react";
@@ -32,7 +32,7 @@ const StaffLogin = () => {
         throw new Error("Firestore instance (db) not found. Check firebase.js");
       }
 
-      const userRef = doc(db, "users", user.uid);
+      const userRef = doc(firestore, "users", user.uid);
       const userDoc = await getDoc(userRef);
 
       if (userDoc.exists()) {
