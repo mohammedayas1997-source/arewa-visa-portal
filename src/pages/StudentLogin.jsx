@@ -32,9 +32,9 @@ const StudentLogin = () => {
     }
     try {
       await sendPasswordResetEmail(auth, email.trim().toLowerCase());
-      alert("RESET DISPATCHED: Check your inbox for recovery link.");
+      alert("RESET DISPATCHED: Check your inbox for the recovery link.");
     } catch (error) {
-      alert("SYSTEM ERROR: Could not send reset email.");
+      alert("SYSTEM ERROR: Could not send reset email. Verify your address.");
     }
   };
 
@@ -46,6 +46,7 @@ const StudentLogin = () => {
 
     try {
       const cleanEmail = email.trim().toLowerCase();
+
       const userCredential = await signInWithEmailAndPassword(
         auth,
         cleanEmail,
@@ -53,29 +54,35 @@ const StudentLogin = () => {
       );
       const user = userCredential.user;
 
-      const userDoc = await getDoc(doc(db, "users", user.uid));
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
 
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+
         if (userData.role !== "student") {
           await signOut(auth);
-          setError("RESTRICTED: Wannan portal na ɗalibai ne kawai.");
+          setError("RESTRICTED: This portal is for students only.");
           setLoading(false);
           return;
         }
+
         if (userData.status === "suspended" || userData.status === "inactive") {
           await signOut(auth);
-          setError("ACCOUNT INACTIVE: An dakatar da asusunka.");
+          setError(
+            "ACCOUNT INACTIVE: Your student account has been suspended.",
+          );
           setLoading(false);
           return;
         }
+
         navigate("/student-portal");
       } else {
         await signOut(auth);
-        setError("DATABASE ERROR: Ba'a sami profile dinka ba.");
+        setError("ACCOUNT ERROR: Student profile not found in database.");
       }
     } catch (error) {
-      setError("AUTHENTICATION ERROR: Email ko Password ba daidai ba.");
+      setError("AUTHENTICATION ERROR: Invalid email or password.");
     } finally {
       setLoading(false);
     }
@@ -237,7 +244,7 @@ const StudentLogin = () => {
             </label>
             <input
               type="email"
-              placeholder="dalibi@arewavisa.com"
+              placeholder="student@arewavisa.com"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}

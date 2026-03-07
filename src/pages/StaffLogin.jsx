@@ -48,14 +48,18 @@ const StaffLogin = () => {
           navigate("/admin", { replace: true });
         } else {
           await signOut(auth);
-          setError("Asusunka ba ya aiki (Inactive).");
+          setError("ACCESS DENIED: Your account is currently inactive.");
         }
       } else {
         await signOut(auth);
-        setError("Ba ka da ikon shiga wannan portal din.");
+        setError(
+          "UNAUTHORIZED: You do not have permission to access this portal.",
+        );
       }
     } catch (err) {
-      setError("Imel ko Security Key ba daidai ba.");
+      setError(
+        "AUTHENTICATION FAILED: Invalid institutional email or security key.",
+      );
     } finally {
       setLoading(false);
     }
@@ -75,7 +79,7 @@ const StaffLogin = () => {
         overflow: "hidden",
       }}
     >
-      {/* Background Glow */}
+      {/* Background Decorative Glow */}
       <div
         style={{
           position: "absolute",
