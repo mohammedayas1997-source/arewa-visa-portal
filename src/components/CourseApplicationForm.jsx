@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { db, storage } from "../firebase";
 import { ref, push, set, onValue } from "firebase/database";
 import ApplyPayment from "./ApplyPayment";
+import { QRCodeSVG } from "qrcode.react";
 import {
   ref as storageRef,
   uploadBytes,
@@ -173,24 +174,32 @@ const CourseApplicationForm = ({
     }
   };
 
-  const handlePaymentSuccess = async () => {
+  const handlePaymentSuccess = async (reference) => {
     setIsSubmitting(true);
+
+    // Generate Admission ID nan take don ya fito a Receipt
+    const generatedID = `AVA-${Math.floor(10000 + Math.random() * 90000)}`;
+
     const updatedData = {
       ...applicationData,
+      admissionID: generatedID,
       amountPaid: 5000,
       paymentStatus: "Completed",
-      type: "Course Application",
+      paymentRef: reference.reference,
     };
 
     try {
+      // 1. Aika bayanan zuwa Admin Dashboard (Firebase)
       await handleSubmitApplication(updatedData);
+
+      // 2. Update state din mu don nuna ID a Receipt
+      setApplicationData((prev) => ({ ...prev, admissionID: generatedID }));
+
+      // 3. Nuna Receipt din
       setIsSuccess(true);
       setShowPaymentStep(false);
-      setTimeout(() => {
-        window.print();
-      }, 1000);
     } catch (error) {
-      alert("Application failed. Please contact support.");
+      alert("Error saving data. Please contact Admin.");
     } finally {
       setIsSubmitting(false);
     }
@@ -556,6 +565,115 @@ const CourseApplicationForm = ({
             >
               Back to Review Form
             </button>
+          </div>
+        )}
+        {/* --- PROFESSIONAL RECEIPT SECTION --- */}
+        {isSuccess && (
+          <div
+            id="printable-receipt"
+            className="bg-white p-4 p-md-5 rounded-4 shadow-sm mx-auto"
+            style={{ maxWidth: "800px", border: "2px solid #eee" }}
+          >
+            {/* Header with Logo */}
+            <div className="d-flex justify-content-between align-items-center border-bottom pb-4 mb-4">
+              <div>
+                <img
+                  src="/logo.png"
+                  alt="Arewa Visa Academy"
+                  style={{ height: "60px" }}
+                />
+                <h4 className="fw-bold mt-2 text-danger">AREWA VISA ACADEMY</h4>
+                <p className="small text-muted mb-0">
+                  Official Admission Receipt
+                </p>
+              </div>
+              <div className="text-end">
+                <h6 className="fw-bold mb-1">
+                  ID: {applicationData.admissionID || "AVA-XXXXX"}
+                </h6>
+                <p className="small text-muted">
+                  {new Date().toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+
+            <div className="row g-4">
+              {/* Student Photo */}
+              <div className="col-md-3 text-center">
+                <div className="border p-1 rounded-3 bg-light shadow-sm">
+                  <img
+                    src={photoPreview}
+                    alt="Student"
+                    className="img-fluid rounded-2"
+                    style={{
+                      width: "150px",
+                      height: "180px",
+                      objectFit: "cover",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Details Table */}
+              <div className="col-md-6">
+                <table className="table table-sm table-borderless">
+                  <tbody>
+                    <tr>
+                      <td className="fw-bold text-muted small">NAME:</td>
+                      <td className="fw-bold">
+                        {applicationData.name.toUpperCase()}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="fw-bold text-muted small">COURSE:</td>
+                      <td className="fw-bold text-danger">
+                        {applicationData.selectedCourseTitle}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="fw-bold text-muted small">EMAIL:</td>
+                      <td>{applicationData.email}</td>
+                    </tr>
+                    <tr>
+                      <td className="fw-bold text-muted small">NIN:</td>
+                      <td>{applicationData.nin}</td>
+                    </tr>
+                    <tr>
+                      <td className="fw-bold text-muted small">STATUS:</td>
+                      <td>
+                        <span className="badge bg-success">PAID - ₦5,000</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* QR Code for Verification */}
+              <div className="col-md-3 text-center d-flex flex-column align-items-center justify-content-center border-start">
+                <QRCodeSVG
+                  value={`https://arewavisa.com/verify/${applicationData.admissionID}`}
+                  size={100}
+                  level={"H"}
+                  includeMargin={true}
+                />
+                <p className="x-small text-muted mt-2 fw-bold">
+                  SCAN TO VERIFY
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 pt-3 border-top text-center">
+              <p className="small text-muted italic">
+                This is an electronically generated receipt. No signature
+                required.
+              </p>
+              <button
+                onClick={() => window.print()}
+                className="btn btn-dark d-print-none px-4 rounded-pill mt-3 shadow"
+              >
+                Download / Print Receipt
+              </button>
+            </div>
           </div>
         )}
       </div>
