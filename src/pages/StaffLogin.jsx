@@ -22,166 +22,270 @@ const StaffLogin = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     if (loading) return;
-
     setLoading(true);
     setError("");
 
     try {
-      // 1. Arewa Institutional Email Formatting
-      const cleanEmail = email.trim().toLowerCase();
-
-      // 2. Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        cleanEmail,
+        email.trim().toLowerCase(),
         password,
       );
       const user = userCredential.user;
+      const userDoc = await getDoc(doc(db, "users", user.uid));
 
-      // 3. Firestore Verification
-      const userRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userRef);
-
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        const userRole = userData.role;
-
-        const authorizedStaff = [
+      if (
+        userDoc.exists() &&
+        [
           "rector",
           "super-admin",
           "admin",
-          "supervisor",
-          "AdminContentManager",
-          "instructor",
-          "staff",
           "admission-officer",
-        ];
-
-        if (!authorizedStaff.includes(userRole)) {
-          await signOut(auth);
-          setError("ACCESS_DENIED: Wannan portal na ma'aikata ne kawai.");
-          setLoading(false);
-          return;
-        }
-
-        if (userData.status === "suspended" || userData.status === "inactive") {
-          await signOut(auth);
-          setError("ACCOUNT_REVOKED: An kulle wannan asusun na ma'aikaci.");
-          setLoading(false);
-          return;
-        }
-
-        // Redirection based on Arewa hierarchy
-        if (["rector", "super-admin", "admin"].includes(userRole)) {
+          "staff",
+        ].includes(userDoc.data().role)
+      ) {
+        if (userDoc.data().status === "active") {
           navigate("/admin", { replace: true });
         } else {
-          navigate("/staff-dashboard", { replace: true });
+          await signOut(auth);
+          setError("Asusunka ba ya aiki (Inactive).");
         }
       } else {
         await signOut(auth);
-        setError("DATABASE_ERROR: Ba'a sami bayanan ma'aikaci ba.");
+        setError("Ba ka da ikon shiga wannan portal din.");
       }
     } catch (err) {
-      console.error("Login Error:", err.code);
-      setError("AUTHENTICATION_FAILED: Imel ko Security Key ba daidai ba.");
+      setError("Imel ko Security Key ba daidai ba.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] px-4 py-10 font-sans relative overflow-hidden">
-      {/* AREWA THEMED BACKGROUND ELEMENTS */}
-      <div className="absolute -top-24 -left-24 w-96 h-96 bg-red-600/20 blur-[150px] rounded-full"></div>
-      <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-emerald-600/10 blur-[150px] rounded-full"></div>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#0a0a0a",
+        padding: "20px",
+        fontFamily: "sans-serif",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Background Glow */}
+      <div
+        style={{
+          position: "absolute",
+          top: "-10%",
+          left: "-10%",
+          width: "300px",
+          height: "300px",
+          backgroundColor: "rgba(220, 38, 38, 0.15)",
+          filter: "blur(100px)",
+          borderRadius: "50%",
+        }}
+      ></div>
 
-      {/* CLOSE BUTTON */}
-      <button
-        type="button"
-        onClick={() => navigate("/")}
-        className="absolute top-8 right-8 p-3 text-slate-500 hover:text-white hover:bg-white/10 rounded-full transition-all duration-300 z-50 border border-white/10"
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "420px",
+          backgroundColor: "#141414",
+          borderRadius: "30px",
+          border: "1px solid rgba(255,255,255,0.05)",
+          padding: "40px",
+          position: "relative",
+          zIndex: 10,
+          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+        }}
       >
-        <X size={24} />
-      </button>
+        <button
+          onClick={() => navigate("/")}
+          style={{
+            position: "absolute",
+            top: "20px",
+            right: "20px",
+            background: "none",
+            border: "none",
+            color: "#666",
+            cursor: "pointer",
+          }}
+        >
+          <X size={24} />
+        </button>
 
-      <div className="max-w-[450px] w-full relative z-10">
-        <div className="bg-[#141414] border border-white/5 p-8 md:p-12 rounded-[3rem] shadow-2xl relative overflow-hidden">
-          {/* TOP DECORATION */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 via-emerald-600 to-red-600"></div>
-
-          <div className="flex justify-center mb-8">
-            <div className="p-6 bg-gradient-to-br from-red-600 to-red-800 text-white rounded-[2.5rem] shadow-lg shadow-red-900/40">
-              <ShieldCheck size={45} strokeWidth={2.5} />
-            </div>
+        <div style={{ textAlign: "center", marginBottom: "30px" }}>
+          <div
+            style={{
+              width: "70px",
+              height: "70px",
+              backgroundColor: "#dc2626",
+              borderRadius: "20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 20px",
+              boxShadow: "0 10px 20px rgba(220, 38, 38, 0.3)",
+            }}
+          >
+            <ShieldCheck size={35} color="white" />
           </div>
-
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic">
-              Staff <span className="text-red-600">Command</span>
-            </h2>
-            <div className="flex items-center justify-center gap-2 mt-2">
-              <span className="h-[1px] w-8 bg-emerald-600"></span>
-              <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.4em]">
-                Arewa Visa Academy
-              </p>
-              <span className="h-[1px] w-8 bg-emerald-600"></span>
-            </div>
-          </div>
-
-          {error && (
-            <div className="mb-8 p-4 bg-red-950/30 border border-red-500/50 text-red-400 text-[11px] font-bold flex items-center gap-3 rounded-2xl uppercase animate-pulse">
-              <ShieldAlert size={18} className="shrink-0" /> {error}
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase ml-4 text-slate-400 tracking-widest flex items-center gap-2">
-                <Mail size={12} className="text-red-600" /> Institutional Email
-              </label>
-              <input
-                type="email"
-                placeholder="staff@arewavisa.com"
-                className="w-full p-5 bg-white/5 border border-white/10 rounded-3xl outline-none focus:border-red-600 focus:bg-white/10 transition-all text-white font-bold text-sm shadow-inner"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase ml-4 text-slate-400 tracking-widest flex items-center gap-2">
-                <LockKeyhole size={12} className="text-red-600" /> Security Key
-              </label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                className="w-full p-5 bg-white/5 border border-white/10 rounded-3xl outline-none focus:border-red-600 focus:bg-white/10 transition-all text-white font-bold text-sm shadow-inner"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-5 bg-red-600 text-white rounded-3xl font-black text-xs uppercase flex items-center justify-center gap-3 hover:bg-red-700 active:scale-[0.98] transition-all shadow-xl shadow-red-900/20 disabled:opacity-50 mt-8 tracking-[0.3em]"
-            >
-              {loading ? (
-                <Loader2 className="animate-spin" size={20} />
-              ) : (
-                "Authorize Access"
-              )}
-            </button>
-          </form>
-        </div>
-
-        <div className="mt-10 text-center">
-          <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.5em]">
-            &copy; 2026 Arewa Visa Academy | Admin Security
+          <h2
+            style={{
+              color: "white",
+              fontSize: "24px",
+              fontWeight: "900",
+              textTransform: "uppercase",
+              margin: "0",
+              letterSpacing: "-1px",
+            }}
+          >
+            Staff <span style={{ color: "#dc2626" }}>Command</span>
+          </h2>
+          <p
+            style={{
+              color: "#059669",
+              fontSize: "10px",
+              fontWeight: "bold",
+              textTransform: "uppercase",
+              letterSpacing: "3px",
+              marginTop: "5px",
+            }}
+          >
+            Arewa Visa Academy
           </p>
         </div>
+
+        {error && (
+          <div
+            style={{
+              backgroundColor: "rgba(220, 38, 38, 0.1)",
+              border: "1px solid #dc2626",
+              color: "#f87171",
+              padding: "12px",
+              borderRadius: "12px",
+              fontSize: "11px",
+              marginBottom: "20px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+            }}
+          >
+            <ShieldAlert size={16} /> {error}
+          </div>
+        )}
+
+        <form
+          onSubmit={handleLogin}
+          style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+        >
+          <div>
+            <label
+              style={{
+                color: "#94a3b8",
+                fontSize: "10px",
+                fontWeight: "900",
+                textTransform: "uppercase",
+                marginLeft: "5px",
+                marginBottom: "8px",
+                display: "block",
+              }}
+            >
+              Institutional Email
+            </label>
+            <input
+              type="email"
+              placeholder="staff@arewavisa.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "15px",
+                backgroundColor: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "15px",
+                color: "white",
+                outline: "none",
+              }}
+            />
+          </div>
+
+          <div>
+            <label
+              style={{
+                color: "#94a3b8",
+                fontSize: "10px",
+                fontWeight: "900",
+                textTransform: "uppercase",
+                marginLeft: "5px",
+                marginBottom: "8px",
+                display: "block",
+              }}
+            >
+              Security Key
+            </label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "15px",
+                backgroundColor: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "15px",
+                color: "white",
+                outline: "none",
+              }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: "100%",
+              padding: "16px",
+              backgroundColor: "#dc2626",
+              color: "white",
+              border: "none",
+              borderRadius: "15px",
+              fontWeight: "900",
+              textTransform: "uppercase",
+              fontSize: "12px",
+              letterSpacing: "2px",
+              cursor: "pointer",
+              marginTop: "10px",
+              opacity: loading ? 0.5 : 1,
+            }}
+          >
+            {loading ? (
+              <Loader2 className="animate-spin" style={{ margin: "0 auto" }} />
+            ) : (
+              "Authorize Access"
+            )}
+          </button>
+        </form>
+
+        <p
+          style={{
+            textAlign: "center",
+            color: "#475569",
+            fontSize: "9px",
+            marginTop: "30px",
+            fontWeight: "bold",
+            textTransform: "uppercase",
+            letterSpacing: "2px",
+          }}
+        >
+          © 2026 Admin Security Hub
+        </p>
       </div>
     </div>
   );

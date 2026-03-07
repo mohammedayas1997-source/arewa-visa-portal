@@ -32,11 +32,9 @@ const StudentLogin = () => {
     }
     try {
       await sendPasswordResetEmail(auth, email.trim().toLowerCase());
-      alert(
-        "RESET DISPATCHED: Check your inbox for the password recovery link.",
-      );
+      alert("RESET DISPATCHED: Check your inbox for recovery link.");
     } catch (error) {
-      alert("SYSTEM ERROR: Could not send reset email. Verify your address.");
+      alert("SYSTEM ERROR: Could not send reset email.");
     }
   };
 
@@ -48,7 +46,6 @@ const StudentLogin = () => {
 
     try {
       const cleanEmail = email.trim().toLowerCase();
-
       const userCredential = await signInWithEmailAndPassword(
         auth,
         cleanEmail,
@@ -56,135 +53,324 @@ const StudentLogin = () => {
       );
       const user = userCredential.user;
 
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
+      const userDoc = await getDoc(doc(db, "users", user.uid));
 
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
         if (userData.role !== "student") {
           await signOut(auth);
           setError("RESTRICTED: Wannan portal na ɗalibai ne kawai.");
           setLoading(false);
           return;
         }
-
         if (userData.status === "suspended" || userData.status === "inactive") {
           await signOut(auth);
-          setError("ACCOUNT INACTIVE: An dakatar da asusunka na ɗalibi.");
+          setError("ACCOUNT INACTIVE: An dakatar da asusunka.");
           setLoading(false);
           return;
         }
-
         navigate("/student-portal");
       } else {
         await signOut(auth);
-        setError("ACCOUNT ERROR: Ba'a sami bayanan ɗalibi a database ba.");
+        setError("DATABASE ERROR: Ba'a sami profile dinka ba.");
       }
     } catch (error) {
-      setError("AUTHENTICATION ERROR: Imel ko kalmar sirri ba daidai ba.");
+      setError("AUTHENTICATION ERROR: Email ko Password ba daidai ba.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] px-4 py-10 font-sans relative overflow-hidden">
-      {/* AREWA THEME BACKGROUND ELEMENTS */}
-      <div className="absolute -top-24 -right-24 w-96 h-96 bg-red-600/10 blur-[150px] rounded-full"></div>
-      <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-emerald-600/5 blur-[150px] rounded-full"></div>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#0a0a0a",
+        padding: "20px",
+        fontFamily: "sans-serif",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Background Decorative Glow */}
+      <div
+        style={{
+          position: "absolute",
+          top: "-10%",
+          right: "-10%",
+          width: "400px",
+          height: "400px",
+          backgroundColor: "rgba(220, 38, 38, 0.1)",
+          filter: "blur(120px)",
+          borderRadius: "50%",
+        }}
+      ></div>
 
-      {/* CLOSE BUTTON */}
-      <button
-        type="button"
-        onClick={() => navigate("/")}
-        className="absolute top-8 right-8 p-3 text-slate-500 hover:text-white hover:bg-white/10 rounded-full transition-all duration-300 z-50 border border-white/5"
+      {/* Main Login Card */}
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "440px",
+          backgroundColor: "#141414",
+          borderRadius: "40px",
+          border: "1px solid rgba(255,255,255,0.05)",
+          padding: "40px",
+          position: "relative",
+          zIndex: 10,
+          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+        }}
       >
-        <X size={24} strokeWidth={2.5} />
-      </button>
+        {/* Accent Top Line */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "4px",
+            background: "linear-gradient(to right, #dc2626, #7f1d1d)",
+          }}
+        ></div>
 
-      <div className="max-w-[440px] w-full relative z-10 animate__animated animate__fadeIn">
-        <div className="bg-[#141414] border border-white/5 p-8 md:p-12 rounded-[3.5rem] shadow-2xl relative overflow-hidden">
-          {/* ACCENT LINE */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-red-900"></div>
+        {/* Close Button */}
+        <button
+          onClick={() => navigate("/")}
+          style={{
+            position: "absolute",
+            top: "25px",
+            right: "25px",
+            background: "none",
+            border: "none",
+            color: "#666",
+            cursor: "pointer",
+          }}
+        >
+          <X size={24} />
+        </button>
 
-          <div className="text-center mb-10">
-            <div className="w-20 h-20 bg-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-red-900/40">
-              <BookOpen className="text-white" size={36} />
-            </div>
-            <h2 className="text-3xl md:text-4xl font-black text-white tracking-tighter uppercase italic leading-tight">
-              Student <span className="text-red-600">Portal</span>
-            </h2>
-            <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.4em] mt-4 flex items-center justify-center gap-2">
-              Arewa Visa Academy
-            </p>
+        <div style={{ textAlign: "center", marginBottom: "40px" }}>
+          <div
+            style={{
+              width: "80px",
+              height: "80px",
+              backgroundColor: "#dc2626",
+              borderRadius: "24px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 20px",
+              boxShadow: "0 15px 30px rgba(220, 38, 38, 0.3)",
+            }}
+          >
+            <BookOpen size={40} color="white" />
           </div>
+          <h2
+            style={{
+              color: "white",
+              fontSize: "28px",
+              fontWeight: "900",
+              textTransform: "uppercase",
+              margin: "0",
+              letterSpacing: "-1px",
+            }}
+          >
+            Student <span style={{ color: "#dc2626" }}>Portal</span>
+          </h2>
+          <p
+            style={{
+              color: "#475569",
+              fontSize: "10px",
+              fontWeight: "black",
+              textTransform: "uppercase",
+              letterSpacing: "4px",
+              marginTop: "10px",
+            }}
+          >
+            Arewa Visa Academy
+          </p>
+        </div>
 
-          {error && (
-            <div className="mb-8 p-4 bg-red-950/20 border border-red-500/30 text-red-400 text-[11px] font-bold flex items-center gap-3 rounded-2xl uppercase italic">
-              <X size={16} className="shrink-0" /> {error}
-            </div>
-          )}
+        {error && (
+          <div
+            style={{
+              backgroundColor: "rgba(220, 38, 38, 0.1)",
+              border: "1px solid rgba(220, 38, 38, 0.3)",
+              color: "#f87171",
+              padding: "15px",
+              borderRadius: "18px",
+              fontSize: "11px",
+              marginBottom: "25px",
+              fontWeight: "bold",
+            }}
+          >
+            {error}
+          </div>
+        )}
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
-              <label className="block ml-4 text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                <Mail size={12} className="text-red-600" /> Student Email
-              </label>
-              <input
-                type="email"
-                placeholder="e.g. dalibi@arewavisa.com"
-                required
-                className="w-full px-6 py-5 bg-white/5 border border-white/5 rounded-3xl outline-none focus:border-red-600 focus:bg-white/10 transition-all font-medium text-sm text-white shadow-inner"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center px-4">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                  <LockKeyhole size={12} className="text-red-600" /> Password
-                </label>
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  className="text-[9px] font-black text-red-600 uppercase tracking-widest hover:underline flex items-center gap-1"
-                >
-                  <KeyRound size={12} /> Recovery
-                </button>
-              </div>
-              <input
-                type="password"
-                placeholder="••••••••"
-                required
-                className="w-full px-6 py-5 bg-white/5 border border-white/5 rounded-3xl outline-none focus:border-red-600 focus:bg-white/10 transition-all font-medium text-sm text-white shadow-inner"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-6 bg-red-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] flex items-center justify-center gap-3 hover:bg-red-700 transition-all shadow-xl shadow-red-900/20 disabled:opacity-50 active:scale-[0.97] mt-8"
+        <form
+          onSubmit={handleLogin}
+          style={{ display: "flex", flexDirection: "column", gap: "25px" }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <label
+              style={{
+                color: "#64748b",
+                fontSize: "10px",
+                fontWeight: "900",
+                textTransform: "uppercase",
+                marginLeft: "15px",
+                letterSpacing: "1px",
+              }}
             >
-              {loading ? (
-                <Loader2 className="animate-spin text-white" />
-              ) : (
-                <>
-                  Authorize Login <ArrowRight size={18} />
-                </>
-              )}
-            </button>
-          </form>
-
-          <div className="mt-10 text-center border-t border-white/5 pt-8">
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center justify-center gap-2">
-              <UserCheck size={14} className="text-red-500" /> Secure SSL
-              Connection
-            </p>
+              <Mail
+                size={12}
+                style={{
+                  marginRight: "5px",
+                  verticalAlign: "middle",
+                  color: "#dc2626",
+                }}
+              />{" "}
+              Email Address
+            </label>
+            <input
+              type="email"
+              placeholder="dalibi@arewavisa.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "18px 25px",
+                backgroundColor: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: "20px",
+                color: "white",
+                outline: "none",
+                fontSize: "14px",
+              }}
+            />
           </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "0 15px",
+              }}
+            >
+              <label
+                style={{
+                  color: "#64748b",
+                  fontSize: "10px",
+                  fontWeight: "900",
+                  textTransform: "uppercase",
+                  letterSpacing: "1px",
+                }}
+              >
+                <LockKeyhole
+                  size={12}
+                  style={{
+                    marginRight: "5px",
+                    verticalAlign: "middle",
+                    color: "#dc2626",
+                  }}
+                />{" "}
+                Password
+              </label>
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#dc2626",
+                  fontSize: "9px",
+                  fontWeight: "900",
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                }}
+              >
+                Recovery
+              </button>
+            </div>
+            <input
+              type="password"
+              placeholder="••••••••"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "18px 25px",
+                backgroundColor: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: "20px",
+                color: "white",
+                outline: "none",
+                fontSize: "14px",
+              }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: "100%",
+              padding: "20px",
+              backgroundColor: "#dc2626",
+              color: "white",
+              border: "none",
+              borderRadius: "25px",
+              fontWeight: "900",
+              textTransform: "uppercase",
+              fontSize: "13px",
+              letterSpacing: "3px",
+              cursor: "pointer",
+              marginTop: "15px",
+              transition: "0.3s",
+              opacity: loading ? 0.6 : 1,
+            }}
+          >
+            {loading ? (
+              <Loader2 className="animate-spin" style={{ margin: "0 auto" }} />
+            ) : (
+              "Authorize Access"
+            )}
+          </button>
+        </form>
+
+        <div
+          style={{
+            marginTop: "35px",
+            textAlign: "center",
+            borderTop: "1px solid rgba(255,255,255,0.05)",
+            paddingTop: "25px",
+          }}
+        >
+          <p
+            style={{
+              color: "#334155",
+              fontSize: "10px",
+              fontWeight: "900",
+              textTransform: "uppercase",
+              letterSpacing: "2px",
+            }}
+          >
+            <UserCheck
+              size={14}
+              style={{
+                marginRight: "8px",
+                verticalAlign: "middle",
+                color: "#dc2626",
+              }}
+            />{" "}
+            Secure Student Session
+          </p>
         </div>
       </div>
     </div>
