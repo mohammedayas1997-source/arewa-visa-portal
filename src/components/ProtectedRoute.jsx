@@ -21,22 +21,22 @@ const ProtectedRoute = ({ children, requiredRole }) => {
           if (userDoc.exists()) {
             const userData = userDoc.data();
 
-            // Tabbatar idan account din a raye yake
-            if (
-              userData.status === "suspended" ||
-              userData.status === "inactive"
-            ) {
+            // SMART DETECTION: Check for 'role' or 'Role' and 'status' or 'Status'
+            const userRole = userData.role || userData.Role;
+            const userStatus = userData.status || userData.Status || "active";
+
+            if (userStatus === "suspended" || userStatus === "inactive") {
               await signOut(auth);
               setUser(null);
               setRole(null);
               setStatus("suspended");
             } else {
-              setRole(userData.role);
-              setStatus(userData.status || "active");
+              setRole(userRole);
+              setStatus(userStatus);
               setUser(currentUser);
             }
           } else {
-            // Idan babu shi a Firestore, to bashi da role
+            // User authenticated but no profile found in Firestore
             setUser(currentUser);
             setRole(null);
           }
@@ -54,18 +54,42 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     return () => unsubscribe();
   }, []);
 
-  // 1. LOADING SCREEN (AREWA THEMED)
+  // 1. LOADING SCREEN
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-        <div className="flex flex-col items-center gap-6">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-red-600/20 border-t-red-600 rounded-full animate-spin"></div>
-            <div className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-b-emerald-600 rounded-full animate-reverse-spin"></div>
-          </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-500 animate-pulse">
-            Verifying <span className="text-red-600">Arewa</span> Security...
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#0a0a0a",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          <div
+            style={{
+              width: "50px",
+              height: "50px",
+              border: "4px solid rgba(220, 38, 38, 0.2)",
+              borderTopColor: "#dc2626",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+              margin: "0 auto 20px",
+            }}
+          ></div>
+          <p
+            style={{
+              color: "#475569",
+              fontSize: "10px",
+              fontWeight: "900",
+              textTransform: "uppercase",
+              letterSpacing: "3px",
+            }}
+          >
+            Verifying <span style={{ color: "#dc2626" }}>Security</span>...
           </p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </div>
     );
@@ -80,14 +104,12 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
   // 3. UNAUTHENTICATED REDIRECTION
   if (!user) {
-    const isAuthorityRoute =
-      location.pathname.includes("admin") ||
-      location.pathname.includes("super") ||
-      location.pathname.includes("supervisor") ||
-      location.pathname.includes("rector") ||
-      location.pathname.includes("staff");
+    // Determine if the user was trying to access a staff area
+    const isStaffPath = ["/admin", "/super", "/rector", "/staff"].some((path) =>
+      location.pathname.includes(path),
+    );
+    const loginPath = isStaffPath ? "/admin-gateway" : "/login";
 
-    const loginPath = isAuthorityRoute ? "/admin-gateway" : "/login";
     return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
@@ -99,13 +121,11 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     const isAdmissionOfficer = role === "admission-officer";
     const isStaff = role === "staff" || role === "instructor";
 
-    // Ikon shiga (Access Logic)
     let hasAccess = false;
 
     if (isSuperAdmin || isRector) {
-      hasAccess = true; // Wadannan suna shiga ko ina
+      hasAccess = true;
     } else if (requiredRole === "admin") {
-      // Idan ana neman admin, super admin/rector/admin/admission officer duk zasu iya shiga
       hasAccess = isAdmin || isAdmissionOfficer;
     } else if (requiredRole === "student") {
       hasAccess = role === "student";
@@ -114,14 +134,12 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     }
 
     if (!hasAccess) {
-      // Dynamic Redirection idan baka da dama
+      // Redirect based on the role they actually have
       let redirectPath = "/login";
-
       if (role === "student") redirectPath = "/student-portal";
       else if (isSuperAdmin) redirectPath = "/super-admin";
       else if (isRector) redirectPath = "/rector";
-      else if (isAdmissionOfficer) redirectPath = "/admin";
-      else if (isAdmin) redirectPath = "/admin-dashboard";
+      else if (isAdmissionOfficer || isAdmin) redirectPath = "/admin";
       else if (isStaff) redirectPath = "/staff-dashboard";
 
       return <Navigate to={redirectPath} replace />;

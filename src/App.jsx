@@ -37,8 +37,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AcademicExam from "./components/AcademicExam";
 import StaffLogin from "./pages/StaffLogin";
 // GYARA NA KARSHE: Tabbatar sunan fayil din ya dace da folder pages
-import AdmissionOfficerDashboard from "./src/pages/AdmissionOfficerDashboard.jsx";
-import RectorDashboard from "./src/pages/RectorDashboard.jsx";
+import AdmissionOfficerDashboard from "./pages/AdmissionOfficerDashboard.jsx";
+import RectorDashboard from "./pages/RectorDashboard.jsx";
 
 import "./App.css";
 
@@ -124,16 +124,9 @@ function App() {
           <Route path="/login" element={<StudentLogin />} />
           <Route path="/student-login" element={<StudentLogin />} />
           <Route path="/setup-ava-users" element={<Register />} />
+
           {/* ADMIN GATEWAY */}
           <Route path="/admin-gateway" element={<StaffLogin />} />
-          <Route
-            path="/rector-dashboard"
-            element={
-              <ProtectedRoute requiredRole="rector">
-                <RectorDashboard />
-              </ProtectedRoute>
-            }
-          />
 
           {/* STUDENT PROTECTED ROUTES */}
           <Route
@@ -194,6 +187,14 @@ function App() {
           />
 
           {/* STAFF & EXECUTIVE ROUTES (AVA OFFICIAL) */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdmissionOfficerDashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/admin-dashboard"
             element={

@@ -19,22 +19,22 @@ const StaffLogin = () => {
     setError("");
 
     try {
-      // 1. Authenticate with Firebase Auth
+      console.log("Attempting Auth for:", email);
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email.trim().toLowerCase(),
         password,
       );
       const user = userCredential.user;
+      console.log("Auth Successful. UID:", user.uid);
 
-      // 2. Fetch User Profile from Firestore
       const userRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userRef);
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
+        console.log("Database Profile Found:", userData);
 
-        // IMPORTANT: We check for both 'role' and 'Role' to be safe
         const userRole = userData.role || userData.Role;
         const userStatus = userData.status || userData.Status;
 
@@ -51,26 +51,21 @@ const StaffLogin = () => {
             navigate("/admin", { replace: true });
           } else {
             await signOut(auth);
-            setError("ACCESS DENIED: Your account is currently inactive.");
+            setError("ACCESS DENIED: Account is inactive.");
           }
         } else {
           await signOut(auth);
-          setError("UNAUTHORIZED: Access restricted to staff only.");
+          setError("UNAUTHORIZED: You do not have staff permissions.");
         }
       } else {
         await signOut(auth);
-        setError("DATABASE ERROR: Staff profile not found. Contact Admin.");
+        console.error("Critical: No Firestore Doc found for UID", user.uid);
+        setError("DATABASE ERROR: Profile not found. Check Firestore UID.");
       }
     } catch (err) {
-      console.error("Login Error Code:", err.code);
-      // Detailed error feedback
-      if (
-        err.code === "auth/invalid-credential" ||
-        err.code === "auth/wrong-password"
-      ) {
-        setError("AUTH FAILED: Incorrect Email or Security Key.");
-      } else if (err.code === "auth/user-not-found") {
-        setError("AUTH FAILED: No user found with this email.");
+      console.error("Firebase Error Code:", err.code);
+      if (err.code === "auth/invalid-credential") {
+        setError("AUTH FAILED: Incorrect Email or Password.");
       } else {
         setError("SYSTEM ERROR: " + err.message);
       }
@@ -156,7 +151,6 @@ const StaffLogin = () => {
               fontWeight: "900",
               textTransform: "uppercase",
               margin: "0",
-              letterSpacing: "-1px",
             }}
           >
             Staff <span style={{ color: "#dc2626" }}>Command</span>
@@ -185,12 +179,9 @@ const StaffLogin = () => {
               borderRadius: "12px",
               fontSize: "11px",
               marginBottom: "20px",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
             }}
           >
-            <ShieldAlert size={16} /> {error}
+            {error}
           </div>
         )}
 
@@ -198,70 +189,38 @@ const StaffLogin = () => {
           onSubmit={handleLogin}
           style={{ display: "flex", flexDirection: "column", gap: "20px" }}
         >
-          <div>
-            <label
-              style={{
-                color: "#94a3b8",
-                fontSize: "10px",
-                fontWeight: "900",
-                textTransform: "uppercase",
-                marginLeft: "5px",
-                marginBottom: "8px",
-                display: "block",
-              }}
-            >
-              Institutional Email
-            </label>
-            <input
-              type="email"
-              placeholder="staff@arewavisa.com"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "15px",
-                backgroundColor: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "15px",
-                color: "white",
-                outline: "none",
-              }}
-            />
-          </div>
-
-          <div>
-            <label
-              style={{
-                color: "#94a3b8",
-                fontSize: "10px",
-                fontWeight: "900",
-                textTransform: "uppercase",
-                marginLeft: "5px",
-                marginBottom: "8px",
-                display: "block",
-              }}
-            >
-              Security Key
-            </label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "15px",
-                backgroundColor: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "15px",
-                color: "white",
-                outline: "none",
-              }}
-            />
-          </div>
-
+          <input
+            type="email"
+            placeholder="Institutional Email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "15px",
+              backgroundColor: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "15px",
+              color: "white",
+              outline: "none",
+            }}
+          />
+          <input
+            type="password"
+            placeholder="Security Key"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "15px",
+              backgroundColor: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "15px",
+              color: "white",
+              outline: "none",
+            }}
+          />
           <button
             type="submit"
             disabled={loading}
@@ -274,9 +233,7 @@ const StaffLogin = () => {
               borderRadius: "15px",
               fontWeight: "900",
               textTransform: "uppercase",
-              fontSize: "12px",
               cursor: "pointer",
-              marginTop: "10px",
               opacity: loading ? 0.5 : 1,
             }}
           >
