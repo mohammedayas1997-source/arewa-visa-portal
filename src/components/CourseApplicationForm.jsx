@@ -19,6 +19,8 @@ import {
   User,
   MapPin,
   FileText,
+  Printer,
+  Download,
 } from "lucide-react";
 
 const CourseApplicationForm = ({
@@ -33,6 +35,7 @@ const CourseApplicationForm = ({
   const [photoPreview, setPhotoPreview] = useState(null);
   const [isPortalOpen, setIsPortalOpen] = useState(true);
   const [loadingPortal, setLoadingPortal] = useState(true);
+  const [generatedID, setGeneratedID] = useState("");
 
   const [applicationData, setApplicationData] = useState({
     name: "",
@@ -56,13 +59,10 @@ const CourseApplicationForm = ({
     cvFile: null,
   });
 
-  // --- FIXED: STATUS CHECK WITH FALLBACK ---
+  // --- PORTAL STATUS CHECK ---
   useEffect(() => {
     if (!showCourseForm) return;
-
     const portalRef = ref(db, "settings/coursePortalStatus");
-
-    // Safety Timeout: If Firebase takes too long, stop loading and default to open
     const timeoutFallback = setTimeout(() => {
       if (loadingPortal) {
         setLoadingPortal(false);
@@ -80,7 +80,6 @@ const CourseApplicationForm = ({
       },
       (error) => {
         clearTimeout(timeoutFallback);
-        console.error(error);
         setIsPortalOpen(true);
         setLoadingPortal(false);
       },
@@ -103,7 +102,7 @@ const CourseApplicationForm = ({
     const file = e.target.files[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert("The image is too large! Please ensure it is not more than 2MB.");
+        alert("The image is too large! Max 2MB.");
         return;
       }
       const reader = new FileReader();
@@ -123,12 +122,11 @@ const CourseApplicationForm = ({
     setApplicationData((prev) => ({ ...prev, [name]: files[0] }));
   };
 
-  const handleSubmitApplication = async (formData) => {
+  const handleSubmitApplication = async (formData, admissionID) => {
     try {
       const timestamp = Date.now();
       const applicantName = formData.name.replace(/\s+/g, "_");
 
-      // Only upload if the file exists, otherwise return null
       const [photoUrl, passportUrl, resumeUrl, cvUrl] = await Promise.all([
         formData.photoFile
           ? uploadFile(
@@ -166,7 +164,7 @@ const CourseApplicationForm = ({
         status: "Pending Review",
         paymentStatus: "Paid",
         createdAt: new Date().toISOString(),
-        admissionID: `AVA-${Math.floor(10000 + Math.random() * 90000)}`,
+        admissionID: admissionID,
       });
     } catch (error) {
       console.error("Submission Error:", error);
@@ -176,33 +174,24 @@ const CourseApplicationForm = ({
 
   const handlePaymentSuccess = async (reference) => {
     setIsSubmitting(true);
+    const admissionID = `AVA-${Math.floor(10000 + Math.random() * 90000)}`;
+    setGeneratedID(admissionID);
 
     const updatedData = {
       ...applicationData,
       amountPaid: 5000,
       paymentStatus: "Completed",
-      paymentRef: reference.reference, // Adana reference din biya
+      paymentRef: reference.reference,
       type: "Course Application",
     };
 
     try {
-      // 1. Tura bayanai zuwa Firebase (Admin Dashboard)
-      await handleSubmitApplication(updatedData);
-
-      // 2. Canza screen zuwa Success
+      await handleSubmitApplication(updatedData, admissionID);
       setIsSuccess(true);
       setShowPaymentStep(false);
-
-      // 3. Trigger Receipt Download (Printing)
-      setTimeout(() => {
-        window.print();
-      }, 1500);
+      // Mun bar shi a 'isSuccess' don ya nuna Receipt
     } catch (error) {
-      console.error("Firebase Sync Error:", error);
-      alert(
-        "Payment was successful, but your data didn't sync to our dashboard. Please contact support with reference: " +
-          reference.reference,
-      );
+      alert("Sync Error. Contact support with Ref: " + reference.reference);
     } finally {
       setIsSubmitting(false);
     }
@@ -220,6 +209,18 @@ const CourseApplicationForm = ({
         display: "block",
       }}
     >
+      {/* CSS NA PRINTING - Wannan ne zai boye komai in banda Receipt */}
+      <style>
+        {`
+          @media print {
+            body * { visibility: hidden; }
+            #printable-receipt, #printable-receipt * { visibility: visible; }
+            #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; }
+            .d-print-none { display: none !important; }
+          }
+        `}
+      </style>
+
       <div
         className="card border-0 shadow-lg w-100 mx-auto"
         style={{
@@ -231,7 +232,7 @@ const CourseApplicationForm = ({
       >
         <button
           onClick={() => setShowCourseForm(false)}
-          className="position-absolute top-0 end-0 m-2 btn btn-light rounded-circle shadow-sm"
+          className="position-absolute top-0 end-0 m-2 btn btn-light rounded-circle shadow-sm d-print-none"
           style={{ zIndex: 11000 }}
         >
           <X size={20} />
@@ -244,13 +245,9 @@ const CourseApplicationForm = ({
           </div>
         ) : !isPortalOpen ? (
           <div className="text-center py-5 bg-white rounded-4 px-4">
-            <div className="bg-danger bg-opacity-10 p-4 rounded-circle d-inline-block mb-4">
-              <Lock size={60} className="text-danger" />
-            </div>
-            <h2 className="fw-bold text-dark">Portal Closed</h2>
-            <p className="text-muted mx-auto" style={{ maxWidth: "500px" }}>
-              Admission is currently closed.
-            </p>
+            <Lock size={60} className="text-danger mb-4" />
+            <h2 className="fw-bold">Portal Closed</h2>
+            <p className="text-muted">Admission is currently closed.</p>
             <button
               onClick={() => setShowCourseForm(false)}
               className="btn btn-danger px-5 py-2 rounded-pill mt-3 fw-bold"
@@ -259,21 +256,128 @@ const CourseApplicationForm = ({
             </button>
           </div>
         ) : isSuccess ? (
-          <div className="text-center py-5 bg-white rounded-4">
-            <CheckCircle size={60} className="text-success mb-4 mx-auto" />
-            <h2 className="fw-bold">Success!</h2>
-            <p>Your application and payment have been received.</p>
-            <button
-              onClick={() => {
-                setShowCourseForm(false);
-                setIsSuccess(false);
-              }}
-              className="btn btn-dark px-5 py-2 rounded-pill mt-3"
-            >
-              Close
-            </button>
+          /* --- IMPROVED RECEIPT PAGE --- */
+          <div
+            id="printable-receipt"
+            className="bg-white p-4 p-md-5 rounded-4 text-dark"
+          >
+            <div className="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4">
+              <div className="text-start">
+                <h3 className="fw-bold text-danger mb-0">AREWA VISA ACADEMY</h3>
+                <p className="small text-muted mb-0">Learning Beyond Borders</p>
+                <div className="mt-3">
+                  <span className="badge bg-success py-2 px-3 rounded-pill">
+                    OFFICIAL ADMISSION RECEIPT
+                  </span>
+                </div>
+              </div>
+              <div className="text-end">
+                <h6 className="fw-bold mb-0">Admission ID: {generatedID}</h6>
+                <p className="small text-muted mb-0">
+                  Date: {new Date().toLocaleDateString()}
+                </p>
+                <p className="small text-muted">
+                  Time: {new Date().toLocaleTimeString()}
+                </p>
+              </div>
+            </div>
+
+            <div className="row g-4 mb-4">
+              <div className="col-md-4 text-center">
+                <div className="border p-2 rounded-4 bg-light shadow-sm d-inline-block">
+                  <img
+                    src={photoPreview}
+                    alt="Student"
+                    className="rounded-3"
+                    style={{
+                      width: "160px",
+                      height: "200px",
+                      objectFit: "cover",
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="col-md-8">
+                <div className="table-responsive">
+                  <table className="table table-sm table-borderless align-middle">
+                    <tbody>
+                      <tr>
+                        <td className="text-muted small">FULL NAME:</td>
+                        <td className="fw-bold h5">
+                          {applicationData.name.toUpperCase()}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="text-muted small">COURSE:</td>
+                        <td className="fw-bold text-danger">
+                          {applicationData.selectedCourseTitle}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="text-muted small">EMAIL:</td>
+                        <td className="fw-bold">{applicationData.email}</td>
+                      </tr>
+                      <tr>
+                        <td className="text-muted small">NIN:</td>
+                        <td className="fw-bold">{applicationData.nin}</td>
+                      </tr>
+                      <tr>
+                        <td className="text-muted small">PAYMENT:</td>
+                        <td className="fw-bold text-success">
+                          SUCCESSFUL (₦5,000)
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div className="row align-items-center border-top pt-4">
+              <div className="col-md-6 text-start">
+                <QRCodeSVG
+                  value={`https://arewavisaacademy.online/verify/${generatedID}`}
+                  size={120}
+                  includeMargin={true}
+                />
+                <p className="x-small text-muted mt-2 fw-bold uppercase">
+                  Scan to Verify Authenticity
+                </p>
+              </div>
+              <div className="col-md-6 text-end">
+                <div className="p-3 bg-light rounded-4 d-inline-block text-start border shadow-sm">
+                  <p className="small mb-1 fw-bold">Instructions:</p>
+                  <ul className="x-small mb-0 ps-3">
+                    <li>Print this receipt and keep it safe.</li>
+                    <li>Wait for 24-48 hours for review.</li>
+                    <li>Contact support for any inquiries.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 text-center d-print-none">
+              <div className="d-flex gap-2 justify-content-center">
+                <button
+                  onClick={() => window.print()}
+                  className="btn btn-dark px-4 py-2 rounded-pill shadow d-flex align-items-center gap-2"
+                >
+                  <Printer size={18} /> Print / Download PDF
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCourseForm(false);
+                    setIsSuccess(false);
+                  }}
+                  className="btn btn-outline-danger px-4 py-2 rounded-pill"
+                >
+                  Close Portal
+                </button>
+              </div>
+            </div>
           </div>
         ) : !showPaymentStep ? (
+          /* --- FORM SCREEN --- */
           <div className="row g-0">
             <div className="col-md-3 bg-danger p-4 text-white text-center d-flex flex-column justify-content-center">
               {photoPreview ? (
@@ -293,7 +397,6 @@ const CourseApplicationForm = ({
               )}
               <h4 className="fw-bold text-uppercase">Course Admission</h4>
             </div>
-
             <div className="col-md-9 p-4 p-md-5 bg-white text-dark">
               <form
                 className="row g-3"
@@ -302,7 +405,6 @@ const CourseApplicationForm = ({
                   setShowPaymentStep(true);
                 }}
               >
-                {/* --- BIOGRAPHICAL DATA --- */}
                 <div className="col-12 border-bottom pb-2">
                   <h6 className="fw-bold text-danger">
                     <User size={16} className="me-2" />
@@ -357,9 +459,7 @@ const CourseApplicationForm = ({
                   />
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label small fw-bold">
-                    WhatsApp Number
-                  </label>
+                  <label className="form-label small fw-bold">WhatsApp</label>
                   <input
                     type="tel"
                     name="whatsapp"
@@ -369,8 +469,6 @@ const CourseApplicationForm = ({
                     required
                   />
                 </div>
-
-                {/* --- IDENTITY & ORIGIN --- */}
                 <div className="col-12 border-bottom pb-2 mt-4">
                   <h6 className="fw-bold text-danger">
                     <FileText size={16} className="me-2" />
@@ -390,7 +488,7 @@ const CourseApplicationForm = ({
                 </div>
                 <div className="col-md-6">
                   <label className="form-label small fw-bold">
-                    Passport Number (Optional)
+                    Passport No (Optional)
                   </label>
                   <input
                     type="text"
@@ -401,9 +499,7 @@ const CourseApplicationForm = ({
                   />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label small fw-bold">
-                    State of Origin
-                  </label>
+                  <label className="form-label small fw-bold">State</label>
                   <input
                     type="text"
                     name="state"
@@ -426,7 +522,7 @@ const CourseApplicationForm = ({
                 </div>
                 <div className="col-12">
                   <label className="form-label small fw-bold">
-                    Full Home Address
+                    Home Address
                   </label>
                   <textarea
                     name="address"
@@ -437,8 +533,6 @@ const CourseApplicationForm = ({
                     required
                   ></textarea>
                 </div>
-
-                {/* --- COURSE SELECTION --- */}
                 <div className="col-12 border-bottom pb-2 mt-4">
                   <h6 className="fw-bold text-danger">
                     <GraduationCap size={16} className="me-2" />
@@ -447,7 +541,7 @@ const CourseApplicationForm = ({
                 </div>
                 <div className="col-12">
                   <label className="form-label small fw-bold">
-                    Select Your Desired Course
+                    Select Course
                   </label>
                   <select
                     className="form-select"
@@ -456,7 +550,7 @@ const CourseApplicationForm = ({
                     onChange={handleChange}
                     required
                   >
-                    <option value="">-- Choose from 12 Courses --</option>
+                    <option value="">-- Choose Course --</option>
                     {coursesData.map((course) => (
                       <option key={course.id} value={course.title}>
                         {course.title}
@@ -464,16 +558,12 @@ const CourseApplicationForm = ({
                     ))}
                   </select>
                 </div>
-
-                {/* --- UPLOADS --- */}
                 <div className="col-12 border-bottom pb-2 mt-4">
                   <h6 className="fw-bold text-danger">
                     <MapPin size={16} className="me-2" />
-                    Required Documents
+                    Documents
                   </h6>
                 </div>
-
-                {/* Passport Photo - STILL REQUIRED */}
                 <div className="col-md-6">
                   <label className="form-label small fw-bold">
                     Passport Photo (Required)
@@ -487,11 +577,9 @@ const CourseApplicationForm = ({
                     required
                   />
                 </div>
-
-                {/* Passport Data Page - NOW OPTIONAL */}
                 <div className="col-md-6">
                   <label className="form-label small fw-bold">
-                    Passport Data Page / ID (Optional)
+                    ID Page (Optional)
                   </label>
                   <input
                     type="file"
@@ -500,8 +588,6 @@ const CourseApplicationForm = ({
                     onChange={handleFileChange}
                   />
                 </div>
-
-                {/* Resume - STILL OPTIONAL */}
                 <div className="col-md-6">
                   <label className="form-label small fw-bold">
                     Resume (Optional)
@@ -513,11 +599,9 @@ const CourseApplicationForm = ({
                     onChange={handleFileChange}
                   />
                 </div>
-
-                {/* CV / Credentials - NOW OPTIONAL */}
                 <div className="col-md-6">
                   <label className="form-label small fw-bold">
-                    Academic Credentials / CV (Optional)
+                    CV (Optional)
                   </label>
                   <input
                     type="file"
@@ -526,7 +610,6 @@ const CourseApplicationForm = ({
                     onChange={handleFileChange}
                   />
                 </div>
-
                 <div className="col-12 mt-4">
                   <button
                     type="submit"
@@ -539,10 +622,9 @@ const CourseApplicationForm = ({
             </div>
           </div>
         ) : (
+          /* --- PAYMENT SCREEN --- */
           <div className="p-4 p-md-5 text-center bg-white rounded-4 text-dark">
-            <div className="bg-light p-3 rounded-circle d-inline-block mb-3">
-              <Wallet size={45} className="text-danger" />
-            </div>
+            <Wallet size={45} className="text-danger mb-3" />
             <h3 className="fw-bold mb-1">Tuition Payment</h3>
             <p className="text-muted">
               You are applying for:{" "}
@@ -568,115 +650,6 @@ const CourseApplicationForm = ({
             >
               Back to Review Form
             </button>
-          </div>
-        )}
-        {/* --- PROFESSIONAL RECEIPT SECTION --- */}
-        {isSuccess && (
-          <div
-            id="printable-receipt"
-            className="bg-white p-4 p-md-5 rounded-4 shadow-sm mx-auto"
-            style={{ maxWidth: "800px", border: "2px solid #eee" }}
-          >
-            {/* Header with Logo */}
-            <div className="d-flex justify-content-between align-items-center border-bottom pb-4 mb-4">
-              <div>
-                <img
-                  src="/logo.png"
-                  alt="Arewa Visa Academy"
-                  style={{ height: "60px" }}
-                />
-                <h4 className="fw-bold mt-2 text-danger">AREWA VISA ACADEMY</h4>
-                <p className="small text-muted mb-0">
-                  Official Admission Receipt
-                </p>
-              </div>
-              <div className="text-end">
-                <h6 className="fw-bold mb-1">
-                  ID: {applicationData.admissionID || "AVA-XXXXX"}
-                </h6>
-                <p className="small text-muted">
-                  {new Date().toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-
-            <div className="row g-4">
-              {/* Student Photo */}
-              <div className="col-md-3 text-center">
-                <div className="border p-1 rounded-3 bg-light shadow-sm">
-                  <img
-                    src={photoPreview}
-                    alt="Student"
-                    className="img-fluid rounded-2"
-                    style={{
-                      width: "150px",
-                      height: "180px",
-                      objectFit: "cover",
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Details Table */}
-              <div className="col-md-6">
-                <table className="table table-sm table-borderless">
-                  <tbody>
-                    <tr>
-                      <td className="fw-bold text-muted small">NAME:</td>
-                      <td className="fw-bold">
-                        {applicationData.name.toUpperCase()}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="fw-bold text-muted small">COURSE:</td>
-                      <td className="fw-bold text-danger">
-                        {applicationData.selectedCourseTitle}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="fw-bold text-muted small">EMAIL:</td>
-                      <td>{applicationData.email}</td>
-                    </tr>
-                    <tr>
-                      <td className="fw-bold text-muted small">NIN:</td>
-                      <td>{applicationData.nin}</td>
-                    </tr>
-                    <tr>
-                      <td className="fw-bold text-muted small">STATUS:</td>
-                      <td>
-                        <span className="badge bg-success">PAID - ₦5,000</span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* QR Code for Verification */}
-              <div className="col-md-3 text-center d-flex flex-column align-items-center justify-content-center border-start">
-                <QRCodeSVG
-                  value={`https://arewavisa.com/verify/${applicationData.admissionID}`}
-                  size={100}
-                  level={"H"}
-                  includeMargin={true}
-                />
-                <p className="x-small text-muted mt-2 fw-bold">
-                  SCAN TO VERIFY
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 pt-3 border-top text-center">
-              <p className="small text-muted italic">
-                This is an electronically generated receipt. No signature
-                required.
-              </p>
-              <button
-                onClick={() => window.print()}
-                className="btn btn-dark d-print-none px-4 rounded-pill mt-3 shadow"
-              >
-                Download / Print Receipt
-              </button>
-            </div>
           </div>
         )}
       </div>
