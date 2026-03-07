@@ -14,13 +14,14 @@ const firebaseConfig = {
   databaseURL: "https://arewa-visa-new1-default-rtdb.firebaseio.com",
 };
 
-// Initialize Firebase
+// 1. Initialize Firebase App
 const app = initializeApp(firebaseConfig);
 
-// Export instances
+// 2. Initialize and Export Services
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const db = getFirestore(app); // Wannan na Firestore ne
+export const rtdb = getDatabase(app); // Wannan na Realtime Database ne
 export const storage = getStorage(app);
-export const rtdb = getDatabase(app);
 
+// 3. Default Export (Optional but safer)
 export default app;
