@@ -189,7 +189,6 @@ const CourseApplicationForm = ({
       await handleSubmitApplication(updatedData, admissionID);
       setIsSuccess(true);
       setShowPaymentStep(false);
-      // Mun bar shi a 'isSuccess' don ya nuna Receipt
     } catch (error) {
       alert("Sync Error. Contact support with Ref: " + reference.reference);
     } finally {
@@ -209,13 +208,12 @@ const CourseApplicationForm = ({
         display: "block",
       }}
     >
-      {/* CSS NA PRINTING - Wannan ne zai boye komai in banda Receipt */}
       <style>
         {`
           @media print {
             body * { visibility: hidden; }
             #printable-receipt, #printable-receipt * { visibility: visible; }
-            #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; }
+            #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; border: none !important; }
             .d-print-none { display: none !important; }
           }
         `}
@@ -228,10 +226,14 @@ const CourseApplicationForm = ({
           borderRadius: "20px",
           marginTop: "20px",
           marginBottom: "40px",
+          overflow: "hidden",
         }}
       >
         <button
-          onClick={() => setShowCourseForm(false)}
+          onClick={() => {
+            setShowCourseForm(false);
+            setIsSuccess(false);
+          }}
           className="position-absolute top-0 end-0 m-2 btn btn-light rounded-circle shadow-sm d-print-none"
           style={{ zIndex: 11000 }}
         >
@@ -239,13 +241,13 @@ const CourseApplicationForm = ({
         </button>
 
         {loadingPortal ? (
-          <div className="text-center py-5 bg-white rounded-4">
+          <div className="text-center py-5 bg-white">
             <Loader2 className="animate-spin mx-auto text-danger" size={40} />
             <p className="mt-2 fw-bold">Checking Portal Status...</p>
           </div>
         ) : !isPortalOpen ? (
-          <div className="text-center py-5 bg-white rounded-4 px-4">
-            <Lock size={60} className="text-danger mb-4" />
+          <div className="text-center py-5 bg-white px-4">
+            <Lock size={60} className="text-danger mb-4 mx-auto" />
             <h2 className="fw-bold">Portal Closed</h2>
             <p className="text-muted">Admission is currently closed.</p>
             <button
@@ -256,122 +258,119 @@ const CourseApplicationForm = ({
             </button>
           </div>
         ) : isSuccess ? (
-          /* --- IMPROVED RECEIPT PAGE --- */
+          /* --- THE RECEIPT PAGE --- */
           <div
             id="printable-receipt"
-            className="bg-white p-4 p-md-5 rounded-4 text-dark"
+            className="bg-white p-4 p-md-5 text-dark text-start animate__animated animate__fadeIn"
           >
-            <div className="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4">
-              <div className="text-start">
-                <h3 className="fw-bold text-danger mb-0">AREWA VISA ACADEMY</h3>
-                <p className="small text-muted mb-0">Learning Beyond Borders</p>
-                <div className="mt-3">
-                  <span className="badge bg-success py-2 px-3 rounded-pill">
-                    OFFICIAL ADMISSION RECEIPT
-                  </span>
-                </div>
+            <div className="d-flex justify-content-between align-items-center border-bottom border-3 border-danger pb-3 mb-4">
+              <div>
+                <h2 className="fw-bold text-danger mb-0">AREWA VISA ACADEMY</h2>
+                <p className="small text-muted mb-0 uppercase tracking-widest">
+                  Official Enrollment Receipt
+                </p>
               </div>
               <div className="text-end">
-                <h6 className="fw-bold mb-0">Admission ID: {generatedID}</h6>
+                <h6 className="fw-bold mb-0">ID: {generatedID}</h6>
                 <p className="small text-muted mb-0">
-                  Date: {new Date().toLocaleDateString()}
-                </p>
-                <p className="small text-muted">
-                  Time: {new Date().toLocaleTimeString()}
+                  {new Date().toLocaleDateString()}
                 </p>
               </div>
             </div>
 
             <div className="row g-4 mb-4">
-              <div className="col-md-4 text-center">
-                <div className="border p-2 rounded-4 bg-light shadow-sm d-inline-block">
+              <div className="col-md-3 text-center text-md-start">
+                <div className="border border-2 p-1 rounded-3 d-inline-block">
                   <img
                     src={photoPreview}
                     alt="Student"
-                    className="rounded-3"
                     style={{
-                      width: "160px",
-                      height: "200px",
+                      width: "140px",
+                      height: "170px",
                       objectFit: "cover",
                     }}
+                    className="rounded-2"
                   />
                 </div>
               </div>
-              <div className="col-md-8">
-                <div className="table-responsive">
-                  <table className="table table-sm table-borderless align-middle">
-                    <tbody>
-                      <tr>
-                        <td className="text-muted small">FULL NAME:</td>
-                        <td className="fw-bold h5">
-                          {applicationData.name.toUpperCase()}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="text-muted small">COURSE:</td>
-                        <td className="fw-bold text-danger">
-                          {applicationData.selectedCourseTitle}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="text-muted small">EMAIL:</td>
-                        <td className="fw-bold">{applicationData.email}</td>
-                      </tr>
-                      <tr>
-                        <td className="text-muted small">NIN:</td>
-                        <td className="fw-bold">{applicationData.nin}</td>
-                      </tr>
-                      <tr>
-                        <td className="text-muted small">PAYMENT:</td>
-                        <td className="fw-bold text-success">
-                          SUCCESSFUL (₦5,000)
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+              <div className="col-md-6">
+                <table className="table table-sm table-borderless mt-2">
+                  <tbody>
+                    <tr>
+                      <td className="text-muted small py-1">FULL NAME:</td>
+                      <td className="fw-bold py-1 uppercase">
+                        {applicationData.name}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="text-muted small py-1">COURSE:</td>
+                      <td className="fw-bold py-1 text-danger uppercase">
+                        {applicationData.selectedCourseTitle}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="text-muted small py-1">EMAIL:</td>
+                      <td className="fw-bold py-1">{applicationData.email}</td>
+                    </tr>
+                    <tr>
+                      <td className="text-muted small py-1">GENDER:</td>
+                      <td className="fw-bold py-1">{applicationData.gender}</td>
+                    </tr>
+                    <tr>
+                      <td className="text-muted small py-1">STATE:</td>
+                      <td className="fw-bold py-1">{applicationData.state}</td>
+                    </tr>
+                    <tr>
+                      <td className="text-muted small py-1">LGA:</td>
+                      <td className="fw-bold py-1">{applicationData.lga}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-            </div>
-
-            <div className="row align-items-center border-top pt-4">
-              <div className="col-md-6 text-start">
+              <div className="col-md-3 text-center d-flex flex-column align-items-center justify-content-center border-start">
                 <QRCodeSVG
-                  value={`https://arewavisaacademy.online/verify/${generatedID}`}
-                  size={120}
+                  value={`https://arewavisa.com/verify/${generatedID}`}
+                  size={110}
                   includeMargin={true}
                 />
-                <p className="x-small text-muted mt-2 fw-bold uppercase">
-                  Scan to Verify Authenticity
+                <p className="x-small text-muted mt-2 fw-bold">
+                  SCAN TO VERIFY
                 </p>
-              </div>
-              <div className="col-md-6 text-end">
-                <div className="p-3 bg-light rounded-4 d-inline-block text-start border shadow-sm">
-                  <p className="small mb-1 fw-bold">Instructions:</p>
-                  <ul className="x-small mb-0 ps-3">
-                    <li>Print this receipt and keep it safe.</li>
-                    <li>Wait for 24-48 hours for review.</li>
-                    <li>Contact support for any inquiries.</li>
-                  </ul>
-                </div>
               </div>
             </div>
 
-            <div className="mt-5 text-center d-print-none">
-              <div className="d-flex gap-2 justify-content-center">
+            <div className="alert alert-success border-0 rounded-4 py-3 mb-4">
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <p className="small mb-0 uppercase fw-bold opacity-75">
+                    Payment Status
+                  </p>
+                  <h4 className="fw-bold mb-0">SUCCESSFUL (₦5,000)</h4>
+                </div>
+                <CheckCircle size={35} />
+              </div>
+            </div>
+
+            <div className="mt-4 border-top pt-3 text-center">
+              <p className="small text-muted italic">
+                This document serves as proof of application and payment. Please
+                present this during physical screening.
+              </p>
+              <div className="d-flex gap-2 justify-content-center mt-4 d-print-none">
                 <button
                   onClick={() => window.print()}
-                  className="btn btn-dark px-4 py-2 rounded-pill shadow d-flex align-items-center gap-2"
+                  className="btn btn-danger px-4 py-2 rounded-pill fw-bold shadow-sm d-flex align-items-center gap-2"
                 >
-                  <Printer size={18} /> Print / Download PDF
+                  <Printer size={18} /> DOWNLOAD RECEIPT
                 </button>
                 <button
                   onClick={() => {
                     setShowCourseForm(false);
                     setIsSuccess(false);
                   }}
-                  className="btn btn-outline-danger px-4 py-2 rounded-pill"
+                  className="btn btn-outline-secondary px-4 py-2 rounded-pill fw-bold"
                 >
-                  Close Portal
+                  CLOSE
                 </button>
               </div>
             </div>
@@ -397,7 +396,7 @@ const CourseApplicationForm = ({
               )}
               <h4 className="fw-bold text-uppercase">Course Admission</h4>
             </div>
-            <div className="col-md-9 p-4 p-md-5 bg-white text-dark">
+            <div className="col-md-9 p-4 p-md-5 bg-white text-dark text-start">
               <form
                 className="row g-3"
                 onSubmit={(e) => {
@@ -590,7 +589,7 @@ const CourseApplicationForm = ({
                 </div>
                 <div className="col-md-6">
                   <label className="form-label small fw-bold">
-                    Resume (Optional)
+                    High Qualifications (Optional)
                   </label>
                   <input
                     type="file"
@@ -624,13 +623,13 @@ const CourseApplicationForm = ({
         ) : (
           /* --- PAYMENT SCREEN --- */
           <div className="p-4 p-md-5 text-center bg-white rounded-4 text-dark">
-            <Wallet size={45} className="text-danger mb-3" />
+            <Wallet size={45} className="text-danger mb-3 mx-auto" />
             <h3 className="fw-bold mb-1">Tuition Payment</h3>
             <p className="text-muted">
               You are applying for:{" "}
               <strong>{applicationData.selectedCourseTitle}</strong>
             </p>
-            <div className="py-3 px-4 bg-light rounded-4 mb-4 border-start border-danger border-5">
+            <div className="py-3 px-4 bg-light rounded-4 mb-4 border-start border-danger border-5 text-start">
               <span className="text-muted small d-block">
                 Admission Processing Fee
               </span>
