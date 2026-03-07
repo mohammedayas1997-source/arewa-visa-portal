@@ -7,20 +7,26 @@ import {
   MapPin,
   Phone,
   Mail,
-  FileText,
   CheckCircle,
+  Wallet,
+  Printer,
+  Loader2,
+  ShieldCheck,
 } from "lucide-react";
+import ApplyPayment from "./ApplyPayment";
+import { QRCodeSVG } from "qrcode.react";
 
 const CBIApplicationForm = ({
   showCBIForm,
   setShowCBIForm,
-  handleCBISubmit,
+  handleCBISubmit, // Wannan function din dake Home.jsx zai tura data zuwa Firebase
 }) => {
   // --- STATES ---
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showPaymentStep, setShowPaymentStep] = useState(false);
+  const [generatedID, setGeneratedID] = useState("");
 
-  // Muna amfani da wadannan states din don karanto data daga form
   const [cbiData, setCbiData] = useState({
     name: "",
     email: "",
@@ -36,29 +42,31 @@ const CBIApplicationForm = ({
     setCbiData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const onLocalSubmit = async (e) => {
-    e.preventDefault();
+  // 1. Bayan an gama biya lafiya
+  const handlePaymentSuccess = async (reference) => {
     setIsSubmitting(true);
+    const applicationID = `CBI-${Math.floor(10000 + Math.random() * 90000)}`;
+    setGeneratedID(applicationID);
+
+    const finalData = {
+      ...cbiData,
+      applicationID: applicationID,
+      paymentRef: reference.reference,
+      amountPaid: 10000,
+      status: "Processing",
+      createdAt: new Date().toISOString(),
+      type: "CBI Application",
+    };
+
     try {
-      // Wannan zai kira function din da yake cikin Home.jsx
-      await handleCBISubmit(cbiData);
+      // Tura bayanan zuwa Firebase (Admin Dashboard)
+      await handleCBISubmit(finalData);
       setIsSuccess(true);
-      // Bayan 3 seconds, mu rufe form din
-      setTimeout(() => {
-        setShowCBIForm(false);
-        setIsSuccess(false);
-        setCbiData({
-          name: "",
-          email: "",
-          whatsapp: "",
-          address: "",
-          targetCountry: "",
-          programCategory: "",
-          additionalInfo: "",
-        });
-      }, 3000);
+      setShowPaymentStep(false);
     } catch (error) {
-      alert("Submission failed. Please try again.");
+      alert(
+        "Submission failed. Contact support with Ref: " + reference.reference,
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -84,10 +92,20 @@ const CBIApplicationForm = ({
         backdropFilter: "blur(5px)",
       }}
     >
+      {/* PRINT STYLES */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #cbi-receipt, #cbi-receipt * { visibility: visible; }
+          #cbi-receipt { position: absolute; left: 0; top: 0; width: 100%; }
+          .d-print-none { display: none !important; }
+        }
+      `}</style>
+
       <div
-        className="modal-content border-0 shadow-lg bg-white"
+        className="modal-content border-0 shadow-lg bg-white overflow-hidden"
         style={{
-          maxWidth: "650px",
+          maxWidth: "700px",
           width: "100%",
           maxHeight: "90vh",
           overflowY: "auto",
@@ -95,14 +113,14 @@ const CBIApplicationForm = ({
           borderRadius: "24px",
         }}
       >
-        {/* HEADER SECTION */}
-        <div className="p-4 bg-dark text-white d-flex justify-content-between align-items-center">
+        {/* HEADER */}
+        <div className="p-4 bg-dark text-white d-flex justify-content-between align-items-center d-print-none">
           <div className="d-flex align-items-center gap-3">
             <div className="bg-warning p-2 rounded-circle">
               <Globe size={24} className="text-dark" />
             </div>
             <div>
-              <h5 className="fw-bold mb-0 text-uppercase tracking-wide">
+              <h5 className="fw-bold mb-0 text-uppercase">
                 Global Citizenship
               </h5>
               <small className="opacity-75">
@@ -112,27 +130,102 @@ const CBIApplicationForm = ({
           </div>
           <button
             onClick={() => setShowCBIForm(false)}
-            className="btn btn-link text-white p-0 shadow-none"
-            type="button"
+            className="btn btn-link text-white p-0 border-0 shadow-none"
           >
             <X size={28} />
           </button>
         </div>
 
-        {/* FORM SECTION */}
         <div className="p-4 p-md-5">
           {isSuccess ? (
-            <div className="text-center py-5 animate__animated animate__zoomIn">
-              <div className="bg-success bg-opacity-10 p-4 rounded-circle d-inline-block mb-4">
-                <CheckCircle size={60} className="text-success" />
+            /* --- PROFESSIONAL RECEIPT --- */
+            <div id="cbi-receipt" className="text-dark">
+              <div className="text-center border-bottom pb-4 mb-4">
+                <Globe size={50} className="text-warning mb-2" />
+                <h3 className="fw-bold">AREWA VISA ACADEMY</h3>
+                <p className="small text-muted mb-0">
+                  Citizenship & Investment Division
+                </p>
+                <div className="mt-2">
+                  <span className="badge bg-success px-3 py-2 rounded-pill">
+                    OFFICIAL CONSULTATION RECEIPT
+                  </span>
+                </div>
               </div>
-              <h3 className="fw-bold text-dark">Application Sent!</h3>
-              <p className="text-muted">
-                Our advisory team will contact you shortly.
-              </p>
+
+              <div className="row g-4">
+                <div className="col-8">
+                  <table className="table table-sm table-borderless">
+                    <tbody>
+                      <tr>
+                        <td className="text-muted small">APPLICANT:</td>
+                        <td className="fw-bold">
+                          {cbiData.name.toUpperCase()}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="text-muted small">PROGRAM:</td>
+                        <td className="fw-bold">{cbiData.programCategory}</td>
+                      </tr>
+                      <tr>
+                        <td className="text-muted small">TARGET:</td>
+                        <td className="fw-bold text-danger">
+                          {cbiData.targetCountry}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="text-muted small">REF ID:</td>
+                        <td className="fw-bold">{generatedID}</td>
+                      </tr>
+                      <tr>
+                        <td className="text-muted small">PAYMENT:</td>
+                        <td className="fw-bold text-success">PAID (₦10,000)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div className="col-4 text-center border-start">
+                  <QRCodeSVG
+                    value={`https://arewavisa.online/verify/${generatedID}`}
+                    size={100}
+                  />
+                  <p className="x-small text-muted mt-2 fw-bold">
+                    SCAN TO VERIFY
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 bg-light rounded-3">
+                <p className="x-small mb-0 text-center italic">
+                  This receipt confirms your initial consultation fee. Our
+                  advisory team will contact you on WhatsApp ({cbiData.whatsapp}
+                  ) within 24 hours.
+                </p>
+              </div>
+
+              <div className="mt-5 text-center d-print-none d-flex gap-2 justify-content-center">
+                <button
+                  onClick={() => window.print()}
+                  className="btn btn-dark px-4 py-2 rounded-pill d-flex align-items-center gap-2"
+                >
+                  <Printer size={18} /> Print Receipt
+                </button>
+                <button
+                  onClick={() => setShowCBIForm(false)}
+                  className="btn btn-outline-secondary px-4 py-2 rounded-pill"
+                >
+                  Close
+                </button>
+              </div>
             </div>
-          ) : (
-            <form onSubmit={onLocalSubmit}>
+          ) : !showPaymentStep ? (
+            /* --- FORM SECTION --- */
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setShowPaymentStep(true);
+              }}
+            >
               <div className="row g-4">
                 <div className="col-12 text-dark">
                   <label className="small fw-bold mb-1">Full Legal Name</label>
@@ -146,7 +239,7 @@ const CBIApplicationForm = ({
                       value={cbiData.name}
                       onChange={handleChange}
                       className="form-control bg-light border-0 py-2"
-                      placeholder="Enter full name"
+                      placeholder="As seen on passport"
                       required
                     />
                   </div>
@@ -164,7 +257,6 @@ const CBIApplicationForm = ({
                       value={cbiData.email}
                       onChange={handleChange}
                       className="form-control bg-light border-0 py-2"
-                      placeholder="example@mail.com"
                       required
                     />
                   </div>
@@ -182,33 +274,12 @@ const CBIApplicationForm = ({
                       value={cbiData.whatsapp}
                       onChange={handleChange}
                       className="form-control bg-light border-0 py-2"
-                      placeholder="+234..."
                       required
                     />
                   </div>
                 </div>
 
                 <div className="col-12 text-dark">
-                  <label className="small fw-bold mb-1">
-                    Residential Address
-                  </label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-light border-0">
-                      <MapPin size={18} />
-                    </span>
-                    <input
-                      type="text"
-                      name="address"
-                      value={cbiData.address}
-                      onChange={handleChange}
-                      className="form-control bg-light border-0 py-2"
-                      placeholder="Current City and Country"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="col-md-6 text-dark">
                   <label className="small fw-bold mb-1">Target Country</label>
                   <select
                     name="targetCountry"
@@ -237,7 +308,7 @@ const CBIApplicationForm = ({
                   </select>
                 </div>
 
-                <div className="col-md-6 text-dark">
+                <div className="col-12 text-dark">
                   <label className="small fw-bold mb-1">Program Category</label>
                   <select
                     name="programCategory"
@@ -268,32 +339,50 @@ const CBIApplicationForm = ({
                     onChange={handleChange}
                     className="form-control bg-light border-0"
                     rows="3"
-                    placeholder="Share any specific requirements..."
-                    style={{ borderRadius: "12px" }}
                   ></textarea>
                 </div>
 
                 <div className="col-12 mt-4">
                   <button
                     type="submit"
-                    disabled={isSubmitting}
-                    className="btn btn-danger w-100 py-3 fw-bold rounded-pill shadow d-flex align-items-center justify-content-center gap-2"
+                    className="btn btn-warning w-100 py-3 fw-bold rounded-pill shadow d-flex align-items-center justify-content-center gap-2"
                   >
-                    {isSubmitting ? (
-                      <span className="spinner-border spinner-border-sm"></span>
-                    ) : (
-                      <>
-                        {" "}
-                        <Send size={20} /> SUBMIT CBI APPLICATION{" "}
-                      </>
-                    )}
+                    PROCEED TO CONSULTATION <Send size={20} />
                   </button>
-                  <p className="text-center small text-muted mt-3">
-                    Our professional advisory team will review your eligibility.
-                  </p>
                 </div>
               </div>
             </form>
+          ) : (
+            /* --- PAYMENT SECTION --- */
+            <div className="text-center py-4 text-dark">
+              <div className="bg-light p-3 rounded-circle d-inline-block mb-3">
+                <Wallet size={45} className="text-warning" />
+              </div>
+              <h3 className="fw-bold mb-1">Consultation Fee</h3>
+              <p className="text-muted">
+                Citizenship & Residency Investment Review
+              </p>
+
+              <div className="py-3 px-4 bg-light rounded-4 mb-4 border-start border-warning border-5 text-start">
+                <span className="text-muted small d-block">Required Fee:</span>
+                <h2 className="display-4 fw-bold text-dark mb-0">₦10,000</h2>
+              </div>
+
+              <div className="payment-btn-container shadow-sm p-3 rounded-4 border">
+                <ApplyPayment
+                  amount={10000}
+                  email={cbiData.email}
+                  onSuccessAction={handlePaymentSuccess}
+                  isSubmitting={isSubmitting}
+                />
+              </div>
+              <button
+                onClick={() => setShowPaymentStep(false)}
+                className="btn btn-link text-muted mt-3"
+              >
+                Edit Information
+              </button>
+            </div>
           )}
         </div>
       </div>

@@ -7,7 +7,11 @@ import {
   User,
   Phone,
   FileText,
-  CheckCircle,
+  MapPin,
+  Globe,
+  PlusCircle,
+  Camera,
+  CreditCard,
 } from "lucide-react";
 import ApplyPayment from "./ApplyPayment";
 
@@ -21,10 +25,15 @@ const InsuranceApplicationForm = ({
 }) => {
   if (!showInsuranceForm) return null;
 
-  // Function da zai kira ainihin aikin adana data idan biya yayi nasara
+  // Handle file changes for the form
+  const handleFileChange = (e) => {
+    const { name, files } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: files[0] }));
+  };
+
   const onPaymentSuccess = (reference) => {
     console.log("Payment Reference:", reference);
-    handleInsuranceApplication(); // Wannan zai tura data zuwa Firebase
+    handleInsuranceApplication();
   };
 
   return (
@@ -38,7 +47,7 @@ const InsuranceApplicationForm = ({
     >
       <div
         className="card border-0 shadow-lg rounded-4 overflow-hidden w-100 m-3"
-        style={{ maxWidth: "550px", maxHeight: "95vh", overflowY: "auto" }}
+        style={{ maxWidth: "650px", maxHeight: "95vh", overflowY: "auto" }}
       >
         {/* HEADER SECTION */}
         <div className="p-4 bg-primary text-white d-flex justify-content-between align-items-center">
@@ -65,95 +74,153 @@ const InsuranceApplicationForm = ({
         </div>
 
         {/* FORM BODY */}
-        <div className="p-4 p-md-5 bg-white text-dark">
-          <div className="row g-3">
-            {/* FULL NAME */}
-            <div className="col-12 text-start">
+        <div className="p-4 p-md-5 bg-white text-dark text-start">
+          <form onSubmit={(e) => e.preventDefault()} className="row g-3">
+            {/* --- PERSONAL INFORMATION --- */}
+            <div className="col-12 border-bottom pb-2 mb-2">
+              <h6 className="fw-bold text-primary d-flex align-items-center gap-2">
+                <User size={18} /> Personal Information
+              </h6>
+            </div>
+
+            <div className="col-12">
               <label className="small fw-bold mb-1 text-muted uppercase">
                 Full Names (As shown on Passport)
               </label>
-              <div className="input-group">
-                <span className="input-group-text bg-light border-0">
-                  <User size={18} />
-                </span>
-                <input
-                  type="text"
-                  className="form-control bg-light border-0 py-2"
-                  placeholder="Enter full legal name"
-                  required
-                  value={formData.fullName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, fullName: e.target.value })
-                  }
-                />
-              </div>
+              <input
+                type="text"
+                className="form-control bg-light border-0 py-2"
+                required
+                value={formData.fullName}
+                onChange={(e) =>
+                  setFormData({ ...formData, fullName: e.target.value })
+                }
+              />
             </div>
 
-            {/* EMAIL ADDRESS - Wannan yana da mahimmanci ga Paystack */}
-            <div className="col-12 text-start">
+            <div className="col-md-6">
               <label className="small fw-bold mb-1 text-muted uppercase">
                 Email Address
               </label>
               <input
                 type="email"
                 className="form-control bg-light border-0 py-2"
-                placeholder="example@mail.com"
                 required
-                value={formData.email || ""}
+                value={formData.email}
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
               />
             </div>
 
-            {/* PHONE NUMBER */}
-            <div className="col-md-6 text-start">
+            <div className="col-md-6">
               <label className="small fw-bold mb-1 text-muted uppercase">
-                Phone Number
+                Phone (WhatsApp)
               </label>
-              <div className="input-group">
-                <span className="input-group-text bg-light border-0">
-                  <Phone size={18} />
-                </span>
-                <input
-                  type="tel"
-                  className="form-control bg-light border-0 py-2"
-                  placeholder="+234..."
-                  required
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                />
-              </div>
+              <input
+                type="tel"
+                className="form-control bg-light border-0 py-2"
+                required
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
+              />
             </div>
 
-            {/* PASSPORT NUMBER */}
-            <div className="col-md-6 text-start">
+            {/* --- ADDRESS & LOCATION --- */}
+            <div className="col-12 border-bottom pb-2 mt-4 mb-2">
+              <h6 className="fw-bold text-primary d-flex align-items-center gap-2">
+                <MapPin size={18} /> Contact & Location
+              </h6>
+            </div>
+
+            <div className="col-md-6">
+              <label className="small fw-bold mb-1 text-muted uppercase">
+                State of Origin
+              </label>
+              <input
+                type="text"
+                className="form-control bg-light border-0 py-2"
+                required
+                value={formData.state}
+                onChange={(e) =>
+                  setFormData({ ...formData, state: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="col-md-6">
+              <label className="small fw-bold mb-1 text-muted uppercase">
+                LGA
+              </label>
+              <input
+                type="text"
+                className="form-control bg-light border-0 py-2"
+                required
+                value={formData.lga}
+                onChange={(e) =>
+                  setFormData({ ...formData, lga: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="col-12">
+              <label className="small fw-bold mb-1 text-muted uppercase">
+                Full Residential Address
+              </label>
+              <textarea
+                className="form-control bg-light border-0"
+                rows="2"
+                required
+                value={formData.address}
+                onChange={(e) =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
+              ></textarea>
+            </div>
+
+            {/* --- TRAVEL & INSURANCE DETAILS --- */}
+            <div className="col-12 border-bottom pb-2 mt-4 mb-2">
+              <h6 className="fw-bold text-primary d-flex align-items-center gap-2">
+                <Globe size={18} /> Travel & Insurance
+              </h6>
+            </div>
+
+            <div className="col-md-6">
               <label className="small fw-bold mb-1 text-muted uppercase">
                 Passport Number
               </label>
-              <div className="input-group">
-                <span className="input-group-text bg-light border-0">
-                  <FileText size={18} />
-                </span>
-                <input
-                  type="text"
-                  className="form-control bg-light border-0 py-2 text-uppercase"
-                  placeholder="A00000000"
-                  required
-                  value={formData.passportNumber}
-                  onChange={(e) =>
-                    setFormData({ ...formData, passportNumber: e.target.value })
-                  }
-                />
-              </div>
+              <input
+                type="text"
+                className="form-control bg-light border-0 py-2 text-uppercase"
+                required
+                value={formData.passportNumber}
+                onChange={(e) =>
+                  setFormData({ ...formData, passportNumber: e.target.value })
+                }
+              />
             </div>
 
-            {/* INSURANCE TYPE */}
-            <div className="col-12 text-start mb-2">
+            <div className="col-md-6">
               <label className="small fw-bold mb-1 text-muted uppercase">
-                Insurance Category
+                Target Country
+              </label>
+              <input
+                type="text"
+                className="form-control bg-light border-0 py-2"
+                placeholder="Where are you traveling to?"
+                required
+                value={formData.targetCountry}
+                onChange={(e) =>
+                  setFormData({ ...formData, targetCountry: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="col-12">
+              <label className="small fw-bold mb-1 text-muted uppercase">
+                Insurance Type
               </label>
               <select
                 className="form-select bg-light border-0 py-2"
@@ -176,8 +243,56 @@ const InsuranceApplicationForm = ({
               </select>
             </div>
 
-            {/* PAYMENT BOX */}
+            {/* --- UPLOADS --- */}
+            <div className="col-12 border-bottom pb-2 mt-4 mb-2">
+              <h6 className="fw-bold text-primary d-flex align-items-center gap-2">
+                <Camera size={18} /> Required Documents
+              </h6>
+            </div>
+
+            <div className="col-md-6">
+              <label className="small fw-bold mb-1 text-muted uppercase">
+                Passport Photo (Required)
+              </label>
+              <input
+                type="file"
+                name="photoFile"
+                accept="image/*"
+                className="form-control bg-light border-0"
+                required
+                onChange={handleFileChange}
+              />
+            </div>
+
+            <div className="col-md-6">
+              <label className="small fw-bold mb-1 text-muted uppercase">
+                Int'l Passport Page (Optional)
+              </label>
+              <input
+                type="file"
+                name="passportFile"
+                className="form-control bg-light border-0"
+                onChange={handleFileChange}
+              />
+            </div>
+
             <div className="col-12">
+              <label className="small fw-bold mb-1 text-muted uppercase">
+                Additional Information (Optional)
+              </label>
+              <textarea
+                className="form-control bg-light border-0"
+                rows="2"
+                placeholder="Any other details we should know?"
+                value={formData.additionalInfo}
+                onChange={(e) =>
+                  setFormData({ ...formData, additionalInfo: e.target.value })
+                }
+              ></textarea>
+            </div>
+
+            {/* PAYMENT BOX */}
+            <div className="col-12 mt-4">
               <div className="alert alert-primary d-flex align-items-center gap-3 py-3 rounded-4 border-0 shadow-sm mb-0">
                 <div className="bg-white p-2 rounded-circle">
                   <Wallet className="text-primary" size={24} />
@@ -213,12 +328,12 @@ const InsuranceApplicationForm = ({
                 {uploading && (
                   <div className="mt-2 text-primary small fw-bold animate-pulse">
                     <Loader2 size={16} className="me-1 d-inline animate-spin" />
-                    Processing your clearance documents...
+                    Processing your documents & sync to dashboard...
                   </div>
                 )}
               </div>
             </div>
-          </div>
+          </form>
         </div>
       </div>
     </div>
