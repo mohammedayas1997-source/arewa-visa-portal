@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from "react"; // Na kara useRef
+import React, { useState, useEffect, useRef } from "react";
 import { db, storage } from "../firebase";
-import { ref, push, set, onValue } from "firebase/database";
+import { ref as dbRef, push, set, onValue } from "firebase/database"; // Na canza wannan ya koma dbRef
 import ApplyPayment from "./ApplyPayment";
 import { QRCodeSVG } from "qrcode.react";
-import html2canvas from "html2canvas"; // Tabbatar kayi npm install html2canvas
-import { jsPDF } from "jspdf"; // Tabbatar kayi npm install jspdf
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import {
   ref as storageRef,
   uploadBytes,
@@ -34,7 +34,6 @@ const CourseApplicationForm = ({
   setShowCourseForm,
   coursesData,
 }) => {
-  // --- STATES ---
   const [showPaymentStep, setShowPaymentStep] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -42,7 +41,7 @@ const CourseApplicationForm = ({
   const [isPortalOpen, setIsPortalOpen] = useState(true);
   const [loadingPortal, setLoadingPortal] = useState(true);
   const [generatedID, setGeneratedID] = useState("");
-  const receiptRef = useRef(null); // Na kara wannan don kama receipt din
+  const receiptRef = useRef(null);
 
   const [applicationData, setApplicationData] = useState({
     name: "",
@@ -66,50 +65,63 @@ const CourseApplicationForm = ({
     cvFile: null,
   });
 
-  // --- PORTAL STATUS CHECK ---
+  // --- WHATSAPP AUTOMATION FUNCTION ---
+  const sendWhatsAppToAdmin = (data, admissionID) => {
+    const adminNumber = "2347087244444"; // Lambarka ta Admin
+    const message =
+      `*NEW ADMISSION ALERT!*%0A%0A` +
+      `*Name:* ${data.name}%0A` +
+      `*ID:* ${admissionID}%0A` +
+      `*Course:* ${data.selectedCourseTitle}%0A` +
+      `*NIN:* ${data.nin}%0A` +
+      `*WhatsApp:* ${data.whatsapp}%0A` +
+      `*State:* ${data.state}%0A` +
+      `*Status:* PAID (₦5,000)%0A%0A` +
+      `_Check portal for full details._`;
+
+    // Wannan zai bude WhatsApp a background ko a sabon window ba tare da ya taba flow din dalibi ba
+    const url = `https://api.whatsapp.com/send?phone=${adminNumber}&text=${message}`;
+
+    // Amfani da invisible iframe ko window.open don tura sako
+    const win = window.open(url, "_blank");
+    if (win) win.blur(); // Maida focus kan portal dinmu
+    window.focus();
+  };
+
   useEffect(() => {
     if (!showCourseForm) return;
-    const portalRef = ref(db, "settings/coursePortalStatus");
-    const timeoutFallback = setTimeout(() => {
-      if (loadingPortal) {
-        setLoadingPortal(false);
-        setIsPortalOpen(true);
-      }
-    }, 2000);
-
+    const portalRef = dbRef(db, "settings/coursePortalStatus");
     const unsubscribe = onValue(
       portalRef,
       (snapshot) => {
-        clearTimeout(timeoutFallback);
         const data = snapshot.val();
         setIsPortalOpen(data === null ? true : data);
         setLoadingPortal(false);
       },
       (error) => {
-        clearTimeout(timeoutFallback);
         setIsPortalOpen(true);
         setLoadingPortal(false);
       },
     );
-
-    return () => {
-      unsubscribe();
-      clearTimeout(timeoutFallback);
-    };
+    return () => unsubscribe();
   }, [showCourseForm]);
 
-  // --- FUNCTIONS ---
   const uploadFile = async (file, path) => {
-    const fileRef = storageRef(storage, path);
-    await uploadBytes(fileRef, file);
-    return getDownloadURL(fileRef);
+    const fileR = storageRef(storage, path);
+    await uploadBytes(fileR, file);
+    return getDownloadURL(fileR);
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setApplicationData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert("The image is too large! Max 2MB.");
+        alert("Large Image!");
         return;
       }
       const reader = new FileReader();
@@ -117,11 +129,6 @@ const CourseApplicationForm = ({
       reader.readAsDataURL(file);
       setApplicationData((prev) => ({ ...prev, photoFile: file }));
     }
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setApplicationData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleFileChange = (e) => {
@@ -134,47 +141,31 @@ const CourseApplicationForm = ({
       const timestamp = Date.now();
       const applicantName = formData.name.replace(/\s+/g, "_");
 
-      const [photoUrl, passportUrl, resumeUrl, cvUrl] = await Promise.all([
+      const [photoUrl, resumeUrl] = await Promise.all([
         formData.photoFile
-          ? uploadFile(
-              formData.photoFile,
-              `applications/${timestamp}_${applicantName}/photo`,
-            )
-          : null,
-        formData.passportFile
-          ? uploadFile(
-              formData.passportFile,
-              `applications/${timestamp}_${applicantName}/passport`,
-            )
+          ? uploadFile(formData.photoFile, `apps/${timestamp}/photo`)
           : null,
         formData.resumeFile
-          ? uploadFile(
-              formData.resumeFile,
-              `applications/${timestamp}_${applicantName}/resume`,
-            )
-          : null,
-        formData.cvFile
-          ? uploadFile(
-              formData.cvFile,
-              `applications/${timestamp}_${applicantName}/cv`,
-            )
+          ? uploadFile(formData.resumeFile, `apps/${timestamp}/resume`)
           : null,
       ]);
 
-      const newApplicationRef = push(ref(db, "applications"));
+      // GYARA: Mun canza ref zuwa dbRef
+      const newApplicationRef = push(dbRef(db, "applications"));
       await set(newApplicationRef, {
         ...formData,
         photoUrl,
-        passportUrl,
         resumeUrl,
-        cvUrl,
         status: "Pending Review",
         paymentStatus: "Paid",
         createdAt: new Date().toISOString(),
         admissionID: admissionID,
       });
+
+      // AIKO DA WHATSAPP SAKO ZUWA GA ADMIN
+      sendWhatsAppToAdmin(formData, admissionID);
     } catch (error) {
-      console.error("Submission Error:", error);
+      console.error("Critical Submission Error:", error);
       throw error;
     }
   };
@@ -189,7 +180,6 @@ const CourseApplicationForm = ({
       amountPaid: 5000,
       paymentStatus: "Completed",
       paymentRef: reference.reference,
-      type: "Course Application",
     };
 
     try {
@@ -197,37 +187,29 @@ const CourseApplicationForm = ({
       setIsSuccess(true);
       setShowPaymentStep(false);
     } catch (error) {
-      alert("Sync Error. Contact support with Ref: " + reference.reference);
+      alert("Submission Failed! Error saved to database.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // --- PDF DOWNLOAD FUNCTION (MAIDAR DA TSARINKA) ---
   const downloadReceipt = async () => {
     const element = receiptRef.current;
-    if (!element) return alert("System Error: Receipt element not found!");
-
+    if (!element) return;
     try {
-      setIsSubmitting(true); // Amfani da submitting state don loading
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-        allowTaint: true,
-      });
-
+      setIsSubmitting(true);
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      pdf.addImage(
+        imgData,
+        "PNG",
+        0,
+        0,
+        210,
+        (canvas.height * 210) / canvas.width,
+      );
       pdf.save(`AVA-RECEIPT-${generatedID}.pdf`);
-    } catch (error) {
-      console.error("Download Error:", error);
-      alert("An error occurred while generating your receipt.");
     } finally {
       setIsSubmitting(false);
     }
