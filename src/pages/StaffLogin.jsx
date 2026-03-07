@@ -26,17 +26,25 @@ const StaffLogin = () => {
         password,
       );
       const user = userCredential.user;
-      console.log("Auth Successful. UID:", user.uid);
+
+      // Tabbatar an haɗa da db kafin kiran Firestore
+      if (!db) {
+        throw new Error("Firestore instance (db) not found. Check firebase.js");
+      }
 
       const userRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userRef);
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        console.log("Database Profile Found:", userData);
 
+        // Duba Role da Status (ko da babban harafi ko ƙarami)
         const userRole = userData.role || userData.Role;
-        const userStatus = userData.status || userData.Status;
+        const userStatus = (
+          userData.status ||
+          userData.Status ||
+          ""
+        ).toLowerCase();
 
         const authorizedRoles = [
           "rector",
@@ -48,24 +56,28 @@ const StaffLogin = () => {
 
         if (authorizedRoles.includes(userRole)) {
           if (userStatus === "active") {
+            console.log("Access Granted. Role:", userRole);
             navigate("/admin", { replace: true });
           } else {
             await signOut(auth);
-            setError("ACCESS DENIED: Account is inactive.");
+            setError("ACCESS DENIED: Asusunka baya aiki (Inactive).");
           }
         } else {
           await signOut(auth);
-          setError("UNAUTHORIZED: You do not have staff permissions.");
+          setError("UNAUTHORIZED: Wannan portal ɗin na ma'aikata ne kawai.");
         }
       } else {
         await signOut(auth);
-        console.error("Critical: No Firestore Doc found for UID", user.uid);
-        setError("DATABASE ERROR: Profile not found. Check Firestore UID.");
+        setError("DATABASE ERROR: Ba'a sami profile ɗinka a Firestore ba.");
       }
     } catch (err) {
       console.error("Firebase Error Code:", err.code);
-      if (err.code === "auth/invalid-credential") {
-        setError("AUTH FAILED: Incorrect Email or Password.");
+      if (
+        err.code === "auth/invalid-credential" ||
+        err.code === "auth/wrong-password" ||
+        err.code === "auth/user-not-found"
+      ) {
+        setError("AUTH FAILED: Imel ko Security Key ba daidai ba.");
       } else {
         setError("SYSTEM ERROR: " + err.message);
       }
@@ -88,6 +100,7 @@ const StaffLogin = () => {
         overflow: "hidden",
       }}
     >
+      {/* Background Glow */}
       <div
         style={{
           position: "absolute",
