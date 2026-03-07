@@ -20,7 +20,8 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            // Check for suspension or inactivity
+
+            // Tabbatar idan account din a raye yake
             if (
               userData.status === "suspended" ||
               userData.status === "inactive"
@@ -35,6 +36,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
               setUser(currentUser);
             }
           } else {
+            // Idan babu shi a Firestore, to bashi da role
             setUser(currentUser);
             setRole(null);
           }
@@ -52,62 +54,75 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     return () => unsubscribe();
   }, []);
 
+  // 1. LOADING SCREEN (AREWA THEMED)
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#020617]">
-        <div className="flex flex-col items-center gap-6 text-white">
-          {/* Switched to AREWA RED theme */}
-          <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] animate-pulse text-red-500">
-            Verifying Security Credentials...
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+        <div className="flex flex-col items-center gap-6">
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-red-600/20 border-t-red-600 rounded-full animate-spin"></div>
+            <div className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-b-emerald-600 rounded-full animate-reverse-spin"></div>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-500 animate-pulse">
+            Verifying <span className="text-red-600">Arewa</span> Security...
           </p>
         </div>
       </div>
     );
   }
 
+  // 2. SUSPENDED REDIRECTION
   if (status === "suspended") {
     return (
       <Navigate to="/login" state={{ error: "Account Suspended" }} replace />
     );
   }
 
+  // 3. UNAUTHENTICATED REDIRECTION
   if (!user) {
-    // UPDATED: Added 'admin' and 'rector' checks for redirection logic
     const isAuthorityRoute =
       location.pathname.includes("admin") ||
       location.pathname.includes("super") ||
       location.pathname.includes("supervisor") ||
-      location.pathname.includes("rector");
+      location.pathname.includes("rector") ||
+      location.pathname.includes("staff");
 
     const loginPath = isAuthorityRoute ? "/admin-gateway" : "/login";
     return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
-  // --- ROLE BASED ACCESS CONTROL (RBAC) ---
+  // 4. ROLE BASED ACCESS CONTROL (RBAC)
   if (requiredRole) {
     const isSuperAdmin = role === "super-admin";
     const isRector = role === "rector";
-    const isAdmissionOfficer = role === "admission-officer"; // <--- Admission Officer identification
-    const isAdminGeneral = role === "admin" || role === "AdminContentManager";
+    const isAdmin = role === "admin" || role === "AdminContentManager";
+    const isAdmissionOfficer = role === "admission-officer";
+    const isStaff = role === "staff" || role === "instructor";
 
-    // Grant access if user is SuperAdmin, Rector, or matches the required role
-    const hasAccess =
-      isSuperAdmin ||
-      isRector ||
-      role === requiredRole ||
-      (requiredRole === "admin" && (isAdminGeneral || isAdmissionOfficer)); // Admission Officer access logic
+    // Ikon shiga (Access Logic)
+    let hasAccess = false;
+
+    if (isSuperAdmin || isRector) {
+      hasAccess = true; // Wadannan suna shiga ko ina
+    } else if (requiredRole === "admin") {
+      // Idan ana neman admin, super admin/rector/admin/admission officer duk zasu iya shiga
+      hasAccess = isAdmin || isAdmissionOfficer;
+    } else if (requiredRole === "student") {
+      hasAccess = role === "student";
+    } else {
+      hasAccess = role === requiredRole;
+    }
 
     if (!hasAccess) {
-      let redirectPath = "/student-portal";
+      // Dynamic Redirection idan baka da dama
+      let redirectPath = "/login";
 
-      // Dynamic Redirection based on actual role
-      if (isSuperAdmin) redirectPath = "/super-admin";
+      if (role === "student") redirectPath = "/student-portal";
+      else if (isSuperAdmin) redirectPath = "/super-admin";
       else if (isRector) redirectPath = "/rector";
-      else if (isAdmissionOfficer)
-        redirectPath = "/admin"; // <--- Admission Officer redirect
-      else if (role === "admin") redirectPath = "/admin-dashboard";
-      else if (role === "supervisor") redirectPath = "/supervisor-dashboard";
+      else if (isAdmissionOfficer) redirectPath = "/admin";
+      else if (isAdmin) redirectPath = "/admin-dashboard";
+      else if (isStaff) redirectPath = "/staff-dashboard";
 
       return <Navigate to={redirectPath} replace />;
     }
