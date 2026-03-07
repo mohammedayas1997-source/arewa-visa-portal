@@ -2,14 +2,7 @@ import React, { useState } from "react";
 import { auth, db } from "../firebase";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import {
-  ShieldCheck,
-  Loader2,
-  ShieldAlert,
-  X,
-  LockKeyhole,
-  Mail,
-} from "lucide-react";
+import { ShieldCheck, Loader2, ShieldAlert, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const StaffLogin = () => {
@@ -26,40 +19,61 @@ const StaffLogin = () => {
     setError("");
 
     try {
+      // 1. Authenticate with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email.trim().toLowerCase(),
         password,
       );
       const user = userCredential.user;
-      const userDoc = await getDoc(doc(db, "users", user.uid));
 
-      if (
-        userDoc.exists() &&
-        [
+      // 2. Fetch User Profile from Firestore
+      const userRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userRef);
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+
+        // IMPORTANT: We check for both 'role' and 'Role' to be safe
+        const userRole = userData.role || userData.Role;
+        const userStatus = userData.status || userData.Status;
+
+        const authorizedRoles = [
           "rector",
           "super-admin",
           "admin",
           "admission-officer",
           "staff",
-        ].includes(userDoc.data().role)
-      ) {
-        if (userDoc.data().status === "active") {
-          navigate("/admin", { replace: true });
+        ];
+
+        if (authorizedRoles.includes(userRole)) {
+          if (userStatus === "active") {
+            navigate("/admin", { replace: true });
+          } else {
+            await signOut(auth);
+            setError("ACCESS DENIED: Your account is currently inactive.");
+          }
         } else {
           await signOut(auth);
-          setError("ACCESS DENIED: Your account is currently inactive.");
+          setError("UNAUTHORIZED: Access restricted to staff only.");
         }
       } else {
         await signOut(auth);
-        setError(
-          "UNAUTHORIZED: You do not have permission to access this portal.",
-        );
+        setError("DATABASE ERROR: Staff profile not found. Contact Admin.");
       }
     } catch (err) {
-      setError(
-        "AUTHENTICATION FAILED: Invalid institutional email or security key.",
-      );
+      console.error("Login Error Code:", err.code);
+      // Detailed error feedback
+      if (
+        err.code === "auth/invalid-credential" ||
+        err.code === "auth/wrong-password"
+      ) {
+        setError("AUTH FAILED: Incorrect Email or Security Key.");
+      } else if (err.code === "auth/user-not-found") {
+        setError("AUTH FAILED: No user found with this email.");
+      } else {
+        setError("SYSTEM ERROR: " + err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -79,7 +93,6 @@ const StaffLogin = () => {
         overflow: "hidden",
       }}
     >
-      {/* Background Decorative Glow */}
       <div
         style={{
           position: "absolute",
@@ -132,7 +145,6 @@ const StaffLogin = () => {
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 20px",
-              boxShadow: "0 10px 20px rgba(220, 38, 38, 0.3)",
             }}
           >
             <ShieldCheck size={35} color="white" />
@@ -263,7 +275,6 @@ const StaffLogin = () => {
               fontWeight: "900",
               textTransform: "uppercase",
               fontSize: "12px",
-              letterSpacing: "2px",
               cursor: "pointer",
               marginTop: "10px",
               opacity: loading ? 0.5 : 1,
@@ -276,20 +287,6 @@ const StaffLogin = () => {
             )}
           </button>
         </form>
-
-        <p
-          style={{
-            textAlign: "center",
-            color: "#475569",
-            fontSize: "9px",
-            marginTop: "30px",
-            fontWeight: "bold",
-            textTransform: "uppercase",
-            letterSpacing: "2px",
-          }}
-        >
-          © 2026 Admin Security Hub
-        </p>
       </div>
     </div>
   );

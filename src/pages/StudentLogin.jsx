@@ -1,42 +1,23 @@
 import React, { useState } from "react";
 import { auth, db } from "../firebase";
-import {
-  signInWithEmailAndPassword,
-  signOut,
-  sendPasswordResetEmail,
-} from "firebase/auth";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { useNavigate } from "react-router-dom";
 import {
-  BookOpen,
-  ArrowRight,
+  ShieldCheck,
   Loader2,
-  UserCheck,
-  KeyRound,
+  ShieldAlert,
   X,
-  Mail,
   LockKeyhole,
+  Mail,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-const StudentLogin = () => {
+const StaffLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
-  const handleForgotPassword = async () => {
-    if (!email) {
-      alert("INPUT REQUIRED: Please enter your email address first.");
-      return;
-    }
-    try {
-      await sendPasswordResetEmail(auth, email.trim().toLowerCase());
-      alert("RESET DISPATCHED: Check your inbox for the recovery link.");
-    } catch (error) {
-      alert("SYSTEM ERROR: Could not send reset email. Verify your address.");
-    }
-  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -45,44 +26,43 @@ const StudentLogin = () => {
     setError("");
 
     try {
-      const cleanEmail = email.trim().toLowerCase();
-
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        cleanEmail,
+        email.trim().toLowerCase(),
         password,
       );
       const user = userCredential.user;
+      const userDoc = await getDoc(doc(db, "users", user.uid));
 
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const authorizedRoles = [
+          "rector",
+          "super-admin",
+          "admin",
+          "admission-officer",
+          "staff",
+        ];
 
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-
-        if (userData.role !== "student") {
+        if (authorizedRoles.includes(userData.role)) {
+          if (userData.status === "active") {
+            navigate("/admin", { replace: true });
+          } else {
+            await signOut(auth);
+            setError("ACCOUNT REVOKED: This account is currently inactive.");
+          }
+        } else {
           await signOut(auth);
-          setError("RESTRICTED: This portal is for students only.");
-          setLoading(false);
-          return;
+          setError("ACCESS DENIED: Unauthorized profile detected.");
         }
-
-        if (userData.status === "suspended" || userData.status === "inactive") {
-          await signOut(auth);
-          setError(
-            "ACCOUNT INACTIVE: Your student account has been suspended.",
-          );
-          setLoading(false);
-          return;
-        }
-
-        navigate("/student-portal");
       } else {
         await signOut(auth);
-        setError("ACCOUNT ERROR: Student profile not found in database.");
+        setError("DATABASE ERROR: No staff profile found for this ID.");
       }
-    } catch (error) {
-      setError("AUTHENTICATION ERROR: Invalid email or password.");
+    } catch (err) {
+      setError(
+        "AUTHENTICATION FAILED: Invalid institutional email or security key.",
+      );
     } finally {
       setLoading(false);
     }
@@ -102,27 +82,25 @@ const StudentLogin = () => {
         overflow: "hidden",
       }}
     >
-      {/* Background Decorative Glow */}
       <div
         style={{
           position: "absolute",
           top: "-10%",
-          right: "-10%",
-          width: "400px",
-          height: "400px",
-          backgroundColor: "rgba(220, 38, 38, 0.1)",
-          filter: "blur(120px)",
+          left: "-10%",
+          width: "300px",
+          height: "300px",
+          backgroundColor: "rgba(220, 38, 38, 0.15)",
+          filter: "blur(100px)",
           borderRadius: "50%",
         }}
       ></div>
 
-      {/* Main Login Card */}
       <div
         style={{
           width: "100%",
-          maxWidth: "440px",
+          maxWidth: "420px",
           backgroundColor: "#141414",
-          borderRadius: "40px",
+          borderRadius: "30px",
           border: "1px solid rgba(255,255,255,0.05)",
           padding: "40px",
           position: "relative",
@@ -130,25 +108,12 @@ const StudentLogin = () => {
           boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
         }}
       >
-        {/* Accent Top Line */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "4px",
-            background: "linear-gradient(to right, #dc2626, #7f1d1d)",
-          }}
-        ></div>
-
-        {/* Close Button */}
         <button
           onClick={() => navigate("/")}
           style={{
             position: "absolute",
-            top: "25px",
-            right: "25px",
+            top: "20px",
+            right: "20px",
             background: "none",
             border: "none",
             color: "#666",
@@ -158,42 +123,40 @@ const StudentLogin = () => {
           <X size={24} />
         </button>
 
-        <div style={{ textAlign: "center", marginBottom: "40px" }}>
+        <div style={{ textAlign: "center", marginBottom: "30px" }}>
           <div
             style={{
-              width: "80px",
-              height: "80px",
+              width: "70px",
+              height: "70px",
               backgroundColor: "#dc2626",
-              borderRadius: "24px",
+              borderRadius: "20px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 20px",
-              boxShadow: "0 15px 30px rgba(220, 38, 38, 0.3)",
             }}
           >
-            <BookOpen size={40} color="white" />
+            <ShieldCheck size={35} color="white" />
           </div>
           <h2
             style={{
               color: "white",
-              fontSize: "28px",
+              fontSize: "24px",
               fontWeight: "900",
               textTransform: "uppercase",
               margin: "0",
-              letterSpacing: "-1px",
             }}
           >
-            Student <span style={{ color: "#dc2626" }}>Portal</span>
+            Staff <span style={{ color: "#dc2626" }}>Command</span>
           </h2>
           <p
             style={{
-              color: "#475569",
+              color: "#059669",
               fontSize: "10px",
-              fontWeight: "black",
+              fontWeight: "bold",
               textTransform: "uppercase",
-              letterSpacing: "4px",
-              marginTop: "10px",
+              letterSpacing: "3px",
+              marginTop: "5px",
             }}
           >
             Arewa Visa Academy
@@ -204,13 +167,12 @@ const StudentLogin = () => {
           <div
             style={{
               backgroundColor: "rgba(220, 38, 38, 0.1)",
-              border: "1px solid rgba(220, 38, 38, 0.3)",
+              border: "1px solid #dc2626",
               color: "#f87171",
-              padding: "15px",
-              borderRadius: "18px",
+              padding: "12px",
+              borderRadius: "12px",
               fontSize: "11px",
-              marginBottom: "25px",
-              fontWeight: "bold",
+              marginBottom: "20px",
             }}
           >
             {error}
@@ -219,128 +181,53 @@ const StudentLogin = () => {
 
         <form
           onSubmit={handleLogin}
-          style={{ display: "flex", flexDirection: "column", gap: "25px" }}
+          style={{ display: "flex", flexDirection: "column", gap: "20px" }}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <label
-              style={{
-                color: "#64748b",
-                fontSize: "10px",
-                fontWeight: "900",
-                textTransform: "uppercase",
-                marginLeft: "15px",
-                letterSpacing: "1px",
-              }}
-            >
-              <Mail
-                size={12}
-                style={{
-                  marginRight: "5px",
-                  verticalAlign: "middle",
-                  color: "#dc2626",
-                }}
-              />{" "}
-              Email Address
-            </label>
-            <input
-              type="email"
-              placeholder="student@arewavisa.com"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "18px 25px",
-                backgroundColor: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: "20px",
-                color: "white",
-                outline: "none",
-                fontSize: "14px",
-              }}
-            />
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                padding: "0 15px",
-              }}
-            >
-              <label
-                style={{
-                  color: "#64748b",
-                  fontSize: "10px",
-                  fontWeight: "900",
-                  textTransform: "uppercase",
-                  letterSpacing: "1px",
-                }}
-              >
-                <LockKeyhole
-                  size={12}
-                  style={{
-                    marginRight: "5px",
-                    verticalAlign: "middle",
-                    color: "#dc2626",
-                  }}
-                />{" "}
-                Password
-              </label>
-              <button
-                type="button"
-                onClick={handleForgotPassword}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#dc2626",
-                  fontSize: "9px",
-                  fontWeight: "900",
-                  textTransform: "uppercase",
-                  cursor: "pointer",
-                }}
-              >
-                Recovery
-              </button>
-            </div>
-            <input
-              type="password"
-              placeholder="••••••••"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "18px 25px",
-                backgroundColor: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: "20px",
-                color: "white",
-                outline: "none",
-                fontSize: "14px",
-              }}
-            />
-          </div>
-
+          <input
+            type="email"
+            placeholder="Institutional Email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "15px",
+              backgroundColor: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "15px",
+              color: "white",
+              outline: "none",
+            }}
+          />
+          <input
+            type="password"
+            placeholder="Security Key"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "15px",
+              backgroundColor: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "15px",
+              color: "white",
+              outline: "none",
+            }}
+          />
           <button
             type="submit"
             disabled={loading}
             style={{
               width: "100%",
-              padding: "20px",
+              padding: "16px",
               backgroundColor: "#dc2626",
               color: "white",
               border: "none",
-              borderRadius: "25px",
+              borderRadius: "15px",
               fontWeight: "900",
               textTransform: "uppercase",
-              fontSize: "13px",
-              letterSpacing: "3px",
               cursor: "pointer",
-              marginTop: "15px",
-              transition: "0.3s",
-              opacity: loading ? 0.6 : 1,
             }}
           >
             {loading ? (
@@ -350,38 +237,9 @@ const StudentLogin = () => {
             )}
           </button>
         </form>
-
-        <div
-          style={{
-            marginTop: "35px",
-            textAlign: "center",
-            borderTop: "1px solid rgba(255,255,255,0.05)",
-            paddingTop: "25px",
-          }}
-        >
-          <p
-            style={{
-              color: "#334155",
-              fontSize: "10px",
-              fontWeight: "900",
-              textTransform: "uppercase",
-              letterSpacing: "2px",
-            }}
-          >
-            <UserCheck
-              size={14}
-              style={{
-                marginRight: "8px",
-                verticalAlign: "middle",
-                color: "#dc2626",
-              }}
-            />{" "}
-            Secure Student Session
-          </p>
-        </div>
       </div>
     </div>
   );
 };
 
-export default StudentLogin;
+export default StaffLogin;
