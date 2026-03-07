@@ -177,29 +177,32 @@ const CourseApplicationForm = ({
   const handlePaymentSuccess = async (reference) => {
     setIsSubmitting(true);
 
-    // Generate Admission ID nan take don ya fito a Receipt
-    const generatedID = `AVA-${Math.floor(10000 + Math.random() * 90000)}`;
-
     const updatedData = {
       ...applicationData,
-      admissionID: generatedID,
       amountPaid: 5000,
       paymentStatus: "Completed",
-      paymentRef: reference.reference,
+      paymentRef: reference.reference, // Adana reference din biya
+      type: "Course Application",
     };
 
     try {
-      // 1. Aika bayanan zuwa Admin Dashboard (Firebase)
+      // 1. Tura bayanai zuwa Firebase (Admin Dashboard)
       await handleSubmitApplication(updatedData);
 
-      // 2. Update state din mu don nuna ID a Receipt
-      setApplicationData((prev) => ({ ...prev, admissionID: generatedID }));
-
-      // 3. Nuna Receipt din
+      // 2. Canza screen zuwa Success
       setIsSuccess(true);
       setShowPaymentStep(false);
+
+      // 3. Trigger Receipt Download (Printing)
+      setTimeout(() => {
+        window.print();
+      }, 1500);
     } catch (error) {
-      alert("Error saving data. Please contact Admin.");
+      console.error("Firebase Sync Error:", error);
+      alert(
+        "Payment was successful, but your data didn't sync to our dashboard. Please contact support with reference: " +
+          reference.reference,
+      );
     } finally {
       setIsSubmitting(false);
     }

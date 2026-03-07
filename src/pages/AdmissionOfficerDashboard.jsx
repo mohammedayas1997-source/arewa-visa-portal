@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db, auth } from "../firebase"; // Path corrected to standard ../firebase
@@ -15,6 +14,7 @@ import {
   orderBy,
   writeBatch,
   deleteDoc,
+  setDoc,
 } from "firebase/firestore";
 import {
   LayoutDashboard,
@@ -48,6 +48,8 @@ import {
   AlertTriangle,
   Briefcase,
   Award,
+  CreditCard,
+  Fingerprint,
 } from "lucide-react";
 
 const AdmissionOfficerDashboard = () => {
@@ -101,11 +103,16 @@ const AdmissionOfficerDashboard = () => {
       setStaffList(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
 
-    // 3. Fetch Portal Settings
+    // 3. Fetch Portal Settings (Restored and Linked to Website)
     const unsubPortal = onSnapshot(
-      doc(db, "systemSettings", "admissionControl"),
+      doc(db, "settings", "coursePortalStatus"),
       (docSnap) => {
-        if (docSnap.exists()) setPortalSettings(docSnap.data());
+        if (docSnap.exists()) {
+          setPortalSettings({ isOpen: docSnap.data().value });
+        } else {
+          // If node doesn't exist, initialize it
+          setDoc(doc(db, "settings", "coursePortalStatus"), { value: true });
+        }
       },
     );
 
@@ -121,8 +128,9 @@ const AdmissionOfficerDashboard = () => {
   const togglePortal = async () => {
     setLoadingId("portal");
     try {
-      await updateDoc(doc(db, "systemSettings", "admissionControl"), {
-        isOpen: !portalSettings.isOpen,
+      // Switches the value that CourseApplicationForm.jsx listens to
+      await setDoc(doc(db, "settings", "coursePortalStatus"), {
+        value: !portalSettings.isOpen,
         lastUpdated: serverTimestamp(),
         updatedBy: auth.currentUser?.email || "Officer",
       });
@@ -163,7 +171,12 @@ const AdmissionOfficerDashboard = () => {
 
   const handleSelectAll = () => {
     const pendingIds = candidates
-      .filter((c) => c.status === "Paid" || c.status === "Verified")
+      .filter(
+        (c) =>
+          c.status === "Paid" ||
+          c.status === "Verified" ||
+          c.paymentStatus === "Completed",
+      )
       .map((c) => c.id);
     if (selectedItems.length === pendingIds.length) setSelectedItems([]);
     else setSelectedItems(pendingIds);
@@ -225,6 +238,7 @@ const AdmissionOfficerDashboard = () => {
     const matchesSearch = nameToFilter.includes(searchTerm.toLowerCase());
     const matchesCourse =
       filterCourse === "All" ||
+      c.selectedCourseTitle === filterCourse ||
       c.selectedCourse === filterCourse ||
       c.course === filterCourse;
 
@@ -436,7 +450,9 @@ const AdmissionOfficerDashboard = () => {
                   key={c.id}
                   className="p-7 flex flex-col lg:flex-row items-center gap-8 hover:bg-blue-50/20 transition-all group"
                 >
-                  {(c.status === "Paid" || c.status === "Verified") &&
+                  {(c.status === "Paid" ||
+                    c.status === "Verified" ||
+                    c.paymentStatus === "Completed") &&
                     activeTab === "Dashboard" && (
                       <input
                         type="checkbox"
@@ -455,7 +471,7 @@ const AdmissionOfficerDashboard = () => {
                   <div className="relative shrink-0">
                     <img
                       src={
-                        c.passport ||
+                        c.photoUrl ||
                         c.passportUrl ||
                         "https://via.placeholder.com/150"
                       }
@@ -473,7 +489,10 @@ const AdmissionOfficerDashboard = () => {
                     <div className="flex flex-wrap items-center gap-3 mb-2">
                       <StatusTag status={c.status} />
                       <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 px-4 py-1.5 rounded-full border border-slate-200">
-                        {c.selectedCourse || c.course}
+                        {c.selectedCourseTitle ||
+                          c.selectedCourse ||
+                          c.course ||
+                          c.type}
                       </span>
                     </div>
                     <h3 className="font-black text-slate-800 uppercase text-xl leading-tight italic">
@@ -484,7 +503,8 @@ const AdmissionOfficerDashboard = () => {
                         <Mail size={12} className="text-blue-500" /> {c.email}
                       </p>
                       <p className="text-[11px] font-bold text-slate-400 flex items-center gap-2">
-                        <Phone size={12} className="text-blue-500" /> {c.phone}
+                        <Phone size={12} className="text-blue-500" />{" "}
+                        {c.whatsapp || c.phone}
                       </p>
                     </div>
                   </div>
@@ -565,7 +585,7 @@ const AdmissionOfficerDashboard = () => {
           </div>
         </div>
 
-        {/* THE STUDENT DOSSIER - AREWA VISA ACADEMY CENSUS 100% */}
+        {/* --- THE STUDENT DOSSIER - AREWA VISA ACADEMY CENSUS 100% (RESTORED FULL INFO) --- */}
         {viewingStudent && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#001529]/95 backdrop-blur-xl p-4 overflow-y-auto">
             <div className="bg-white w-full max-w-6xl rounded-[60px] shadow-2xl overflow-hidden flex flex-col md:flex-row relative animate-in zoom-in duration-500">
@@ -580,7 +600,11 @@ const AdmissionOfficerDashboard = () => {
               <div className="md:w-1/3 bg-slate-50/80 p-12 border-r border-slate-100 text-center flex flex-col justify-center">
                 <div className="relative inline-block mb-10">
                   <img
-                    src={viewingStudent.passport || viewingStudent.passportUrl}
+                    src={
+                      viewingStudent.photoUrl ||
+                      viewingStudent.passportUrl ||
+                      "https://via.placeholder.com/150"
+                    }
                     className="w-60 h-60 rounded-[60px] object-cover border-[12px] border-white shadow-2xl mx-auto ring-1 ring-slate-200"
                     alt="AVA Passport"
                   />
@@ -598,23 +622,28 @@ const AdmissionOfficerDashboard = () => {
                 <div className="space-y-8 text-left max-w-xs mx-auto">
                   <Detail
                     icon={<Mail size={16} />}
-                    label="Official Correspondence"
+                    label="Correspondence"
                     value={viewingStudent.email}
                   />
                   <Detail
                     icon={<Phone size={16} />}
-                    label="Registry Mobile"
-                    value={viewingStudent.phone}
+                    label="WhatsApp"
+                    value={viewingStudent.whatsapp || viewingStudent.phone}
+                  />
+                  <Detail
+                    icon={<Fingerprint size={16} />}
+                    label="NIN / Passport No"
+                    value={`${viewingStudent.nin || "N/A"} / ${viewingStudent.passportNo || viewingStudent.passportNumber || "N/A"}`}
                   />
                   <Detail
                     icon={<MapPin size={16} />}
                     label="Hometown / Origin"
-                    value={`${viewingStudent.state || viewingStudent.stateOrigin} / ${viewingStudent.lga || viewingStudent.lgaOrigin || "N/A"}`}
+                    value={`${viewingStudent.state || "N/A"} / ${viewingStudent.lga || "N/A"}`}
                   />
                   <Detail
                     icon={<Calendar size={16} />}
-                    label="Birth Protocol"
-                    value={viewingStudent.dob || "N/A"}
+                    label="Age / Gender"
+                    value={`${viewingStudent.age || "N/A"} / ${viewingStudent.gender || "N/A"}`}
                   />
                 </div>
               </div>
@@ -629,99 +658,116 @@ const AdmissionOfficerDashboard = () => {
                     </h2>
                     <p className="text-[12px] font-black text-slate-400 uppercase tracking-[0.6em] mt-4">
                       Census Index:{" "}
-                      {viewingStudent.id?.toUpperCase() || "PENDING"}
+                      {viewingStudent.admissionID ||
+                        viewingStudent.id?.toUpperCase() ||
+                        "PENDING"}
                     </p>
                   </div>
                   <button
                     onClick={handlePrint}
-                    className="flex items-center gap-4 bg-slate-900 text-white px-10 py-5 rounded-[25px] font-black text-[11px] uppercase hover:bg-blue-600 transition-all shadow-2xl print:hidden shadow-slate-300"
+                    className="flex items-center gap-4 bg-slate-900 text-white px-10 py-5 rounded-[25px] font-black text-[11px] uppercase hover:bg-blue-600 transition-all shadow-2xl print:hidden"
                   >
                     <Printer size={22} /> Print Dossier
                   </button>
                 </header>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-20">
-                  {/* O-LEVEL SECTION */}
+                  {/* APPLICATION DETAILS */}
                   <section className="space-y-10">
                     <div className="flex items-center gap-4 border-l-8 border-blue-600 pl-6">
                       <h4 className="text-[15px] font-black uppercase text-slate-800 tracking-wider">
-                        O-Level Vetting Node
+                        Application Intelligence
                       </h4>
                     </div>
                     <div className="grid grid-cols-1 gap-8">
                       <Detail
-                        label="Examination ID"
-                        value={viewingStudent.examNumber}
+                        label="Selected Program"
+                        value={
+                          viewingStudent.selectedCourseTitle ||
+                          viewingStudent.selectedCourse ||
+                          viewingStudent.type
+                        }
                       />
                       <Detail
-                        label="Center Protocol"
-                        value={viewingStudent.centerNumber}
+                        label="Home Address"
+                        value={viewingStudent.address}
                       />
-                      <div className="p-10 bg-blue-50/50 rounded-[45px] border-4 border-dashed border-blue-100 relative group shadow-inner">
-                        <div className="absolute -top-4 left-8 bg-blue-600 text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg">
-                          SSCE TRANSCRIPT
-                        </div>
-                        <div className="grid grid-cols-1 gap-3 mt-4">
-                          {viewingStudent.oLevelResults ? (
-                            viewingStudent.oLevelResults.map((res, i) => (
-                              <div
-                                key={i}
-                                className="flex justify-between items-center border-b border-blue-100 pb-2"
-                              >
-                                <span className="text-sm font-black text-slate-600 uppercase italic">
-                                  {res.subject}
-                                </span>
-                                <span className="text-lg font-black text-blue-600">
-                                  {res.grade}
-                                </span>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-sm italic text-slate-400 text-center">
-                              No grades in database
-                            </p>
-                          )}
-                        </div>
-                      </div>
+                      {viewingStudent.targetCountry && (
+                        <Detail
+                          label="Target Destination"
+                          value={viewingStudent.targetCountry}
+                        />
+                      )}
+                      {viewingStudent.job && (
+                        <Detail label="Job Type" value={viewingStudent.job} />
+                      )}
                     </div>
                   </section>
 
-                  {/* HIGHER EDUCATION SECTION */}
+                  {/* PAYMENT & DOCUMENTS */}
                   <section className="space-y-10">
                     <div className="flex items-center gap-4 border-l-8 border-emerald-500 pl-6">
                       <h4 className="text-[15px] font-black uppercase text-slate-800 tracking-wider">
-                        Higher Academic History
+                        Financial & Files
                       </h4>
                     </div>
                     <div className="grid grid-cols-1 gap-8">
                       <Detail
-                        label="Prior Academy"
+                        label="Tuition / Fee Status"
                         value={
-                          viewingStudent.institutionName ||
-                          viewingStudent.lastSchool
+                          viewingStudent.paymentStatus === "Completed"
+                            ? "VERIFIED PAID"
+                            : "PENDING"
                         }
                       />
                       <Detail
-                        label="Strategic Qualification"
-                        value={
-                          viewingStudent.highestQualification ||
-                          viewingStudent.qualification
-                        }
+                        label="Amount Paid"
+                        value={`₦${viewingStudent.amountPaid || "0"}`}
                       />
-                      <Detail
-                        label="Major / Discipline"
-                        value={
-                          viewingStudent.courseStudied ||
-                          viewingStudent.prevCourse
-                        }
-                      />
-                      <Detail
-                        label="Registry Year"
-                        value={
-                          viewingStudent.yearOfGraduation ||
-                          viewingStudent.gradYear
-                        }
-                      />
+
+                      <div className="p-8 bg-slate-900 rounded-[35px] text-white">
+                        <h5 className="text-[10px] font-black uppercase text-blue-400 mb-4 tracking-widest">
+                          Document Vault
+                        </h5>
+                        <div className="grid grid-cols-2 gap-4">
+                          {viewingStudent.photoUrl && (
+                            <a
+                              href={viewingStudent.photoUrl}
+                              target="_blank"
+                              className="text-[8px] font-bold uppercase p-2 border border-white/10 rounded-lg text-center hover:bg-white/10 transition-all"
+                            >
+                              Passport Link
+                            </a>
+                          )}
+                          {viewingStudent.passportUrl && (
+                            <a
+                              href={viewingStudent.passportUrl}
+                              target="_blank"
+                              className="text-[8px] font-bold uppercase p-2 border border-white/10 rounded-lg text-center hover:bg-white/10 transition-all"
+                            >
+                              ID Data Page
+                            </a>
+                          )}
+                          {viewingStudent.cvUrl && (
+                            <a
+                              href={viewingStudent.cvUrl}
+                              target="_blank"
+                              className="text-[8px] font-bold uppercase p-2 border border-white/10 rounded-lg text-center hover:bg-white/10 transition-all"
+                            >
+                              Academic CV
+                            </a>
+                          )}
+                          {viewingStudent.resumeUrl && (
+                            <a
+                              href={viewingStudent.resumeUrl}
+                              target="_blank"
+                              className="text-[8px] font-bold uppercase p-2 border border-white/10 rounded-lg text-center hover:bg-white/10 transition-all"
+                            >
+                              Resume Link
+                            </a>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </section>
 
@@ -731,45 +777,23 @@ const AdmissionOfficerDashboard = () => {
                       <Briefcase size={150} />
                     </div>
                     <h4 className="text-[12px] font-black uppercase text-blue-400 mb-10 tracking-[0.4em] flex items-center gap-4">
-                      <FileText size={22} /> AVA Admission Lifecycle Analysis
+                      <FileText size={22} /> AVA Admission Lifecycle
                     </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center md:text-left">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
                       <div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase mb-3 tracking-widest">
-                          Selected Track
-                        </p>
-                        <p className="text-sm font-black uppercase text-white italic">
-                          {viewingStudent.selectedCourse ||
-                            viewingStudent.course}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase mb-3 tracking-widest">
-                          Vetting Status
-                        </p>
-                        <p className="text-sm font-black text-emerald-400 uppercase italic">
-                          PAID & CLEARED
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase mb-3 tracking-widest">
-                          Entry Protocol
-                        </p>
-                        <p className="text-sm font-black text-white">
-                          {viewingStudent.appliedAt
-                            ?.toDate()
-                            .toLocaleDateString() ||
-                            viewingStudent.createdAt
-                              ?.toDate()
-                              .toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase mb-3 tracking-widest">
+                        <p className="text-[10px] font-black text-slate-500 uppercase mb-3">
                           System Flow
                         </p>
                         <p className="text-sm font-black text-blue-400 uppercase italic animate-pulse">
-                          {viewingStudent.status}
+                          {viewingStudent.status || "Processing"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-500 uppercase mb-3">
+                          Entry Protocol
+                        </p>
+                        <p className="text-sm font-black text-white">
+                          {viewingStudent.createdAt?.substring(0, 10) || "N/A"}
                         </p>
                       </div>
                     </div>
@@ -815,7 +839,7 @@ const StatusTag = ({ status }) => {
     Paid: "bg-blue-50 text-blue-600 border border-blue-100",
     Verified: "bg-blue-50 text-blue-600 border border-blue-100",
     "Awaiting Rector Approval":
-      "bg-amber-50 text-amber-600 border border-amber-100 animate-pulse shadow-sm",
+      "bg-amber-50 text-amber-600 border border-amber-100 animate-pulse",
     "Rector Approved":
       "bg-purple-50 text-purple-600 border border-purple-100 shadow-md",
     Approved:
@@ -830,7 +854,7 @@ const StatusTag = ({ status }) => {
       <div
         className={`w-2 h-2 rounded-full ${status === "Approved" ? "bg-emerald-500 shadow-lg" : "bg-current opacity-60"}`}
       ></div>
-      {status}
+      {status || "PENDING"}
     </span>
   );
 };
@@ -847,7 +871,7 @@ const Detail = ({ icon, label, value }) => (
         {label}
       </p>
       <p className="font-black text-slate-800 text-[15px] uppercase truncate whitespace-pre-wrap italic">
-        {value || "RECORD_NOT_FOUND"}
+        {value || "NOT_PROVIDED"}
       </p>
     </div>
   </div>
