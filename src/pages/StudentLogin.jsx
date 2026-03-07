@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { auth, db } from "../firebase";
+import { auth, db } from "../firebase"; // Tabbatar wannan path din daidai yake
 import {
   signInWithEmailAndPassword,
   signOut,
@@ -27,20 +27,19 @@ const StudentLogin = () => {
       alert("INPUT REQUIRED: Please enter your email address first.");
       return;
     }
-
     try {
       await sendPasswordResetEmail(auth, email.trim().toLowerCase());
       alert(
         "RESET DISPATCHED: Check your inbox for the password recovery link.",
       );
     } catch (error) {
-      console.error("Reset Error:", error.code);
       alert("SYSTEM ERROR: Could not send reset email. Verify your address.");
     }
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
 
     try {
@@ -61,7 +60,7 @@ const StudentLogin = () => {
       if (userSnap.exists()) {
         const userData = userSnap.data();
 
-        // 3. Role Validation
+        // 3. Role Validation (Student Check)
         if (userData.role !== "student") {
           await signOut(auth);
           alert("RESTRICTED: This portal is for students only.");
@@ -78,7 +77,6 @@ const StudentLogin = () => {
         }
 
         // 5. SUCCESSFUL REDIRECT
-        console.log("Access Granted. Redirecting to Student Portal...");
         navigate("/student-portal");
       } else {
         await signOut(auth);
@@ -93,59 +91,54 @@ const StudentLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-6 selection:bg-red-600 selection:text-white font-sans relative">
-      {/* UMURNI: CLOSE BUTTON INTEGRATION (An dan saukar da shi zuwa top-16) */}
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 md:p-6 font-sans relative overflow-x-hidden">
+      {/* CLOSE BUTTON */}
       <button
         type="button"
         onClick={() => navigate("/")}
-        className="absolute top-16 right-10 p-3 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all duration-300 group z-50"
+        className="absolute top-6 right-6 p-2 text-gray-400 hover:text-red-600 hover:bg-white rounded-xl shadow-sm transition-all duration-300 z-50"
       >
-        <X
-          size={32}
-          strokeWidth={3}
-          className="group-hover:rotate-90 transition-transform duration-300"
-        />
+        <X size={28} strokeWidth={2.5} />
       </button>
 
-      <div className="max-w-md w-full relative">
-        <div className="text-center mb-12">
-          {/* Logo Container switched to AREWA RED */}
-          <div className="w-20 h-20 bg-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-red-200">
-            <BookOpen className="text-white" size={32} />
+      <div className="w-full max-w-[420px] bg-white p-8 md:p-10 rounded-[2.5rem] shadow-2xl shadow-slate-200 relative animate__animated animate__fadeIn">
+        <div className="text-center mb-10">
+          <div className="w-20 h-20 bg-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-red-200">
+            <BookOpen className="text-white" size={36} />
           </div>
-          <h2 className="text-4xl font-black text-gray-900 tracking-tighter uppercase leading-none italic">
-            Student <br />{" "}
-            <span className="text-red-600 font-black">Portal</span>
+          <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-tight">
+            Student <br />
+            <span className="text-red-600">Portal</span>
           </h2>
-          <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.3em] mt-4">
+          <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.3em] mt-4">
             Authorized Academic Access Only
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-1">
-            <label className="ml-2 text-[9px] font-black text-gray-400 uppercase tracking-widest">
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div className="space-y-2">
+            <label className="block ml-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
               Email Address
             </label>
             <input
               type="email"
               placeholder="e.g. abubakar@arewavisa.com"
               required
-              className="w-full p-6 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-red-600 focus:bg-white transition-all font-medium text-sm shadow-sm lowercase text-slate-900"
+              className="w-full px-6 py-5 bg-slate-50 border-2 border-transparent rounded-2xl outline-none focus:border-red-600 focus:bg-white transition-all font-medium text-sm text-slate-900 shadow-inner"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
-          <div className="space-y-1">
-            <div className="flex justify-between items-center pr-2">
-              <label className="ml-2 text-[9px] font-black text-gray-400 uppercase tracking-widest">
+          <div className="space-y-2">
+            <div className="flex justify-between items-center px-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
                 Password
               </label>
               <button
                 type="button"
                 onClick={handleForgotPassword}
-                className="text-[9px] font-black text-red-600 uppercase tracking-widest hover:underline flex items-center gap-1"
+                className="text-[10px] font-black text-red-600 uppercase tracking-widest hover:underline flex items-center gap-1"
               >
                 <KeyRound size={12} /> Recovery
               </button>
@@ -154,30 +147,29 @@ const StudentLogin = () => {
               type="password"
               placeholder="••••••••"
               required
-              className="w-full p-6 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-red-600 focus:bg-white transition-all font-medium text-sm shadow-sm text-slate-900"
+              className="w-full px-6 py-5 bg-slate-50 border-2 border-transparent rounded-2xl outline-none focus:border-red-600 focus:bg-white transition-all font-medium text-sm text-slate-900 shadow-inner"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
-          {/* Login Button switched to AREWA RED */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-6 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.4em] flex items-center justify-center gap-3 hover:bg-red-700 transition-all shadow-xl shadow-red-100 disabled:opacity-50 active:scale-95 mt-4"
+            className="w-full py-5 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.3em] flex items-center justify-center gap-3 hover:bg-red-700 transition-all shadow-lg shadow-red-200 disabled:opacity-50 active:scale-[0.98] mt-6"
           >
             {loading ? (
               <Loader2 className="animate-spin text-white" />
             ) : (
               <>
-                Enter Classroom <ArrowRight size={20} />
+                Enter Classroom <ArrowRight size={18} />
               </>
             )}
           </button>
         </form>
 
-        <div className="mt-12 text-center border-t border-gray-100 pt-8">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-center gap-2">
+        <div className="mt-10 text-center border-t border-slate-100 pt-8">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-center gap-2">
             <UserCheck size={14} className="text-red-500" /> Secure Student
             Session
           </p>
