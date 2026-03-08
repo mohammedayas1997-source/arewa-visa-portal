@@ -17,7 +17,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // MUN BAMBANTA SUNAYEN DOMIN KOWANE SHAFIN YA SAMU ABINDA YAKE BUQATA
-export const firestore = getFirestore(app); // StaffLogin zai yi amfani da wannan
-export const db = getDatabase(app); // Sauran shafukan za su ci gaba da amfani da 'db'
-export const storage = getStorage(app);
 export const auth = getAuth(app);
+export const db = getFirestore(app); // 2. Wannan shi ne babban 'db' (Firestore)
+export const rtdb = getDatabase(app); // 3. Wannan shi ne 'rtdb' (Realtime Database)
+export const storage = getStorage(app);
