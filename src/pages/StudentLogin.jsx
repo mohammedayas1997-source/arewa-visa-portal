@@ -47,7 +47,7 @@ const StudentLogin = () => {
     try {
       const cleanEmail = email.trim().toLowerCase();
 
-      // 1. Sign in with Auth
+      // 1. Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(
         auth,
         cleanEmail,
@@ -55,45 +55,56 @@ const StudentLogin = () => {
       );
       const user = userCredential.user;
 
-      // 2. Fetch from Firestore using the UID
+      // 2. Fetch User Profile from Firestore
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
         const userData = userSnap.data();
 
-        // SMART CHECK: Looks for 'role' or 'Role'
-        const userRole = userData.role || userData.Role;
-        const userStatus = userData.status || userData.Status;
+        // Normalize Role and Status (Case-insensitive check)
+        const rawRole = userData.role || userData.Role || "";
+        const userRole = rawRole.toLowerCase().trim();
 
+        const rawStatus = userData.status || userData.Status || "";
+        const userStatus = rawStatus.toLowerCase().trim();
+
+        // 3. Student-Only Access Validation
         if (userRole !== "student") {
           await signOut(auth);
-          setError("RESTRICTED: This portal is for students only.");
+          setError(
+            `ACCESS RESTRICTED: This portal is for students only. Current role: ${rawRole}`,
+          );
           setLoading(false);
           return;
         }
 
         if (userStatus === "suspended" || userStatus === "inactive") {
           await signOut(auth);
-          setError("ACCOUNT INACTIVE: Your student account is suspended.");
+          setError(
+            "ACCOUNT INACTIVE: Your student account is currently suspended.",
+          );
           setLoading(false);
           return;
         }
 
-        // 3. Success
+        // 4. Successful Redirection
         navigate("/student-portal");
       } else {
-        // This runs if the UID doesn't match a Document ID in Firestore
         await signOut(auth);
-        console.error("No Firestore document found for UID:", user.uid);
-        setError("PROFILE ERROR: Profile not registered in database.");
+        setError("PROFILE ERROR: No student record found in the database.");
       }
     } catch (error) {
       console.error("Login Error:", error.code);
-      if (error.code === "auth/invalid-credential") {
-        setError("AUTH ERROR: Invalid email or password.");
+      if (
+        error.code === "auth/invalid-credential" ||
+        error.code === "auth/wrong-password"
+      ) {
+        setError("AUTHENTICATION FAILED: Invalid email or password.");
+      } else if (error.code === "auth/user-not-found") {
+        setError("AUTHENTICATION FAILED: No account found with this email.");
       } else {
-        setError("SYSTEM ERROR: " + error.message);
+        setError("SYSTEM ERROR: Unable to connect to security server.");
       }
     } finally {
       setLoading(false);
@@ -142,7 +153,6 @@ const StudentLogin = () => {
           boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
         }}
       >
-        {/* Accent Top Line */}
         <div
           style={{
             position: "absolute",
@@ -154,7 +164,6 @@ const StudentLogin = () => {
           }}
         ></div>
 
-        {/* Close Button */}
         <button
           onClick={() => navigate("/")}
           style={{
@@ -202,7 +211,7 @@ const StudentLogin = () => {
             style={{
               color: "#475569",
               fontSize: "10px",
-              fontWeight: "black",
+              fontWeight: "900",
               textTransform: "uppercase",
               letterSpacing: "4px",
               marginTop: "10px",
@@ -223,6 +232,7 @@ const StudentLogin = () => {
               fontSize: "11px",
               marginBottom: "25px",
               fontWeight: "bold",
+              textAlign: "center",
             }}
           >
             {error}
@@ -256,7 +266,7 @@ const StudentLogin = () => {
             </label>
             <input
               type="email"
-              placeholder="student@arewavisa.com"
+              placeholder="e.g. student@arewavisa.com"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -356,7 +366,11 @@ const StudentLogin = () => {
             }}
           >
             {loading ? (
-              <Loader2 className="animate-spin" style={{ margin: "0 auto" }} />
+              <Loader2
+                className="animate-spin"
+                style={{ margin: "0 auto" }}
+                size={24}
+              />
             ) : (
               "Authorize Access"
             )}

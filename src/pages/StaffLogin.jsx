@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { auth, firestore } from "../firebase";
+import { auth, db } from "../firebase";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { ShieldCheck, Loader2, ShieldAlert, X } from "lucide-react";
@@ -19,7 +19,7 @@ const StaffLogin = () => {
     setError("");
 
     try {
-      console.log("Attempting Auth for:", email);
+      // 1. Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email.trim().toLowerCase(),
@@ -27,24 +27,23 @@ const StaffLogin = () => {
       );
       const user = userCredential.user;
 
-      // Tabbatar an haɗa da db kafin kiran Firestore
       if (!db) {
-        throw new Error("Firestore instance (db) not found. Check firebase.js");
+        throw new Error("Firestore instance not initialized.");
       }
 
-      const userRef = doc(firestore, "users", user.uid);
+      // 2. Fetch User Profile from Firestore
+      const userRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userRef);
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
 
-        // Duba Role da Status (ko da babban harafi ko ƙarami)
-        const userRole = userData.role || userData.Role;
-        const userStatus = (
-          userData.status ||
-          userData.Status ||
-          ""
-        ).toLowerCase();
+        // Normalize Role and Status for comparison
+        const rawRole = userData.role || userData.Role || "";
+        const userRole = rawRole.toLowerCase().trim();
+
+        const rawStatus = userData.status || userData.Status || "";
+        const userStatus = rawStatus.toLowerCase().trim();
 
         const authorizedRoles = [
           "rector",
@@ -54,30 +53,36 @@ const StaffLogin = () => {
           "staff",
         ];
 
+        // 3. Validation Logic
         if (authorizedRoles.includes(userRole)) {
           if (userStatus === "active") {
-            console.log("Access Granted. Role:", userRole);
             navigate("/admin", { replace: true });
           } else {
             await signOut(auth);
-            setError("ACCESS DENIED: Asusunka baya aiki (Inactive).");
+            setError(
+              "ACCESS REVOKED: This administrative account is currently inactive.",
+            );
           }
         } else {
           await signOut(auth);
-          setError("UNAUTHORIZED: Wannan portal ɗin na ma'aikata ne kawai.");
+          setError(
+            `ACCESS DENIED: Insufficient permissions for role: ${rawRole}`,
+          );
         }
       } else {
         await signOut(auth);
-        setError("DATABASE ERROR: Ba'a sami profile ɗinka a Firestore ba.");
+        setError(
+          "DATABASE ERROR: No administrative profile found for this UID.",
+        );
       }
     } catch (err) {
-      console.error("Firebase Error Code:", err.code);
+      console.error("Auth Error:", err.code);
       if (
         err.code === "auth/invalid-credential" ||
         err.code === "auth/wrong-password" ||
         err.code === "auth/user-not-found"
       ) {
-        setError("AUTH FAILED: Imel ko Security Key ba daidai ba.");
+        setError("AUTHENTICATION FAILED: Invalid credentials or security key.");
       } else {
         setError("SYSTEM ERROR: " + err.message);
       }
@@ -100,7 +105,7 @@ const StaffLogin = () => {
         overflow: "hidden",
       }}
     >
-      {/* Background Glow */}
+      {/* Background Glow Decoration */}
       <div
         style={{
           position: "absolute",
@@ -153,6 +158,7 @@ const StaffLogin = () => {
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 20px",
+              boxShadow: "0 10px 20px rgba(220, 38, 38, 0.3)",
             }}
           >
             <ShieldCheck size={35} color="white" />
@@ -164,6 +170,7 @@ const StaffLogin = () => {
               fontWeight: "900",
               textTransform: "uppercase",
               margin: "0",
+              letterSpacing: "-1px",
             }}
           >
             Staff <span style={{ color: "#dc2626" }}>Command</span>
@@ -192,9 +199,12 @@ const StaffLogin = () => {
               borderRadius: "12px",
               fontSize: "11px",
               marginBottom: "20px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
             }}
           >
-            {error}
+            <ShieldAlert size={16} /> {error}
           </div>
         )}
 
@@ -202,38 +212,66 @@ const StaffLogin = () => {
           onSubmit={handleLogin}
           style={{ display: "flex", flexDirection: "column", gap: "20px" }}
         >
-          <input
-            type="email"
-            placeholder="Institutional Email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "15px",
-              backgroundColor: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "15px",
-              color: "white",
-              outline: "none",
-            }}
-          />
-          <input
-            type="password"
-            placeholder="Security Key"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "15px",
-              backgroundColor: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "15px",
-              color: "white",
-              outline: "none",
-            }}
-          />
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <label
+              style={{
+                color: "#94a3b8",
+                fontSize: "10px",
+                fontWeight: "900",
+                textTransform: "uppercase",
+                marginLeft: "5px",
+              }}
+            >
+              Institutional Email
+            </label>
+            <input
+              type="email"
+              placeholder="e.g. admin@arewavisa.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "15px",
+                backgroundColor: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "15px",
+                color: "white",
+                outline: "none",
+              }}
+            />
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <label
+              style={{
+                color: "#94a3b8",
+                fontSize: "10px",
+                fontWeight: "900",
+                textTransform: "uppercase",
+                marginLeft: "5px",
+              }}
+            >
+              Security Key
+            </label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "15px",
+                backgroundColor: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "15px",
+                color: "white",
+                outline: "none",
+              }}
+            />
+          </div>
+
           <button
             type="submit"
             disabled={loading}
@@ -246,17 +284,39 @@ const StaffLogin = () => {
               borderRadius: "15px",
               fontWeight: "900",
               textTransform: "uppercase",
+              fontSize: "12px",
+              letterSpacing: "2px",
               cursor: "pointer",
+              marginTop: "10px",
+              transition: "0.3s",
               opacity: loading ? 0.5 : 1,
             }}
           >
             {loading ? (
-              <Loader2 className="animate-spin" style={{ margin: "0 auto" }} />
+              <Loader2
+                className="animate-spin"
+                style={{ margin: "0 auto" }}
+                size={20}
+              />
             ) : (
               "Authorize Access"
             )}
           </button>
         </form>
+
+        <p
+          style={{
+            textAlign: "center",
+            color: "#475569",
+            fontSize: "9px",
+            marginTop: "30px",
+            fontWeight: "bold",
+            textTransform: "uppercase",
+            letterSpacing: "2px",
+          }}
+        >
+          © 2026 Arewa Visa Academy Hub
+        </p>
       </div>
     </div>
   );
