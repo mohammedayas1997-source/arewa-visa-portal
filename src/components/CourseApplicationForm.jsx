@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from "react"; // Na kara useRef
+import React, { useState, useEffect, useRef } from "react";
 import { db, storage } from "../firebase";
 import { ref, push, set, onValue } from "firebase/database";
 import ApplyPayment from "./ApplyPayment";
 import { QRCodeSVG } from "qrcode.react";
-import html2canvas from "html2canvas"; // Tabbatar kayi npm install html2canvas
-import { jsPDF } from "jspdf"; // Tabbatar kayi npm install jspdf
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import {
   ref as storageRef,
   uploadBytes,
@@ -42,7 +42,7 @@ const CourseApplicationForm = ({
   const [isPortalOpen, setIsPortalOpen] = useState(true);
   const [loadingPortal, setLoadingPortal] = useState(true);
   const [generatedID, setGeneratedID] = useState("");
-  const receiptRef = useRef(null); // Na kara wannan don kama receipt din
+  const receiptRef = useRef(null);
 
   const [applicationData, setApplicationData] = useState({
     name: "",
@@ -149,7 +149,7 @@ const CourseApplicationForm = ({
           : null,
       ]);
 
-      const newApplicationRef = push(dbRef(db, "applications"));
+      const newApplicationRef = push(ref(db, "applications"));
       await set(newApplicationRef, {
         ...formData,
         photoUrl,
@@ -167,7 +167,7 @@ const CourseApplicationForm = ({
       const message = `*NEW ADMISSION ALERT!*%0A%0A*Name:* ${formData.name}%0A*ID:* ${admissionID}%0A*Course:* ${formData.selectedCourseTitle}%0A*WhatsApp:* ${formData.whatsapp}%0A*Status:* PAID (₦5,000)`;
       window.open(
         `https://api.whatsapp.com/send?phone=${adminNumber}&text=${message}`,
-        "_blank",
+        `_blank`,
       );
     } catch (error) {
       console.error("Critical Submission Error:", error);
@@ -181,18 +181,21 @@ const CourseApplicationForm = ({
     setGeneratedID(admissionID);
 
     try {
-      await handleSubmitApplication(
-        {
-          ...applicationData,
-          amountPaid: 5000,
-          paymentStatus: "Completed",
-          paymentRef: reference.reference,
-        },
-        admissionID,
-      );
+      // Merge all fields before submission
+      const finalData = {
+        ...applicationData,
+        amountPaid: 5000,
+        paymentStatus: "Completed",
+        paymentRef: reference.reference,
+        type: "Course Application",
+      };
+
+      await handleSubmitApplication(finalData, admissionID);
+
       setIsSuccess(true);
       setShowPaymentStep(false);
     } catch (error) {
+      console.error("Payment Success Handler Error:", error);
       alert("Submission Failed! Please contact support.");
     } finally {
       setIsSubmitting(false);
@@ -208,15 +211,12 @@ const CourseApplicationForm = ({
       const canvas = await html2canvas(element, { scale: 2, useCORS: true });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
-      pdf.addImage(
-        imgData,
-        "PNG",
-        0,
-        0,
-        210,
-        (canvas.height * 210) / canvas.width,
-      );
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
       pdf.save(`AVA-RECEIPT-${generatedID}.pdf`);
+    } catch (error) {
+      console.error("Download Error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -273,7 +273,6 @@ const CourseApplicationForm = ({
         ) : (
           <div className="card-body p-0 bg-white">
             {isSuccess ? (
-              /* --- RECEIPT VIEW WITH REF --- */
               <div
                 ref={receiptRef}
                 id="printable-receipt"
@@ -424,7 +423,6 @@ const CourseApplicationForm = ({
                     </div>
                   </div>
                   <div className="d-flex gap-2 justify-content-center mt-4 d-print-none">
-                    {/* MAIDA KIRAN PDF DOWNLOAD ANAN */}
                     <button
                       onClick={downloadReceipt}
                       disabled={isSubmitting}
@@ -450,7 +448,6 @@ const CourseApplicationForm = ({
                 </div>
               </div>
             ) : !showPaymentStep ? (
-              /* --- FORM VIEW --- */
               <div className="row g-0">
                 <div className="col-md-3 bg-danger p-4 text-white text-center d-flex flex-column justify-content-center">
                   {photoPreview ? (
@@ -711,7 +708,6 @@ const CourseApplicationForm = ({
                 </div>
               </div>
             ) : (
-              /* --- PAYMENT VIEW --- */
               <div className="p-4 p-md-5 text-center bg-white text-dark">
                 <Wallet
                   size={55}
