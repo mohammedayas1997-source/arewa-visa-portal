@@ -28,32 +28,33 @@ const Register = () => {
   const handleSetup = async () => {
     if (loading) return;
 
-    // Safety check for Vercel Environment Variables
-    if (!db || !auth) {
-      setMsg(
-        "CRITICAL ERROR: Firebase not initialized. Check Vercel Env Vars.",
-      );
+    // Explicit initialization check for Rollup tracing
+    if (!auth || !db) {
+      setMsg("CRITICAL: Firebase SDK failed to initialize.");
       return;
     }
 
     setLoading(true);
-    setMsg("Deploying Core Infrastructure... Please wait.");
+    setMsg("Deploying Core Infrastructure...");
     setResults([]);
 
     for (const user of usersToCreate) {
       try {
-        // 1. Create in Firebase Auth
+        // 1. Create Authentication Account
         const userCredential = await createUserWithEmailAndPassword(
           auth,
           user.email,
           "Arewa@2026",
         );
 
-        // 2. Map to Firestore users collection
-        const userRef = doc(db, "users", userCredential.user.uid);
+        const uid = userCredential.user.uid;
 
-        await setDoc(userRef, {
-          uid: userCredential.user.uid,
+        // 2. Create Firestore Profile
+        // We define the reference separately to avoid Rollup tracing errors
+        const studentDocRef = doc(db, "users", uid);
+
+        await setDoc(studentDocRef, {
+          uid: uid,
           email: user.email,
           fullName: user.name,
           role: user.role,
@@ -66,7 +67,6 @@ const Register = () => {
           { email: user.email, status: "success" },
         ]);
       } catch (err) {
-        console.error("Deployment Error:", err.message);
         setResults((prev) => [
           ...prev,
           { email: user.email, status: "error", message: err.message },
@@ -123,7 +123,6 @@ const Register = () => {
               fontSize: "20px",
               fontWeight: "900",
               textTransform: "uppercase",
-              letterSpacing: "2px",
             }}
           >
             AVA User <span style={{ color: "#dc2626" }}>Terminal</span>
@@ -133,8 +132,6 @@ const Register = () => {
               color: loading ? "#dc2626" : "#475569",
               fontSize: "11px",
               marginTop: "10px",
-              textTransform: "uppercase",
-              letterSpacing: "1px",
             }}
           >
             {msg}
@@ -149,14 +146,8 @@ const Register = () => {
             marginBottom: "30px",
             border: "1px solid #1e293b",
             minHeight: "150px",
-            overflowY: "auto",
           }}
         >
-          {results.length === 0 && !loading && (
-            <p style={{ color: "#334155", fontSize: "12px" }}>
-              {">"} Awaiting @arewavisa.com initialization...
-            </p>
-          )}
           {results.map((res, i) => (
             <div
               key={i}
@@ -172,7 +163,7 @@ const Register = () => {
           ))}
           {loading && (
             <div style={{ color: "#dc2626", fontSize: "12px" }}>
-              {">"} Accessing Firestore Gateway...
+              {">"} Accessing Security Gateway...
             </div>
           )}
         </div>
@@ -188,35 +179,15 @@ const Register = () => {
             border: "none",
             borderRadius: "20px",
             fontWeight: "900",
-            textTransform: "uppercase",
-            fontSize: "13px",
-            letterSpacing: "3px",
             cursor: loading ? "not-allowed" : "pointer",
           }}
         >
           {loading ? (
             <Loader2 className="animate-spin" style={{ margin: "0 auto" }} />
           ) : (
-            "Initialize Institutional Accounts"
+            "Initialize Accounts"
           )}
         </button>
-
-        <div style={{ marginTop: "30px", textAlign: "center" }}>
-          <p
-            style={{
-              color: "#334155",
-              fontSize: "9px",
-              textTransform: "uppercase",
-              letterSpacing: "2px",
-            }}
-          >
-            <ShieldCheck
-              size={12}
-              style={{ verticalAlign: "middle", marginRight: "5px" }}
-            />{" "}
-            Secure Deployment Gateway
-          </p>
-        </div>
       </div>
     </div>
   );
