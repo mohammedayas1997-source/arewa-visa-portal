@@ -3,6 +3,7 @@ import { getFirestore } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
 import { getAuth } from "firebase/auth";
+import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBouYyVd9xanc9BNvgMhUBj745ufh_h6FQ",
@@ -17,7 +18,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // MUN BAMBANTA SUNAYEN DOMIN KOWANE SHAFIN YA SAMU ABINDA YAKE BUQATA
+export const db = getFirestore(app);
 export const auth = getAuth(app);
-export const db = getFirestore(app); // 2. Wannan shi ne babban 'db' (Firestore)
-export const rtdb = getDatabase(app); // 3. Wannan shi ne 'rtdb' (Realtime Database)
 export const storage = getStorage(app);
+export const analytics = getAnalytics(app);
+
+// Line 25 was deleted because it was a duplicate export
+export default app;
