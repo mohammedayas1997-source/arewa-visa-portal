@@ -1,8 +1,8 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
-import { getAnalytics } from "firebase/analytics";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBouYyVd9xanc9BNvgMhUBj745ufh_h6FQ",
@@ -17,10 +17,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // MUN BAMBANTA SUNAYEN DOMIN KOWANE SHAFIN YA SAMU ABINDA YAKE BUQATA
-export const db = getFirestore(app);
-export const auth = getAuth(app);
+export const firestore = getFirestore(app); // StaffLogin zai yi amfani da wannan
+export const db = getDatabase(app); // Sauran shafukan za su ci gaba da amfani da 'db'
 export const storage = getStorage(app);
-export const analytics = getAnalytics(app);
-
-// Line 25 was deleted because it was a duplicate export
-export default app;
+export const auth = getAuth(app);
