@@ -42,6 +42,36 @@ import RectorDashboard from "./pages/RectorDashboard.jsx";
 
 import "./App.css";
 
+// --- STATIC PAGES DEFINITIONS (Placed here to avoid "Undefined" error) ---
+const Library = () => (
+  <div
+    className="container mt-5 pt-5 text-center"
+    style={{ minHeight: "80vh" }}
+  >
+    <h1 className="fw-black italic text-blue-600">AVA E-LIBRARY</h1>
+    <p className="font-bold text-muted">
+      Access our global travel and hospitality resources here.
+    </p>
+  </div>
+);
+
+const Gallery = () => (
+  <div className="container mt-5 pt-5" style={{ minHeight: "80vh" }}>
+    <h1 className="text-center mb-4 fw-black italic">AVA GALLERY</h1>
+    <div className="row g-3">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="col-md-4">
+          <img
+            src={`https://via.placeholder.com/300?text=AVA+Event+${i}`}
+            className="img-fluid rounded-4 shadow-sm"
+            alt="Gallery"
+          />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -301,35 +331,5 @@ const LeaderboardWrapper = () => {
     </div>
   );
 };
-
-// --- STATIC PAGES ---
-const Library = () => (
-  <div
-    className="container mt-5 pt-5 text-center"
-    style={{ minHeight: "80vh" }}
-  >
-    <h1 className="fw-black italic text-blue-600">AVA E-LIBRARY</h1>
-    <p className="font-bold text-muted">
-      Access our global travel and hospitality resources here.
-    </p>
-  </div>
-);
-
-const Gallery = () => (
-  <div className="container mt-5 pt-5" style={{ minHeight: "80vh" }}>
-    <h1 className="text-center mb-4 fw-black italic">AVA GALLERY</h1>
-    <div className="row g-3">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="col-md-4">
-          <img
-            src={`https://via.placeholder.com/300?text=AVA+Event+${i}`}
-            className="img-fluid rounded-4 shadow-sm"
-            alt="Gallery"
-          />
-        </div>
-      ))}
-    </div>
-  </div>
-);
 
 export default App;
