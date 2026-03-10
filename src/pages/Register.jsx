@@ -9,7 +9,6 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
 
-  // --- UPDATED INSTITUTIONAL EMAILS ---
   const usersToCreate = [
     { email: "student@arewavisa.com", role: "student", name: "AVA Student" },
     { email: "admin@arewavisa.com", role: "admin", name: "System Admin" },
@@ -28,6 +27,15 @@ const Register = () => {
 
   const handleSetup = async () => {
     if (loading) return;
+
+    // Safety check for Vercel Environment Variables
+    if (!db || !auth) {
+      setMsg(
+        "CRITICAL ERROR: Firebase not initialized. Check Vercel Env Vars.",
+      );
+      return;
+    }
+
     setLoading(true);
     setMsg("Deploying Core Infrastructure... Please wait.");
     setResults([]);
@@ -38,11 +46,13 @@ const Register = () => {
         const userCredential = await createUserWithEmailAndPassword(
           auth,
           user.email,
-          "Arewa@2026", // Default secure password
+          "Arewa@2026",
         );
 
         // 2. Map to Firestore users collection
-        await setDoc(doc(db, "users", userCredential.user.uid), {
+        const userRef = doc(db, "users", userCredential.user.uid);
+
+        await setDoc(userRef, {
           uid: userCredential.user.uid,
           email: user.email,
           fullName: user.name,
@@ -56,6 +66,7 @@ const Register = () => {
           { email: user.email, status: "success" },
         ]);
       } catch (err) {
+        console.error("Deployment Error:", err.message);
         setResults((prev) => [
           ...prev,
           { email: user.email, status: "error", message: err.message },
@@ -161,7 +172,7 @@ const Register = () => {
           ))}
           {loading && (
             <div style={{ color: "#dc2626", fontSize: "12px" }}>
-              {">"} Writing to Firestore database...
+              {">"} Accessing Firestore Gateway...
             </div>
           )}
         </div>
