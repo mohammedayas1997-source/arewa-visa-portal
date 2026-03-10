@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-// FIXED: Importing both db (Firestore) and rtdb (Realtime Database) separately
+// EXPLICIT SEPARATION: db for Firestore, rtdb for Realtime Database
 import { db, rtdb, storage } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { ref, push, set, onValue } from "firebase/database";
@@ -68,11 +68,13 @@ const CourseApplicationForm = ({
     cvFile: null,
   });
 
-  // --- PORTAL STATUS CHECK ---
+  // --- PORTAL STATUS CHECK (RTDB) ---
   useEffect(() => {
     if (!showCourseForm) return;
-    // FIXED: Using rtdb for portal status check
+
+    // Using rtdb instance specifically for Realtime Database functions
     const portalStatusRef = ref(rtdb, "settings/coursePortalStatus");
+
     const timeoutFallback = setTimeout(() => {
       if (loadingPortal) {
         setLoadingPortal(false);
@@ -151,7 +153,7 @@ const CourseApplicationForm = ({
           : null,
       ]);
 
-      // FIXED: Using rtdb for applications submission
+      // Using rtdb instance for pushing application data
       const newApplicationRef = push(ref(rtdb, "applications"));
       await set(newApplicationRef, {
         ...formData,

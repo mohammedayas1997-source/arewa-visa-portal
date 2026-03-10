@@ -36,13 +36,12 @@ import AdminContentManager from "./components/AdminContentManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AcademicExam from "./components/AcademicExam";
 import StaffLogin from "./pages/StaffLogin";
-// GYARA NA KARSHE: Tabbatar sunan fayil din ya dace da folder pages
 import AdmissionOfficerDashboard from "./pages/AdmissionOfficerDashboard.jsx";
 import RectorDashboard from "./pages/RectorDashboard.jsx";
 
 import "./App.css";
 
-// --- STATIC PAGES DEFINITIONS (Placed here to avoid "Undefined" error) ---
+// --- STATIC PAGES DEFINITIONS (Hoisted to prevent initialization errors) ---
 const Library = () => (
   <div
     className="container mt-5 pt-5 text-center"
@@ -90,7 +89,7 @@ function App() {
     const courseTitle = document.getElementById(`course-${student.id}`)?.value;
 
     if (!completionDate) {
-      alert("Kuskure: Zabi ranar kammalawa (Completion Date)!");
+      alert("ERROR: Please select a Completion Date!");
       return;
     }
 
@@ -111,7 +110,7 @@ function App() {
       // 2. Generate PDF from DOM
       const input = document.getElementById(`cert-pdf-${student.id}`);
       if (!input) {
-        alert("Ba a samu template din Certificate ba!");
+        alert("CRITICAL ERROR: Certificate template not found!");
         return;
       }
 
@@ -124,9 +123,9 @@ function App() {
       // 3. Download PDF
       pdf.save(`AVA-${student.fullName}-Certificate.pdf`);
 
-      alert(`Nasara! An samar da Certificate na ${student.fullName}.`);
+      alert(`SUCCESS: Certificate generated for ${student.fullName}.`);
     } catch (err) {
-      alert("Kuskure wajen samar da Certificate: " + err.message);
+      alert("SYSTEM ERROR: Failed to generate certificate: " + err.message);
     }
   };
 
