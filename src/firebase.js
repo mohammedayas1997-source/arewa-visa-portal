@@ -14,10 +14,13 @@ const firebaseConfig = {
   measurementId: "G-MD8K7541V3",
 };
 
+// Initialize Firebase App
 const app = initializeApp(firebaseConfig);
 
-// Exporting individual services directly
+// Direct Exports
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const rtdb = getDatabase(app);
 export const storage = getStorage(app);
+
+// Explicitly NO default export to avoid "Could not resolve" errors
