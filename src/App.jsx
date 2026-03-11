@@ -10,7 +10,6 @@ import { auth, db } from './firebase'; // Added db for firebase updates
 import { ref, set } from 'firebase/database'; 
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, updateDoc, serverTimestamp, setDoc } from "firebase/firestore";
-import Register from "./pages/Register";
 // --- EXTERNAL LIBRARIES ---
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -153,7 +152,7 @@ function App() {
           <Route path="/gallery" element={<Gallery />} />
           <Route path="/login" element={<StudentLogin />} />
           <Route path="/student-login" element={<StudentLogin />} />
-          <Route path="/setup-ava-users" element={<Register />} />
+  
 
           {/* ADMIN GATEWAY */}
           <Route path="/admin-gateway" element={<StaffLogin />} />
