@@ -1,41 +1,35 @@
 import React, { useState } from "react";
-import { auth, db } from "../firebase";
+// UPDATED: Using 'firestore' as the variable name for Firestore services
+import { auth, firestore } from "../firebase"; 
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { Loader2, Terminal, ShieldCheck } from "lucide-react";
 
 const Register = () => {
-  const [msg, setMsg] = useState("System ready for @arewavisa.com deployment.");
+  const [msg, setMsg] = useState("System ready for @arewavacademy.edu.ng deployment.");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
 
+  // UPDATED: All institutional emails now use the .edu.ng domain
   const usersToCreate = [
-    { email: "student@arewavisa.com", role: "student", name: "AVA Student" },
-    { email: "admin@arewavisa.com", role: "admin", name: "System Admin" },
-    { email: "rector@arewavisa.com", role: "rector", name: "Academy Rector" },
-    {
-      email: "admin-content@arewavisa.com",
-      role: "instructor",
-      name: "Content Manager",
-    },
-    {
-      email: "admission@arewavisa.com",
-      role: "admission-officer",
-      name: "Admission Officer",
-    },
+    { email: "student@arewavacademy.edu.ng", role: "student", name: "AVA Student" },
+    { email: "admin@arewavacademy.edu.ng", role: "admin", name: "System Admin" },
+    { email: "rector@arewavacademy.edu.ng", role: "rector", name: "Academy Rector" },
+    { email: "admin-content@arewavacademy.edu.ng", role: "instructor", name: "Content Manager" },
+    { email: "admission@arewavacademy.edu.ng", role: "admission-officer", name: "Admission Officer" },
   ];
 
   const handleSetup = async () => {
     if (loading) return;
 
-    // Explicit initialization check for Rollup tracing
-    if (!auth || !db) {
-      setMsg("CRITICAL: Firebase SDK failed to initialize.");
+    // Safety check for Firebase Initialization
+    if (!auth || !firestore) {
+      setMsg("CRITICAL: Firebase SDK (Auth or Firestore) failed to initialize.");
       return;
     }
 
     setLoading(true);
-    setMsg("Deploying Core Infrastructure...");
+    setMsg("Deploying Core Infrastructure to .edu.ng...");
     setResults([]);
 
     for (const user of usersToCreate) {
@@ -44,16 +38,16 @@ const Register = () => {
         const userCredential = await createUserWithEmailAndPassword(
           auth,
           user.email,
-          "Arewa@2026",
+          "Arewa@2026"
         );
 
         const uid = userCredential.user.uid;
 
-        // 2. Create Firestore Profile
-        // We define the reference separately to avoid Rollup tracing errors
-        const studentDocRef = doc(db, "users", uid);
+        // 2. Create Firestore Profile 
+        // We use 'firestore' instance here instead of 'db' to match your config
+        const userDocRef = doc(firestore, "users", uid);
 
-        await setDoc(studentDocRef, {
+        await setDoc(userDocRef, {
           uid: uid,
           email: user.email,
           fullName: user.name,
@@ -75,7 +69,7 @@ const Register = () => {
     }
 
     setLoading(false);
-    setMsg("Deployment Finished for @arewavisa.com");
+    setMsg("Deployment Finished for @arewavacademy.edu.ng");
   };
 
   return (
@@ -146,8 +140,14 @@ const Register = () => {
             marginBottom: "30px",
             border: "1px solid #1e293b",
             minHeight: "150px",
+            overflowY: "auto"
           }}
         >
+          {results.length === 0 && !loading && (
+            <div style={{ color: "#334155", fontSize: "12px" }}>
+              {">"} Awaiting @arewavacademy.edu.ng initialization...
+            </div>
+          )}
           {results.map((res, i) => (
             <div
               key={i}
@@ -163,7 +163,7 @@ const Register = () => {
           ))}
           {loading && (
             <div style={{ color: "#dc2626", fontSize: "12px" }}>
-              {">"} Accessing Security Gateway...
+              {">"} Initializing Secure Handshake...
             </div>
           )}
         </div>
@@ -179,15 +179,35 @@ const Register = () => {
             border: "none",
             borderRadius: "20px",
             fontWeight: "900",
+            textTransform: "uppercase",
+            fontSize: "13px",
+            letterSpacing: "2px",
             cursor: loading ? "not-allowed" : "pointer",
           }}
         >
           {loading ? (
             <Loader2 className="animate-spin" style={{ margin: "0 auto" }} />
           ) : (
-            "Initialize Accounts"
+            "Initialize Institutional Accounts"
           )}
         </button>
+
+        <div style={{ marginTop: "30px", textAlign: "center" }}>
+          <p
+            style={{
+              color: "#334155",
+              fontSize: "9px",
+              textTransform: "uppercase",
+              letterSpacing: "2px",
+            }}
+          >
+            <ShieldCheck
+              size={12}
+              style={{ verticalAlign: "middle", marginRight: "5px" }}
+            />{" "}
+            Secure Deployment Gateway
+          </p>
+        </div>
       </div>
     </div>
   );
