@@ -43,18 +43,18 @@ const Register = () => {
 
         const uid = userCredential.user.uid;
 
+
         // 2. Create Firestore Profile 
         // We use 'firestore' instance here instead of 'db' to match your config
         const userDocRef = doc(firestore, "users", uid);
-
-        await setDoc(userDocRef, {
-          uid: uid,
-          email: user.email,
-          fullName: user.name,
-          role: user.role,
-          status: "active",
-          createdAt: serverTimestamp(),
-        });
+       await setDoc(userDocRef, {
+        uid: uid,
+        email: user.email,
+        fullName: user.name,
+        role: user.role,
+        status: "active",
+        createdAt: serverTimestamp(),
+      });
 
         setResults((prev) => [
           ...prev,
