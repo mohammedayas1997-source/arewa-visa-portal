@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-// IMPORTING both firestore (for profiles) and db (for settings)
-import { db, storage, firestore } from "../firebase";
-import { ref, onValue } from "firebase/database";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+// RESTORED: Using only your original 'db' (Real-time DB) and 'storage'
+import { db, storage } from "../firebase";
+import { ref, push, set, onValue } from "firebase/database";
 import ApplyPayment from "./ApplyPayment";
 import { QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
@@ -72,12 +71,32 @@ const CourseApplicationForm = ({
   useEffect(() => {
     if (!showCourseForm) return;
     const portalRef = ref(db, "settings/coursePortalStatus");
-    const unsubscribe = onValue(portalRef, (snapshot) => {
-      const data = snapshot.val();
-      setIsPortalOpen(data === null ? true : data);
-      setLoadingPortal(false);
-    });
-    return () => unsubscribe();
+    const timeoutFallback = setTimeout(() => {
+      if (loadingPortal) {
+        setLoadingPortal(false);
+        setIsPortalOpen(true);
+      }
+    }, 2000);
+
+    const unsubscribe = onValue(
+      portalRef,
+      (snapshot) => {
+        clearTimeout(timeoutFallback);
+        const data = snapshot.val();
+        setIsPortalOpen(data === null ? true : data);
+        setLoadingPortal(false);
+      },
+      (error) => {
+        clearTimeout(timeoutFallback);
+        setIsPortalOpen(true);
+        setLoadingPortal(false);
+      },
+    );
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeoutFallback);
+    };
   }, [showCourseForm]);
 
   // --- FUNCTIONS ---
@@ -115,37 +134,45 @@ const CourseApplicationForm = ({
     try {
       const timestamp = Date.now();
 
-      // 1. Upload all files to Storage
-      const [photoUrl, resumeUrl] = await Promise.all([
+      // 1. Upload files to Storage first
+      const [photoUrl, resumeUrl, passportUrl, cvUrl] = await Promise.all([
         formData.photoFile
           ? uploadFile(formData.photoFile, `apps/${timestamp}/photo`)
           : null,
         formData.resumeFile
           ? uploadFile(formData.resumeFile, `apps/${timestamp}/resume`)
           : null,
+        formData.passportFile
+          ? uploadFile(formData.passportFile, `apps/${timestamp}/passport`)
+          : null,
+        formData.cvFile
+          ? uploadFile(formData.cvFile, `apps/${timestamp}/cv`)
+          : null,
       ]);
 
-      // 2. Prepare Clean Data (Excluding raw file objects)
+      // 2. Prepare Clean Data (Crucial: Remove the raw File objects before saving to Realtime DB)
       const cleanData = { ...formData };
       delete cleanData.photoFile;
       delete cleanData.passportFile;
       delete cleanData.resumeFile;
       delete cleanData.cvFile;
 
-      // 3. SAVE TO FIRESTORE (Crucial for Login)
-      const studentDocRef = doc(firestore, "applications", admissionID);
-      await setDoc(studentDocRef, {
+      // 3. Save to Realtime Database (db)
+      const newApplicationRef = push(ref(db, "applications"));
+      await set(newApplicationRef, {
         ...cleanData,
         photoUrl,
         resumeUrl,
+        passportUrl,
+        cvUrl,
         admissionID,
         paymentRef,
         paymentStatus: "paid",
-        status: "active",
-        createdAt: serverTimestamp(),
+        status: "Pending Review",
+        createdAt: new Date().toISOString(),
       });
 
-      // WhatsApp Integration
+      // 4. WhatsApp Automation
       const adminNumber = "2347087244444";
       const msg = `*NEW ADMISSION ALERT!*%0A%0A*Name:* ${formData.name}%0A*ID:* ${admissionID}%0A*Course:* ${formData.selectedCourseTitle}%0A*Status:* PAID (₦5,000)`;
       window.open(
@@ -164,15 +191,21 @@ const CourseApplicationForm = ({
     setGeneratedID(admissionID);
 
     try {
+      // Calling the submission function with the payment reference
       await handleSubmitApplication(
         applicationData,
         admissionID,
         reference.reference || reference,
       );
+
+      // Trigger the Success Receipt view
       setIsSuccess(true);
       setShowPaymentStep(false);
     } catch (error) {
-      alert("Submission Failed: " + error.message);
+      console.error("Process Failure:", error);
+      alert(
+        "System Error: Could not save admission data. Please contact support.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -196,7 +229,7 @@ const CourseApplicationForm = ({
       );
       pdf.save(`AVA-RECEIPT-${generatedID}.pdf`);
     } catch (error) {
-      console.error("Download Error:", error);
+      console.error("PDF Error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -253,7 +286,7 @@ const CourseApplicationForm = ({
         ) : (
           <div className="card-body p-0 bg-white">
             {isSuccess ? (
-              /* RESTORED PREMIUM RECEIPT VIEW */
+              /* --- PREMIUM RECEIPT VIEW --- */
               <div
                 ref={receiptRef}
                 id="printable-receipt"
@@ -446,7 +479,7 @@ const CourseApplicationForm = ({
                 </div>
               </div>
             ) : !showPaymentStep ? (
-              /* RESTORED FULL FORM VIEW */
+              /* --- FULL APPLICATION FORM --- */
               <div className="row g-0">
                 <div className="col-md-3 bg-danger p-4 text-white text-center d-flex flex-column justify-content-center">
                   {photoPreview ? (
@@ -707,7 +740,7 @@ const CourseApplicationForm = ({
                 </div>
               </div>
             ) : (
-              /* PAYMENT STEP */
+              /* --- PAYMENT STEP --- */
               <div className="p-4 p-md-5 text-center bg-white text-dark animate__animated animate__zoomIn">
                 <Wallet
                   size={55}
