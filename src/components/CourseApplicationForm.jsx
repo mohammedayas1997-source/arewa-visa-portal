@@ -117,6 +117,13 @@ const CourseApplicationForm = ({ showCourseForm, setShowCourseForm, coursesData 
       // 4. Save to Firestore (For Admin/Officer Dashboard)
       await addDoc(collection(firestore, "applications"), finalRecord);
 
+      // --- WHATSAPP NOTIFICATION LOGIC ---
+      const adminWhatsApp = "2348165372359";
+      const message = `*NEW ADMISSION PAID*%0A%0A*ID:* ${admissionID}%0A*Name:* ${applicationData.name}%0A*Program:* ${applicationData.selectedCourseTitle}%0A*WhatsApp:* ${applicationData.whatsapp}%0A*Status:* Payment Verified (₦5,000)`;
+      
+      const whatsappUrl = `https://wa.me/${adminWhatsApp}?text=${message}`;
+      window.open(whatsappUrl, "_blank");
+
       setIsSuccess(true);
       setShowPaymentStep(false);
     } catch (error) {
@@ -222,7 +229,6 @@ const CourseApplicationForm = ({ showCourseForm, setShowCourseForm, coursesData 
                 </div>
                 <div className="col-md-9 p-4 p-md-5 bg-white text-dark text-start">
                   <form className="row g-3" onSubmit={handleFormSubmit}>
-                    {/* PERSONAL SECTION */}
                     <div className="col-12 border-bottom pb-2"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><User size={16}/> Personal Information</h6></div>
                     <div className="col-md-6"><label className="form-label small fw-bold">Full Name</label><input type="text" name="name" value={applicationData.name} onChange={handleChange} className="form-control" required /></div>
                     <div className="col-md-6"><label className="form-label small fw-bold">Email</label><input type="email" name="email" value={applicationData.email} onChange={handleChange} className="form-control" required /></div>
@@ -230,20 +236,17 @@ const CourseApplicationForm = ({ showCourseForm, setShowCourseForm, coursesData 
                     <div className="col-md-4"><label className="form-label small fw-bold">Age</label><input type="number" name="age" value={applicationData.age} onChange={handleChange} className="form-control" required /></div>
                     <div className="col-md-4"><label className="form-label small fw-bold">WhatsApp</label><input type="tel" name="whatsapp" value={applicationData.whatsapp} onChange={handleChange} className="form-control" required /></div>
 
-                    {/* IDENTITY SECTION */}
                     <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><FileText size={16}/> Identity & Origin</h6></div>
                     <div className="col-md-6"><label className="form-label small fw-bold">NIN Number</label><input type="text" name="nin" value={applicationData.nin} onChange={handleChange} className="form-control" required /></div>
                     <div className="col-md-6"><label className="form-label small fw-bold">Passport No (Optional)</label><input type="text" name="passportNo" value={applicationData.passportNo} onChange={handleChange} className="form-control" /></div>
                     <div className="col-md-6"><label className="form-label small fw-bold">State of Origin</label><input type="text" name="state" value={applicationData.state} onChange={handleChange} className="form-control" required /></div>
                     <div className="col-md-6"><label className="form-label small fw-bold">LGA</label><input type="text" name="lga" value={applicationData.lga} onChange={handleChange} className="form-control" required /></div>
 
-                    {/* CAREER SECTION */}
                     <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><Briefcase size={16}/> Career & Home</h6></div>
                     <div className="col-md-6"><label className="form-label small fw-bold">Occupation</label><input type="text" name="job" value={applicationData.job} onChange={handleChange} className="form-control" /></div>
                     <div className="col-md-6"><label className="form-label small fw-bold">Job Country</label><input type="text" name="jobCountry" value={applicationData.jobCountry} onChange={handleChange} className="form-control" /></div>
                     <div className="col-12"><label className="form-label small fw-bold">Full Address</label><textarea name="address" value={applicationData.address} onChange={handleChange} className="form-control" rows="2" required></textarea></div>
 
-                    {/* PROGRAM SECTION */}
                     <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><GraduationCap size={16}/> Program Selection</h6></div>
                     <div className="col-12"><select className="form-select py-2" name="selectedCourseTitle" value={applicationData.selectedCourseTitle} onChange={handleChange} required><option value="">-- Choose Course --</option>{coursesData?.map((c) => (<option key={c.id} value={c.title}>{c.title}</option>))}</select></div>
                     <div className="col-md-6"><label className="form-label small fw-bold">Passport Photo</label><input type="file" className="form-control" accept="image/*" onChange={handlePhotoChange} required /></div>
