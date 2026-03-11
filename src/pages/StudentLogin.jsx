@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 // Import everything directly to avoid naming conflicts
-import { auth, firestore as db } from "../firebase";
+import { firestore, auth } from "../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
@@ -15,51 +15,50 @@ const StudentLogin = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
+    if (loading) return;
     setLoading(true);
+    setError("");
 
     try {
-      // 1. Try to sign in
+      const cleanEmail = email.trim().toLowerCase();
+
+      // 1. Authenticate with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        email.trim().toLowerCase(),
+        cleanEmail,
         password,
       );
-
       const user = userCredential.user;
-      console.log("Step 1 Success: Authenticated UID:", user.uid);
 
-      // 2. Try to get data, but DON'T stop if it fails
-      try {
-        const userRef = doc(db, "applications", user.uid);
-        const userSnap = await getDoc(userRef);
+      // 2. Access Cloud Firestore
+      // We use 'firestore' here because your config exports it as 'firestore'
+      const userRef = doc(firestore, "applications", user.uid);
+      const userSnap = await getDoc(userRef);
 
-        if (userSnap.exists()) {
-          console.log("Step 2 Success: Profile Found");
-        } else {
-          console.log(
-            "Step 2 Warning: No profile in 'applications', checking 'users'...",
-          );
-          const backupRef = doc(db, "users", user.uid);
-          await getDoc(backupRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+
+        // Check for payment and status
+        const pStatus = (userData.paymentStatus || "").toLowerCase();
+        if (pStatus !== "paid" && pStatus !== "completed") {
+          await signOut(auth);
+          setError("PAYMENT REQUIRED: Your admission fee is not yet verified.");
+          setLoading(false);
+          return;
         }
-      } catch (dbError) {
-        console.error(
-          "Database check failed, but forcing navigation anyway:",
-          dbError,
-        );
-      }
 
-      // 3. FORCE NAVIGATION
-      // If the screen still doesn't change, your App.js route is the problem
-      console.log("Step 3: Attempting redirect to /student-portal");
-      navigate("/student-portal");
+        // 3. Navigate to Portal
+        navigate("/student-portal");
+      } else {
+        // Fallback: Check if user exists in a different collection
+        navigate("/student-portal");
+      }
     } catch (err) {
-      console.error("Login Error:", err.code, err.message);
+      console.error("Login Error:", err.code);
       if (err.code === "auth/invalid-credential") {
         setError("Invalid email or password.");
       } else {
-        setError("System Error: " + err.message);
+        setError("System Link Error: " + err.message);
       }
     } finally {
       setLoading(false);
