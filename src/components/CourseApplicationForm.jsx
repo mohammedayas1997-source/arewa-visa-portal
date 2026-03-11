@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-// RESTORED: Using only your original 'db' (Real-time DB) and 'storage'
+// GYARA: Mun tabbatar 'db' (Real-time DB) da 'storage' suna nan kamar yadda kake so
+// Amma muna bukatar 'firestore' idan har zaka taba bangaren roles a nan gaba
 import { db, storage } from "../firebase";
 import { ref, push, set, onValue } from "firebase/database";
 import ApplyPayment from "./ApplyPayment";
@@ -135,22 +136,13 @@ const CourseApplicationForm = ({
       const timestamp = Date.now();
 
       // 1. Upload files to Storage first
-      const [photoUrl, resumeUrl, passportUrl, cvUrl] = await Promise.all([
-        formData.photoFile
-          ? uploadFile(formData.photoFile, `apps/${timestamp}/photo`)
-          : null,
-        formData.resumeFile
-          ? uploadFile(formData.resumeFile, `apps/${timestamp}/resume`)
-          : null,
-        formData.passportFile
-          ? uploadFile(formData.passportFile, `apps/${timestamp}/passport`)
-          : null,
-        formData.cvFile
-          ? uploadFile(formData.cvFile, `apps/${timestamp}/cv`)
-          : null,
-      ]);
+      // MUN GYARA: Mun tabbatar 'uploadFile' yana aiki ba tare da tsayawa ba
+      const photoUrl = formData.photoFile ? await uploadFile(formData.photoFile, `apps/${timestamp}/photo`) : null;
+      const resumeUrl = formData.resumeFile ? await uploadFile(formData.resumeFile, `apps/${timestamp}/resume`) : null;
+      const passportUrl = formData.passportFile ? await uploadFile(formData.passportFile, `apps/${timestamp}/passport`) : null;
+      const cvUrl = formData.cvFile ? await uploadFile(formData.cvFile, `apps/${timestamp}/cv`) : null;
 
-      // 2. Prepare Clean Data (Crucial: Remove the raw File objects before saving to Realtime DB)
+      // 2. Prepare Clean Data
       const cleanData = { ...formData };
       delete cleanData.photoFile;
       delete cleanData.passportFile;
@@ -158,6 +150,7 @@ const CourseApplicationForm = ({
       delete cleanData.cvFile;
 
       // 3. Save to Realtime Database (db)
+      // MUHIMMI: Tabbatar 'db' dinka a firebase.js Realtime Database ne
       const newApplicationRef = push(ref(db, "applications"));
       await set(newApplicationRef, {
         ...cleanData,
@@ -191,20 +184,19 @@ const CourseApplicationForm = ({
     setGeneratedID(admissionID);
 
     try {
-      // Calling the submission function with the payment reference
+      // Calling the submission function
       await handleSubmitApplication(
         applicationData,
         admissionID,
         reference.reference || reference,
       );
 
-      // Trigger the Success Receipt view
       setIsSuccess(true);
       setShowPaymentStep(false);
     } catch (error) {
       console.error("Process Failure:", error);
       alert(
-        "System Error: Could not save admission data. Please contact support.",
+        "System Error: Could not save admission data. Check your connection.",
       );
     } finally {
       setIsSubmitting(false);
@@ -750,7 +742,7 @@ const CourseApplicationForm = ({
                   Tuition Payment
                 </h3>
                 <p className="text-muted">
-                  Enrollment for:{" "}
+                  Enroll for:{" "}
                   <strong className="text-danger">
                     {applicationData.name}
                   </strong>
