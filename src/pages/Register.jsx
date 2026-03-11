@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-// UPDATED: Using 'firestore' as the variable name for Firestore services
+// Import 'firestore' exactly as it is named in your firebase.js
 import { auth, firestore } from "../firebase"; 
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -10,7 +10,6 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
 
-  // UPDATED: All institutional emails now use the .edu.ng domain
   const usersToCreate = [
     { email: "student@arewavacademy.edu.ng", role: "student", name: "AVA Student" },
     { email: "admin@arewavacademy.edu.ng", role: "admin", name: "System Admin" },
@@ -22,9 +21,12 @@ const Register = () => {
   const handleSetup = async () => {
     if (loading) return;
 
-    // Safety check for Firebase Initialization
-    if (!auth || !firestore) {
-      setMsg("CRITICAL: Firebase SDK (Auth or Firestore) failed to initialize.");
+    // Pinning references to help Rollup trace variables correctly
+    const currentAuth = auth;
+    const currentDb = firestore;
+
+    if (!currentAuth || !currentDb) {
+      setMsg("CRITICAL: Firebase SDK failed to initialize.");
       return;
     }
 
@@ -32,29 +34,29 @@ const Register = () => {
     setMsg("Deploying Core Infrastructure to .edu.ng...");
     setResults([]);
 
+    // Using a for...of loop for cleaner async execution
     for (const user of usersToCreate) {
       try {
         // 1. Create Authentication Account
         const userCredential = await createUserWithEmailAndPassword(
-          auth,
+          currentAuth,
           user.email,
           "Arewa@2026"
         );
 
         const uid = userCredential.user.uid;
 
+        // 2. Create Firestore Profile using pinned reference
+        const userDocRef = doc(currentDb, "users", uid);
 
-        // 2. Create Firestore Profile 
-        // We use 'firestore' instance here instead of 'db' to match your config
-        const userDocRef = doc(firestore, "users", uid);
-       await setDoc(userDocRef, {
-        uid: uid,
-        email: user.email,
-        fullName: user.name,
-        role: user.role,
-        status: "active",
-        createdAt: serverTimestamp(),
-      });
+        await setDoc(userDocRef, {
+          uid: uid,
+          email: user.email,
+          fullName: user.name,
+          role: user.role,
+          status: "active",
+          createdAt: serverTimestamp(),
+        });
 
         setResults((prev) => [
           ...prev,

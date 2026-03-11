@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-// Import everything directly to avoid naming conflicts
-import { auth, firestore } from "../firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+// 1. FIXED: Imported firestore and auth correctly from your firebase.js
+import { auth, firestore } from "../firebase"; 
+// 2. FIXED: Added signOut so the payment-rejection logic works
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Loader2, X } from "lucide-react";
+import { BookOpen, Loader2 } from "lucide-react";
 
 const StudentLogin = () => {
   const [email, setEmail] = useState("");
@@ -22,41 +23,44 @@ const StudentLogin = () => {
     try {
       const cleanEmail = email.trim().toLowerCase();
 
-      // 1. Authenticate with Firebase Auth
+      // Authenticate with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(
         auth,
         cleanEmail,
-        password,
+        password
       );
       const user = userCredential.user;
 
-      // 2. Access Cloud Firestore
-      // We use 'firestore' here because your config exports it as 'firestore'
-      const userRef = doc(firestore, "applications", user.uid);
-      const userSnap = await getDoc(userRef);
-      const userDoc = await getDoc(doc(firestore, "users", user.uid));
+      // 3. FIXED: Using 'firestore' instance correctly for Student Admission logic
+      // We check the "applications" collection for the payment status
+      const appRef = doc(firestore, "applications", user.uid);
+      const appSnap = await getDoc(appRef);
 
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
+      if (appSnap.exists()) {
+        const userData = appSnap.data();
 
-        // Check for payment and status
+        // 4. FIXED: Enhanced payment status verification
         const pStatus = (userData.paymentStatus || "").toLowerCase();
         if (pStatus !== "paid" && pStatus !== "completed") {
-          await signOut(auth);
-          setError("PAYMENT REQUIRED: Your admission fee is not yet verified.");
+          await signOut(auth); // User is logged out if they haven't paid
+          setError("PAYMENT REQUIRED: Your admission fee is not verified.");
           setLoading(false);
           return;
         }
 
-        // 3. Navigate to Portal
         navigate("/student-portal");
       } else {
-        // Fallback: Check if user exists in a different collection
-        navigate("/student-portal");
+        // If no application found, check for a standard user profile
+        const userDoc = await getDoc(doc(firestore, "users", user.uid));
+        if (userDoc.exists()) {
+          navigate("/student-portal");
+        } else {
+          setError("PROFILE NOT FOUND: Please contact AVA support.");
+        }
       }
     } catch (err) {
       console.error("Login Error:", err.code);
-      if (err.code === "auth/invalid-credential") {
+      if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found") {
         setError("Invalid email or password.");
       } else {
         setError("System Link Error: " + err.message);
@@ -121,7 +125,7 @@ const StudentLogin = () => {
         >
           <input
             type="email"
-            placeholder="Email"
+            placeholder="Email Address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={{
@@ -135,7 +139,7 @@ const StudentLogin = () => {
           />
           <input
             type="password"
-            placeholder="Password"
+            placeholder="Account Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={{
@@ -163,7 +167,7 @@ const StudentLogin = () => {
             {loading ? (
               <Loader2 className="animate-spin" style={{ margin: "auto" }} />
             ) : (
-              "LOGIN NOW"
+              "STUDENT ACCESS"
             )}
           </button>
         </form>

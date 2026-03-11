@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+// Import 'firestore' to match your latest firebase.js configuration
 import { auth, firestore } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { signInWithEmailAndPassword } from "firebase/auth"; 
+import { signInWithEmailAndPassword, signOut } from "firebase/auth"; 
 import { Lock, User, ShieldAlert } from "lucide-react";
 
 const AdminLogin = ({ onLogin }) => {
@@ -16,18 +17,45 @@ const AdminLogin = ({ onLogin }) => {
     setError('');
 
     try {
-      // Using .trim() to remove any accidental spaces and .toLowerCase() for consistency
-      await signInWithEmailAndPassword(auth, username.trim().toLowerCase(), password);
-      onLogin(true);
+      // 1. Authenticate with Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(
+        auth, 
+        username.trim().toLowerCase(), 
+        password
+      );
+      
+      const user = userCredential.user;
+
+      // 2. CRITICAL: Role Verification Logic
+      // We must check the "users" collection in Firestore to verify the role
+      const userDocRef = doc(firestore, "users", user.uid);
+      const userSnap = await getDoc(userDocRef);
+
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        const allowedRoles = ['admin', 'rector', 'instructor', 'admission-officer'];
+
+        if (allowedRoles.includes(userData.role)) {
+          // SUCCESS: User is authorized staff
+          onLogin(true);
+        } else {
+          // FAILURE: User is authenticated but NOT an admin (e.g., a student)
+          await signOut(auth); // Log them out immediately
+          setError('ACCESS DENIED: You do not have administrative privileges.');
+        }
+      } else {
+        await signOut(auth);
+        setError('PROFILE ERROR: No administrative profile found.');
+      }
+
     } catch (err) {
       console.error("Auth Error:", err.code);
-      // Detailed error messages based on Firebase error codes
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         setError('Invalid email or password. Please try again.');
       } else if (err.code === 'auth/too-many-requests') {
-        setError('Access denied due to too many failed attempts. Try again later.');
+        setError('Access denied due to too many failed attempts.');
       } else {
-        setError('Authentication failed. Please check your network connection.');
+        setError('Connection failed. Please check your network.');
       }
     } finally {
       setLoading(false);
@@ -81,7 +109,7 @@ const AdminLogin = ({ onLogin }) => {
             </div>
           </div>
           <button type="submit" className="btn btn-danger w-100 py-3 rounded-pill fw-bold shadow" disabled={loading}>
-            {loading ? 'Authenticating...' : 'SIGN IN'}
+            {loading ? 'Verifying Credentials...' : 'SIGN IN'}
           </button>
         </form>
       </div>
