@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-// FIXED: Importing both firestore (as db) and auth correctly from your config
+// Corrected Imports to match your standard config
 import { firestore as db, auth } from "../firebase";
 import {
   signInWithEmailAndPassword,
@@ -13,7 +13,6 @@ import {
   ArrowRight,
   Loader2,
   UserCheck,
-  KeyRound,
   X,
   Mail,
   LockKeyhole,
@@ -32,7 +31,6 @@ const StudentLogin = () => {
       return;
     }
     try {
-      // Fixed: auth is now properly imported
       await sendPasswordResetEmail(auth, email.trim().toLowerCase());
       alert("RESET DISPATCHED: Check your inbox for the recovery link.");
     } catch (error) {
@@ -49,7 +47,7 @@ const StudentLogin = () => {
     try {
       const cleanEmail = email.trim().toLowerCase();
 
-      // 1. Firebase Authentication
+      // 1. Firebase Authentication Session
       const userCredential = await signInWithEmailAndPassword(
         auth,
         cleanEmail,
@@ -57,56 +55,61 @@ const StudentLogin = () => {
       );
       const user = userCredential.user;
 
-      // 2. Fetch User Profile from Firestore (Using 'firestore' instance)
-      const userRef = doc(db, "users", user.uid);
+      // 2. Fetch Profile - IMPORTANT: We check 'applications' as that is where
+      // the registration logic stores verified students.
+      const userRef = doc(db, "applications", user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
         const userData = userSnap.data();
 
-        const rawRole = userData.role || userData.Role || "";
-        const userRole = rawRole.toLowerCase().trim();
+        // 3. Status and Payment Verification
+        const paymentStatus = (userData.paymentStatus || "").toLowerCase();
+        const applicationStatus = (userData.status || "").toLowerCase();
 
-        const rawStatus = userData.status || userData.Status || "";
-        const userStatus = rawStatus.toLowerCase().trim();
-
-        // 3. Student-Only Access Validation
-        if (userRole !== "student") {
+        if (paymentStatus !== "paid" && paymentStatus !== "completed") {
           await signOut(auth);
-          setError(
-            `ACCESS RESTRICTED: This portal is for students only. Current role: ${rawRole}`,
-          );
+          setError("ACCESS DENIED: Your tuition payment is unverified.");
           setLoading(false);
           return;
         }
 
-        if (userStatus === "suspended" || userStatus === "inactive") {
+        if (
+          applicationStatus === "suspended" ||
+          applicationStatus === "rejected"
+        ) {
           await signOut(auth);
-          setError(
-            "ACCOUNT INACTIVE: Your student account is currently suspended.",
-          );
+          setError("ACCOUNT INACTIVE: This student ID is currently disabled.");
           setLoading(false);
           return;
         }
 
-        // 4. Successful Redirection
+        // 4. Successful Redirection to Dashboard
         navigate("/student-portal");
       } else {
-        await signOut(auth);
-        setError("PROFILE ERROR: No student record found in the database.");
+        // Fallback: If not in applications, check the general 'users' collection
+        const backupRef = doc(db, "users", user.uid);
+        const backupSnap = await getDoc(backupRef);
+
+        if (backupSnap.exists()) {
+          navigate("/student-portal");
+        } else {
+          await signOut(auth);
+          setError(
+            "PROFILE ERROR: No student record associated with this account.",
+          );
+        }
       }
     } catch (error) {
       console.error("Login Error:", error.code);
       if (
         error.code === "auth/invalid-credential" ||
         error.code === "auth/wrong-password" ||
-        error.code === "auth/invalid-email"
+        error.code === "auth/user-not-found"
       ) {
         setError("AUTHENTICATION FAILED: Invalid email or password.");
-      } else if (error.code === "auth/user-not-found") {
-        setError("AUTHENTICATION FAILED: No account found with this email.");
       } else {
-        setError("SYSTEM ERROR: Unable to connect to security server.");
+        setError("SYSTEM ERROR: Security server link interrupted.");
       }
     } finally {
       setLoading(false);
