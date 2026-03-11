@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 // Import everything directly to avoid naming conflicts
-import { auth } from '../firebase'; 
+import { auth, firestore } from "../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
@@ -34,6 +34,7 @@ const StudentLogin = () => {
       // We use 'firestore' here because your config exports it as 'firestore'
       const userRef = doc(firestore, "applications", user.uid);
       const userSnap = await getDoc(userRef);
+      const userDoc = await getDoc(doc(firestore, "users", user.uid));
 
       if (userSnap.exists()) {
         const userData = userSnap.data();

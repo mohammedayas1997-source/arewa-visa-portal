@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { auth } from '../firebase'; 
+import { auth, firestore } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { signInWithEmailAndPassword } from "firebase/auth"; 
 import { Lock, User, ShieldAlert } from "lucide-react";
