@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { db, storage, firestore } from "../firebase";
-import { ref, push, set, onValue } from "firebase/database";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { ref, onValue } from "firebase/database";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 import ApplyPayment from "./ApplyPayment";
 import { QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
@@ -44,6 +50,7 @@ const CourseApplicationForm = ({
   const [isPortalOpen, setIsPortalOpen] = useState(true);
   const [loadingPortal, setLoadingPortal] = useState(true);
   const [generatedID, setGeneratedID] = useState("");
+  const [applicationDocId, setApplicationDocId] = useState(""); // Captures Firestore Auto-ID
   const receiptRef = useRef(null);
 
   const [applicationData, setApplicationData] = useState({
@@ -108,32 +115,22 @@ const CourseApplicationForm = ({
     setApplicationData((prev) => ({ ...prev, [name]: files[0] }));
   };
 
+  // --- STEP 1: INITIAL SUBMISSION (PENDING PAYMENT) ---
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!isPortalOpen) return alert("Admission Portal is currently closed.");
     if (!applicationData.photoFile)
       return alert("Please upload your passport photo.");
-    setShowPaymentStep(true);
-  };
 
-  // --- UPDATED SUBMISSION LOGIC ---
-  const handlePaymentSuccess = async (reference) => {
     setIsSubmitting(true);
-    const admissionID = `AVA-${Math.floor(10000 + Math.random() * 90000)}`;
-    setGeneratedID(admissionID);
-
     try {
       const timestamp = Date.now();
 
-      // 1. Upload Files sequentially to avoid timeout
-      let photoUrl = "";
-      if (applicationData.photoFile) {
-        photoUrl = await uploadFile(
-          applicationData.photoFile,
-          `apps/${timestamp}/photo`,
-        );
-      }
-
+      // Upload Passport immediately to get URL for the initial doc
+      const photoUrl = await uploadFile(
+        applicationData.photoFile,
+        `apps/${timestamp}/photo`,
+      );
       let resumeUrl = "";
       if (applicationData.resumeFile) {
         resumeUrl = await uploadFile(
@@ -142,43 +139,55 @@ const CourseApplicationForm = ({
         );
       }
 
-      // 2. Prepare Final Clean Record
       const { photoFile, resumeFile, ...cleanData } = applicationData;
-      const finalRecord = {
+
+      // Create document with "Pending Payment" status
+      const docRef = await addDoc(collection(firestore, "applications"), {
         ...cleanData,
-        photoUrl: photoUrl || "",
-        resumeUrl: resumeUrl || "",
+        photoUrl,
+        resumeUrl,
+        status: "Pending Payment",
+        paymentStatus: "Unpaid",
+        appliedAt: serverTimestamp(),
+      });
+
+      setApplicationDocId(docRef.id);
+      setShowPaymentStep(true);
+    } catch (error) {
+      alert("Submission Error: " + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // --- STEP 2: UPDATE AFTER PAYMENT SUCCESS ---
+  const handlePaymentSuccess = async (reference) => {
+    setIsSubmitting(true);
+    const admissionID = `AVA-${Math.floor(10000 + Math.random() * 90000)}`;
+    setGeneratedID(admissionID);
+
+    try {
+      // Update the existing Firestore document
+      const appRef = doc(firestore, "applications", applicationDocId);
+      await updateDoc(appRef, {
         admissionID: admissionID,
         paymentRef: reference?.reference || reference || "INTERNAL_REF",
         paymentStatus: "Paid",
         status: "Paid",
-        appliedAt: new Date().toISOString(),
-      };
-
-      // 3. Save to Realtime Database
-      const newAppRef = push(ref(db, "applications"));
-      await set(newAppRef, finalRecord);
-
-      // 4. Save to Firestore (Important for Dashboard)
-      await addDoc(collection(firestore, "applications"), {
-        ...finalRecord,
-        serverTimestamp: serverTimestamp(),
+        paidAt: serverTimestamp(),
       });
 
-      // 5. WhatsApp Notification (Triggered immediately after DB success)
+      // WhatsApp Notification
       const adminWhatsApp = "2348165372359";
       const message = `*NEW ADMISSION PAID*%0A%0A*ID:* ${admissionID}%0A*Name:* ${applicationData.name}%0A*Program:* ${applicationData.selectedCourseTitle}%0A*Status:* Payment Verified`;
-
-      // Using direct location assign for more reliability on mobile
       window.open(`https://wa.me/${adminWhatsApp}?text=${message}`, "_blank");
 
-      // 6. Transition to Success Screen
       setIsSuccess(true);
       setShowPaymentStep(false);
     } catch (error) {
-      console.error("Critical Submission Error:", error);
+      console.error("Critical Update Error:", error);
       alert(
-        "Submission Error: Payment was successful but record saving failed. Please take a screenshot of your payment reference and contact support.",
+        "Payment was successful, but the system failed to update your record. Please contact support with your reference.",
       );
     } finally {
       setIsSubmitting(false);
@@ -628,10 +637,17 @@ const CourseApplicationForm = ({
                     <div className="col-12 mt-4">
                       <button
                         type="submit"
+                        disabled={isSubmitting}
                         className="btn btn-warning w-100 py-3 fw-black rounded-pill shadow-lg text-uppercase tracking-widest border-0"
                       >
-                        PROCEED TO PAYMENT{" "}
-                        <ArrowRight size={20} className="ms-2" />
+                        {isSubmitting ? (
+                          <Loader2 className="animate-spin mx-auto" size={24} />
+                        ) : (
+                          <>
+                            PROCEED TO PAYMENT{" "}
+                            <ArrowRight size={20} className="ms-2" />
+                          </>
+                        )}
                       </button>
                     </div>
                   </form>
