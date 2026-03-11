@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { db, rtdb, storage } from "../firebase"; // Ensure rtdb is imported
+import { firestore, rtdb, storage } from "../firebase"; // Ensure rtdb is imported
 import { ref, push, set, onValue } from "firebase/database";
 import ApplyPayment from "./ApplyPayment";
+import { doc, getDoc } from "firebase/firestore";
 import { QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
