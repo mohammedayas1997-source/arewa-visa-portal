@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { auth, db } from "../firebase";
+// FIXED: Import 'firestore' instead of 'db' to match your firebase.js
+import { auth, firestore } from "../firebase"; 
 import { doc, getDoc } from "firebase/firestore";
 import { Navigate, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
@@ -15,7 +16,8 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       try {
         if (currentUser) {
-          const userRef = doc(db, "users", currentUser.uid);
+          // FIXED: Using 'firestore' instance here for user role lookup
+          const userRef = doc(firestore, "users", currentUser.uid);
           const userDoc = await getDoc(userRef);
 
           if (userDoc.exists()) {
@@ -36,9 +38,18 @@ const ProtectedRoute = ({ children, requiredRole }) => {
               setUser(currentUser);
             }
           } else {
-            // User authenticated but no profile found in Firestore
-            setUser(currentUser);
-            setRole(null);
+            // Check applications collection if not in users (for students)
+            const appRef = doc(firestore, "applications", currentUser.uid);
+            const appDoc = await getDoc(appRef);
+            
+            if (appDoc.exists()) {
+                setRole("student");
+                setStatus("active");
+                setUser(currentUser);
+            } else {
+                setUser(currentUser);
+                setRole(null);
+            }
           }
         } else {
           setUser(null);
@@ -104,7 +115,6 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
   // 3. UNAUTHENTICATED REDIRECTION
   if (!user) {
-    // Determine if the user was trying to access a staff area
     const isStaffPath = ["/admin", "/super", "/rector", "/staff"].some((path) =>
       location.pathname.includes(path),
     );
@@ -117,9 +127,8 @@ const ProtectedRoute = ({ children, requiredRole }) => {
   if (requiredRole) {
     const isSuperAdmin = role === "super-admin";
     const isRector = role === "rector";
-    const isAdmin = role === "admin" || role === "AdminContentManager";
+    const isAdmin = role === "admin" || role === "instructor";
     const isAdmissionOfficer = role === "admission-officer";
-    const isStaff = role === "staff" || role === "instructor";
 
     let hasAccess = false;
 
@@ -134,13 +143,9 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     }
 
     if (!hasAccess) {
-      // Redirect based on the role they actually have
       let redirectPath = "/login";
       if (role === "student") redirectPath = "/student-portal";
-      else if (isSuperAdmin) redirectPath = "/super-admin";
-      else if (isRector) redirectPath = "/rector";
-      else if (isAdmissionOfficer || isAdmin) redirectPath = "/admin";
-      else if (isStaff) redirectPath = "/staff-dashboard";
+      else if (isSuperAdmin || isRector || isAdmin) redirectPath = "/admin";
 
       return <Navigate to={redirectPath} replace />;
     }
