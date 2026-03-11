@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { firestore, rtdb, storage } from "../firebase"; // Ensure rtdb is imported
+import { firestore, storage } from "../firebase"; // Ensure rtdb is imported
 import { ref, push, set, onValue } from "firebase/database";
 import ApplyPayment from "./ApplyPayment";
 import { doc, getDoc } from "firebase/firestore";
