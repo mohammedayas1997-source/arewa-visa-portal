@@ -9,16 +9,13 @@ const ApplyPayment = ({ amount, email, onSuccessAction, isSubmitting }) => {
     reference: "AVA-" + new Date().getTime().toString(),
     email: safeEmail,
     amount: amount * 100,
-    publicKey: "pk_test_962a83d0a3b1d3c993e245757351a3834bfe91c0",
+    publicKey: "pk_test_962a83d0a3b1d3c993e245757351a3834bfe91c0", // RESTORED TEST KEY
   };
 
   const initializePayment = usePaystackPayment(config);
 
   const onSuccess = (reference) => {
-    // CRITICAL: Log this to see what Paystack actually returns
     console.log("Paystack Reference Received:", reference);
-
-    // Ensure we pass the reference back to the parent to trigger handleSubmitApplication
     if (reference) {
       onSuccessAction(reference);
     }
@@ -33,8 +30,6 @@ const ApplyPayment = ({ amount, email, onSuccessAction, isSubmitting }) => {
       alert("Please provide a valid email address in the form before paying.");
       return;
     }
-
-    // Trigger Paystack
     initializePayment(onSuccess, onClose);
   };
 
@@ -47,11 +42,7 @@ const ApplyPayment = ({ amount, email, onSuccessAction, isSubmitting }) => {
     >
       {isSubmitting ? (
         <>
-          <span
-            className="spinner-border spinner-border-sm"
-            role="status"
-            aria-hidden="true"
-          ></span>
+          <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
           <span>Finalizing Submission...</span>
         </>
       ) : (

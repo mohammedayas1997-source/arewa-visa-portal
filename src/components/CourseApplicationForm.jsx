@@ -85,7 +85,7 @@ const CourseApplicationForm = ({ showCourseForm, setShowCourseForm, coursesData 
     setShowPaymentStep(true);
   };
 
-  const handlePaymentSuccess = async (reference) => {
+ const handlePaymentSuccess = async (reference) => {
     setIsSubmitting(true);
     const admissionID = `AVA-${Math.floor(10000 + Math.random() * 90000)}`;
     setGeneratedID(admissionID);
@@ -93,7 +93,7 @@ const CourseApplicationForm = ({ showCourseForm, setShowCourseForm, coursesData 
     try {
       const timestamp = Date.now();
 
-      // 1. Upload Files to Storage
+      // 1. Upload Files
       const photoUrl = await uploadFile(applicationData.photoFile, `apps/${timestamp}/photo`);
       const resumeUrl = applicationData.resumeFile ? await uploadFile(applicationData.resumeFile, `apps/${timestamp}/resume`) : null;
 
@@ -110,30 +110,26 @@ const CourseApplicationForm = ({ showCourseForm, setShowCourseForm, coursesData 
         appliedAt: new Date().toISOString()
       };
 
-      // 3. Save to Realtime Database (For UI/Portal Sync)
-      const newAppRef = push(ref(db, "applications"));
-      await set(newAppRef, finalRecord);
-
-      // 4. Save to Firestore (For Admin/Officer Dashboard)
+      // 3. Save to Databases (Realtime + Firestore)
+      await set(push(ref(db, "applications")), finalRecord);
       await addDoc(collection(firestore, "applications"), finalRecord);
 
-      // --- WHATSAPP NOTIFICATION LOGIC ---
+      // 4. WhatsApp Redirection
       const adminWhatsApp = "2348165372359";
-      const message = `*NEW ADMISSION PAID*%0A%0A*ID:* ${admissionID}%0A*Name:* ${applicationData.name}%0A*Program:* ${applicationData.selectedCourseTitle}%0A*WhatsApp:* ${applicationData.whatsapp}%0A*Status:* Payment Verified (₦5,000)`;
-      
-      const whatsappUrl = `https://wa.me/${adminWhatsApp}?text=${message}`;
-      window.open(whatsappUrl, "_blank");
+      const message = `*NEW ADMISSION PAID (TEST)*%0A%0A*ID:* ${admissionID}%0A*Name:* ${applicationData.name}%0A*Program:* ${applicationData.selectedCourseTitle}%0A*Status:* Payment Verified`;
+      window.open(`https://wa.me/${adminWhatsApp}?text=${message}`, "_blank");
 
+      // 5. Trigger Success View
       setIsSuccess(true);
       setShowPaymentStep(false);
     } catch (error) {
       console.error("Submission Error:", error);
-      alert("Submission failed. Payment was successful, please contact support.");
+      alert("An error occurred during submission. Your payment was processed but data was not saved.");
     } finally {
       setIsSubmitting(false);
     }
   };
-
+  
   const downloadReceipt = async () => {
     const element = receiptRef.current;
     if (!element) return;
