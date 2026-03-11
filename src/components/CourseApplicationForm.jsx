@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { db, storage } from "../firebase";
-import { ref, push, set, onValue } from "firebase/database";
+// IMPORTING both firestore (for profiles) and db (for settings)
+import { db, storage, firestore } from "../firebase";
+import { ref, onValue } from "firebase/database";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import ApplyPayment from "./ApplyPayment";
 import { QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
@@ -70,32 +72,12 @@ const CourseApplicationForm = ({
   useEffect(() => {
     if (!showCourseForm) return;
     const portalRef = ref(db, "settings/coursePortalStatus");
-    const timeoutFallback = setTimeout(() => {
-      if (loadingPortal) {
-        setLoadingPortal(false);
-        setIsPortalOpen(true);
-      }
-    }, 2000);
-
-    const unsubscribe = onValue(
-      portalRef,
-      (snapshot) => {
-        clearTimeout(timeoutFallback);
-        const data = snapshot.val();
-        setIsPortalOpen(data === null ? true : data);
-        setLoadingPortal(false);
-      },
-      (error) => {
-        clearTimeout(timeoutFallback);
-        setIsPortalOpen(true);
-        setLoadingPortal(false);
-      },
-    );
-
-    return () => {
-      unsubscribe();
-      clearTimeout(timeoutFallback);
-    };
+    const unsubscribe = onValue(portalRef, (snapshot) => {
+      const data = snapshot.val();
+      setIsPortalOpen(data === null ? true : data);
+      setLoadingPortal(false);
+    });
+    return () => unsubscribe();
   }, [showCourseForm]);
 
   // --- FUNCTIONS ---
@@ -130,53 +112,50 @@ const CourseApplicationForm = ({
   };
 
   const handleSubmitApplication = async (formData, admissionID, paymentRef) => {
-    const timestamp = Date.now();
+    try {
+      const timestamp = Date.now();
 
-    // 1. Upload all files to Storage
-    const [photoUrl, passportUrl, resumeUrl, cvUrl] = await Promise.all([
-      formData.photoFile
-        ? uploadFile(formData.photoFile, `apps/${timestamp}/photo`)
-        : null,
-      formData.passportFile
-        ? uploadFile(formData.passportFile, `apps/${timestamp}/passport`)
-        : null,
-      formData.resumeFile
-        ? uploadFile(formData.resumeFile, `apps/${timestamp}/resume`)
-        : null,
-      formData.cvFile
-        ? uploadFile(formData.cvFile, `apps/${timestamp}/cv`)
-        : null,
-    ]);
+      // 1. Upload all files to Storage
+      const [photoUrl, resumeUrl] = await Promise.all([
+        formData.photoFile
+          ? uploadFile(formData.photoFile, `apps/${timestamp}/photo`)
+          : null,
+        formData.resumeFile
+          ? uploadFile(formData.resumeFile, `apps/${timestamp}/resume`)
+          : null,
+      ]);
 
-    // 2. Prepare Clean Data for Database (Removing raw File objects)
-    const cleanData = { ...formData };
-    delete cleanData.photoFile;
-    delete cleanData.passportFile;
-    delete cleanData.resumeFile;
-    delete cleanData.cvFile;
+      // 2. Prepare Clean Data (Excluding raw file objects)
+      const cleanData = { ...formData };
+      delete cleanData.photoFile;
+      delete cleanData.passportFile;
+      delete cleanData.resumeFile;
+      delete cleanData.cvFile;
 
-    const newApplicationRef = push(ref(db, "applications"));
-    await set(newApplicationRef, {
-      ...cleanData,
-      photoUrl,
-      passportUrl,
-      resumeUrl,
-      cvUrl,
-      admissionID,
-      paymentRef,
-      paymentStatus: "Completed",
-      amountPaid: 5000,
-      status: "Pending Review",
-      createdAt: new Date().toISOString(),
-    });
+      // 3. SAVE TO FIRESTORE (Crucial for Login)
+      const studentDocRef = doc(firestore, "applications", admissionID);
+      await setDoc(studentDocRef, {
+        ...cleanData,
+        photoUrl,
+        resumeUrl,
+        admissionID,
+        paymentRef,
+        paymentStatus: "paid",
+        status: "active",
+        createdAt: serverTimestamp(),
+      });
 
-    // 3. WhatsApp Integration
-    const adminNumber = "2347087244444";
-    const msg = `*NEW ADMISSION ALERT!*%0A%0A*Name:* ${formData.name}%0A*ID:* ${admissionID}%0A*Course:* ${formData.selectedCourseTitle}%0A*Status:* PAID (₦5,000)`;
-    window.open(
-      `https://api.whatsapp.com/send?phone=${adminNumber}&text=${msg}`,
-      "_blank",
-    );
+      // WhatsApp Integration
+      const adminNumber = "2347087244444";
+      const msg = `*NEW ADMISSION ALERT!*%0A%0A*Name:* ${formData.name}%0A*ID:* ${admissionID}%0A*Course:* ${formData.selectedCourseTitle}%0A*Status:* PAID (₦5,000)`;
+      window.open(
+        `https://api.whatsapp.com/send?phone=${adminNumber}&text=${msg}`,
+        "_blank",
+      );
+    } catch (error) {
+      console.error("Submission Error:", error);
+      throw error;
+    }
   };
 
   const handlePaymentSuccess = async (reference) => {
@@ -185,19 +164,15 @@ const CourseApplicationForm = ({
     setGeneratedID(admissionID);
 
     try {
-      // Execute the heavy submission tasks
       await handleSubmitApplication(
         applicationData,
         admissionID,
         reference.reference || reference,
       );
-
-      // Transition to Success Receipt View
       setIsSuccess(true);
       setShowPaymentStep(false);
     } catch (error) {
-      console.error("Submission Error:", error);
-      alert("Submission Failed! Please contact support.");
+      alert("Submission Failed: " + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -208,19 +183,20 @@ const CourseApplicationForm = ({
     if (!element) return;
     try {
       setIsSubmitting(true);
-      const canvas = await html2canvas(element, {
-        scale: 3,
-        useCORS: true,
-        logging: false,
-      });
+      const canvas = await html2canvas(element, { scale: 3, useCORS: true });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      pdf.addImage(
+        imgData,
+        "PNG",
+        0,
+        0,
+        210,
+        (canvas.height * 210) / canvas.width,
+      );
       pdf.save(`AVA-RECEIPT-${generatedID}.pdf`);
     } catch (error) {
-      console.error("PDF Generation Error:", error);
+      console.error("Download Error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -230,7 +206,7 @@ const CourseApplicationForm = ({
 
   return (
     <div
-      className="position-fixed top-0 start-0 w-100 h-100 px-2 py-4"
+      className="position-fixed top-0 start-0 w-100 h-100 px-2 py-4 shadow-lg"
       style={{
         zIndex: 10000,
         backgroundColor: "rgba(0,0,0,0.92)",
@@ -277,24 +253,24 @@ const CourseApplicationForm = ({
         ) : (
           <div className="card-body p-0 bg-white">
             {isSuccess ? (
+              /* RESTORED PREMIUM RECEIPT VIEW */
               <div
                 ref={receiptRef}
+                id="printable-receipt"
                 className="p-4 p-md-5 text-dark text-start animate__animated animate__fadeIn bg-white"
                 style={{ border: "15px solid #1a1a1a" }}
               >
                 <div className="d-flex justify-content-between align-items-center border-bottom border-4 border-danger pb-3 mb-4 text-uppercase">
                   <div className="d-flex align-items-center gap-3">
-                    <div className="w-20 h-20 bg-white d-flex align-items-center justify-center border p-1 shadow-sm">
-                      <img
-                        src="/logo.png"
-                        alt="Logo"
-                        style={{
-                          width: "80px",
-                          height: "80px",
-                          objectFit: "contain",
-                        }}
-                      />
-                    </div>
+                    <img
+                      src="/logo.png"
+                      alt="Logo"
+                      style={{
+                        width: "80px",
+                        height: "80px",
+                        objectFit: "contain",
+                      }}
+                    />
                     <div>
                       <h2
                         className="fw-black text-danger mb-0 tracking-tighter uppercase"
@@ -470,6 +446,7 @@ const CourseApplicationForm = ({
                 </div>
               </div>
             ) : !showPaymentStep ? (
+              /* RESTORED FULL FORM VIEW */
               <div className="row g-0">
                 <div className="col-md-3 bg-danger p-4 text-white text-center d-flex flex-column justify-content-center">
                   {photoPreview ? (
@@ -502,10 +479,10 @@ const CourseApplicationForm = ({
                       setShowPaymentStep(true);
                     }}
                   >
+                    {/* PERSONAL INFO */}
                     <div className="col-12 border-bottom pb-2">
                       <h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2 tracking-widest">
-                        <User size={16} />
-                        Personal Information
+                        <User size={16} /> Personal Information
                       </h6>
                     </div>
                     <div className="col-md-6">
@@ -571,10 +548,10 @@ const CourseApplicationForm = ({
                       />
                     </div>
 
+                    {/* IDENTITY & ORIGIN */}
                     <div className="col-12 border-bottom pb-2 mt-4">
                       <h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2 tracking-widest">
-                        <FileText size={16} />
-                        Identity & Origin
+                        <FileText size={16} /> Identity & Origin
                       </h6>
                     </div>
                     <div className="col-md-6">
@@ -627,10 +604,10 @@ const CourseApplicationForm = ({
                       />
                     </div>
 
+                    {/* CAREER */}
                     <div className="col-12 border-bottom pb-2 mt-4">
                       <h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2 tracking-widest">
-                        <Briefcase size={16} />
-                        Career & Home
+                        <Briefcase size={16} /> Career & Home
                       </h6>
                     </div>
                     <div className="col-md-6">
@@ -671,10 +648,10 @@ const CourseApplicationForm = ({
                       ></textarea>
                     </div>
 
+                    {/* COURSE & UPLOADS */}
                     <div className="col-12 border-bottom pb-2 mt-4">
                       <h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2 tracking-widest">
-                        <GraduationCap size={16} />
-                        Select Course & Uploads
+                        <GraduationCap size={16} /> Select Course & Uploads
                       </h6>
                     </div>
                     <div className="col-12 mb-2">
@@ -686,12 +663,11 @@ const CourseApplicationForm = ({
                         required
                       >
                         <option value="">-- Choose Course --</option>
-                        {coursesData &&
-                          coursesData.map((c) => (
-                            <option key={c.id} value={c.title}>
-                              {c.title}
-                            </option>
-                          ))}
+                        {coursesData?.map((c) => (
+                          <option key={c.id} value={c.title}>
+                            {c.title}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div className="col-md-6">
@@ -731,6 +707,7 @@ const CourseApplicationForm = ({
                 </div>
               </div>
             ) : (
+              /* PAYMENT STEP */
               <div className="p-4 p-md-5 text-center bg-white text-dark animate__animated animate__zoomIn">
                 <Wallet
                   size={55}
