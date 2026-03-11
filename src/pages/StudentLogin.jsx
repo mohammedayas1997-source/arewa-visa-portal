@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-// Corrected Imports to match your standard config
 import { firestore as db, auth } from "../firebase";
 import {
   signInWithEmailAndPassword,
@@ -10,7 +9,6 @@ import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
-  ArrowRight,
   Loader2,
   UserCheck,
   X,
@@ -32,9 +30,9 @@ const StudentLogin = () => {
     }
     try {
       await sendPasswordResetEmail(auth, email.trim().toLowerCase());
-      alert("RESET DISPATCHED: Check your inbox for the recovery link.");
+      alert("RESET DISPATCHED: Check your inbox.");
     } catch (error) {
-      alert("SYSTEM ERROR: Could not send reset email. Verify your address.");
+      alert("SYSTEM ERROR: Could not send reset email.");
     }
   };
 
@@ -47,7 +45,7 @@ const StudentLogin = () => {
     try {
       const cleanEmail = email.trim().toLowerCase();
 
-      // 1. Firebase Authentication Session
+      // 1. Authenticate with Firebase
       const userCredential = await signInWithEmailAndPassword(
         auth,
         cleanEmail,
@@ -55,39 +53,44 @@ const StudentLogin = () => {
       );
       const user = userCredential.user;
 
-      // 2. Fetch Profile - IMPORTANT: We check 'applications' as that is where
-      // the registration logic stores verified students.
+      // 2. Check 'applications' collection (where Paystack success saves data)
       const userRef = doc(db, "applications", user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
         const userData = userSnap.data();
 
-        // 3. Status and Payment Verification
-        const paymentStatus = (userData.paymentStatus || "").toLowerCase();
-        const applicationStatus = (userData.status || "").toLowerCase();
+        // Use .toLowerCase() to avoid "Paid" vs "paid" mismatch
+        const pStatus = (userData.paymentStatus || "").toLowerCase().trim();
+        const aStatus = (userData.status || "").toLowerCase().trim();
 
-        if (paymentStatus !== "paid" && paymentStatus !== "completed") {
-          await signOut(auth);
-          setError("ACCESS DENIED: Your tuition payment is unverified.");
-          setLoading(false);
-          return;
-        }
-
+        // Validation Logic
         if (
-          applicationStatus === "suspended" ||
-          applicationStatus === "rejected"
+          pStatus !== "paid" &&
+          pStatus !== "completed" &&
+          pStatus !== "success"
         ) {
           await signOut(auth);
-          setError("ACCOUNT INACTIVE: This student ID is currently disabled.");
+          setError(
+            `PAYMENT UNVERIFIED: Your status is "${pStatus}". Please complete your tuition.`,
+          );
           setLoading(false);
           return;
         }
 
-        // 4. Successful Redirection to Dashboard
+        if (aStatus === "suspended" || aStatus === "rejected") {
+          await signOut(auth);
+          setError(
+            "ACCOUNT LOCKED: Access has been disabled by the Registrar.",
+          );
+          setLoading(false);
+          return;
+        }
+
+        // Success - Navigate to Portal
         navigate("/student-portal");
       } else {
-        // Fallback: If not in applications, check the general 'users' collection
+        // Fallback for manual users added to 'users' collection
         const backupRef = doc(db, "users", user.uid);
         const backupSnap = await getDoc(backupRef);
 
@@ -96,20 +99,18 @@ const StudentLogin = () => {
         } else {
           await signOut(auth);
           setError(
-            "PROFILE ERROR: No student record associated with this account.",
+            "DATA ERROR: Authentication successful, but no student profile found.",
           );
         }
       }
-    } catch (error) {
-      console.error("Login Error:", error.code);
-      if (
-        error.code === "auth/invalid-credential" ||
-        error.code === "auth/wrong-password" ||
-        error.code === "auth/user-not-found"
-      ) {
-        setError("AUTHENTICATION FAILED: Invalid email or password.");
+    } catch (err) {
+      console.error("Auth Error:", err.code);
+      if (err.code === "auth/invalid-credential") {
+        setError("LOGIN FAILED: Incorrect email or password.");
+      } else if (err.code === "auth/network-request-failed") {
+        setError("NETWORK ERROR: Check your internet connection.");
       } else {
-        setError("SYSTEM ERROR: Security server link interrupted.");
+        setError("SECURITY ERROR: " + err.message);
       }
     } finally {
       setLoading(false);
@@ -142,7 +143,6 @@ const StudentLogin = () => {
           borderRadius: "50%",
         }}
       ></div>
-
       <div
         style={{
           width: "100%",
@@ -166,7 +166,6 @@ const StudentLogin = () => {
             background: "linear-gradient(to right, #dc2626, #7f1d1d)",
           }}
         ></div>
-
         <button
           onClick={() => navigate("/")}
           style={{
@@ -181,7 +180,6 @@ const StudentLogin = () => {
         >
           <X size={24} />
         </button>
-
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <div
             style={{
@@ -223,7 +221,6 @@ const StudentLogin = () => {
             Arewa Visa Academy
           </p>
         </div>
-
         {error && (
           <div
             style={{
@@ -241,7 +238,6 @@ const StudentLogin = () => {
             {error}
           </div>
         )}
-
         <form
           onSubmit={handleLogin}
           style={{ display: "flex", flexDirection: "column", gap: "25px" }}
@@ -285,7 +281,6 @@ const StudentLogin = () => {
               }}
             />
           </div>
-
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <div
               style={{
@@ -347,7 +342,6 @@ const StudentLogin = () => {
               }}
             />
           </div>
-
           <button
             type="submit"
             disabled={loading}
@@ -364,7 +358,6 @@ const StudentLogin = () => {
               letterSpacing: "3px",
               cursor: "pointer",
               marginTop: "15px",
-              transition: "0.3s",
               opacity: loading ? 0.6 : 1,
             }}
           >
@@ -379,7 +372,6 @@ const StudentLogin = () => {
             )}
           </button>
         </form>
-
         <div
           style={{
             marginTop: "35px",
