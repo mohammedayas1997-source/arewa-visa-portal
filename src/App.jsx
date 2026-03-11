@@ -6,7 +6,8 @@ import {
   Navigate,
   useParams,
 } from "react-router-dom";
-import { firestore as db, auth } from "./firebase";
+import { auth, db } from './firebase'; // Added db for firebase updates
+import { ref, set } from 'firebase/database'; 
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, updateDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import Register from "./pages/Register";
