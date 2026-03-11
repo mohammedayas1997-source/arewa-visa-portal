@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-// EXPLICIT SEPARATION: db for Firestore, rtdb for Realtime Database
-import { db, rtdb, storage } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { db, storage } from "../firebase";
 import { ref, push, set, onValue } from "firebase/database";
 import ApplyPayment from "./ApplyPayment";
 import { QRCodeSVG } from "qrcode.react";
@@ -68,13 +66,10 @@ const CourseApplicationForm = ({
     cvFile: null,
   });
 
-  // --- PORTAL STATUS CHECK (RTDB) ---
+  // --- PORTAL STATUS CHECK ---
   useEffect(() => {
     if (!showCourseForm) return;
-
-    // Using rtdb instance specifically for Realtime Database functions
-    const portalStatusRef = ref(rtdb, "settings/coursePortalStatus");
-
+    const portalRef = ref(db, "settings/coursePortalStatus");
     const timeoutFallback = setTimeout(() => {
       if (loadingPortal) {
         setLoadingPortal(false);
@@ -83,7 +78,7 @@ const CourseApplicationForm = ({
     }, 2000);
 
     const unsubscribe = onValue(
-      portalStatusRef,
+      portalRef,
       (snapshot) => {
         clearTimeout(timeoutFallback);
         const data = snapshot.val();
@@ -137,6 +132,7 @@ const CourseApplicationForm = ({
   const handleSubmitApplication = async (formData, admissionID) => {
     try {
       const timestamp = Date.now();
+      const applicantName = formData.name.replace(/\s+/g, "_");
 
       const [photoUrl, passportUrl, resumeUrl, cvUrl] = await Promise.all([
         formData.photoFile
@@ -153,8 +149,7 @@ const CourseApplicationForm = ({
           : null,
       ]);
 
-      // Using rtdb instance for pushing application data
-      const newApplicationRef = push(ref(rtdb, "applications"));
+      const newApplicationRef = push(ref(db, "applications"));
       await set(newApplicationRef, {
         ...formData,
         photoUrl,
@@ -186,6 +181,7 @@ const CourseApplicationForm = ({
     setGeneratedID(admissionID);
 
     try {
+      // Merge all fields before submission
       const finalData = {
         ...applicationData,
         amountPaid: 5000,
@@ -206,6 +202,7 @@ const CourseApplicationForm = ({
     }
   };
 
+  // --- PDF RECEIPT DOWNLOAD ---
   const downloadReceipt = async () => {
     const element = receiptRef.current;
     if (!element) return;
@@ -551,6 +548,7 @@ const CourseApplicationForm = ({
                         required
                       />
                     </div>
+
                     <div className="col-12 border-bottom pb-2 mt-4">
                       <h6 className="fw-bold text-danger uppercase small tracking-widest">
                         <FileText size={16} className="me-2" />
@@ -606,6 +604,7 @@ const CourseApplicationForm = ({
                         required
                       />
                     </div>
+
                     <div className="col-12 border-bottom pb-2 mt-4">
                       <h6 className="fw-bold text-danger uppercase small tracking-widest">
                         <Briefcase size={16} className="me-2" />
@@ -649,6 +648,7 @@ const CourseApplicationForm = ({
                         required
                       ></textarea>
                     </div>
+
                     <div className="col-12 border-bottom pb-2 mt-4">
                       <h6 className="fw-bold text-danger uppercase small tracking-widest">
                         <GraduationCap size={16} className="me-2" />
@@ -694,6 +694,7 @@ const CourseApplicationForm = ({
                         onChange={handleFileChange}
                       />
                     </div>
+
                     <div className="col-12 mt-4">
                       <button
                         type="submit"
