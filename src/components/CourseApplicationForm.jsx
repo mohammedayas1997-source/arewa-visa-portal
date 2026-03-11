@@ -100,9 +100,9 @@ const CourseApplicationForm = ({
 
   // --- FUNCTIONS ---
   const uploadFile = async (file, path) => {
-    const fileRef = storageRef(storage, path);
-    await uploadBytes(fileRef, file);
-    return getDownloadURL(fileRef);
+    const fRef = storageRef(storage, path);
+    await uploadBytes(fRef, file);
+    return getDownloadURL(fRef);
   };
 
   const handlePhotoChange = (e) => {
@@ -129,58 +129,54 @@ const CourseApplicationForm = ({
     setApplicationData((prev) => ({ ...prev, [name]: files[0] }));
   };
 
-  const handleSubmitApplication = async (formData, admissionID) => {
-    try {
-      const timestamp = Date.now();
+  const handleSubmitApplication = async (formData, admissionID, paymentRef) => {
+    const timestamp = Date.now();
 
-      // Uploading Files sequentially or in parallel
-      const [photoUrl, passportUrl, resumeUrl, cvUrl] = await Promise.all([
-        formData.photoFile
-          ? uploadFile(formData.photoFile, `apps/${timestamp}/photo`)
-          : null,
-        formData.passportFile
-          ? uploadFile(formData.passportFile, `apps/${timestamp}/passport`)
-          : null,
-        formData.resumeFile
-          ? uploadFile(formData.resumeFile, `apps/${timestamp}/resume`)
-          : null,
-        formData.cvFile
-          ? uploadFile(formData.cvFile, `apps/${timestamp}/cv`)
-          : null,
-      ]);
+    // 1. Upload all files to Storage
+    const [photoUrl, passportUrl, resumeUrl, cvUrl] = await Promise.all([
+      formData.photoFile
+        ? uploadFile(formData.photoFile, `apps/${timestamp}/photo`)
+        : null,
+      formData.passportFile
+        ? uploadFile(formData.passportFile, `apps/${timestamp}/passport`)
+        : null,
+      formData.resumeFile
+        ? uploadFile(formData.resumeFile, `apps/${timestamp}/resume`)
+        : null,
+      formData.cvFile
+        ? uploadFile(formData.cvFile, `apps/${timestamp}/cv`)
+        : null,
+    ]);
 
-      const newApplicationRef = push(ref(db, "applications"));
+    // 2. Prepare Clean Data for Database (Removing raw File objects)
+    const cleanData = { ...formData };
+    delete cleanData.photoFile;
+    delete cleanData.passportFile;
+    delete cleanData.resumeFile;
+    delete cleanData.cvFile;
 
-      // Sanitizing data to remove File objects before saving to DB
-      const dbData = { ...formData };
-      delete dbData.photoFile;
-      delete dbData.passportFile;
-      delete dbData.resumeFile;
-      delete dbData.cvFile;
+    const newApplicationRef = push(ref(db, "applications"));
+    await set(newApplicationRef, {
+      ...cleanData,
+      photoUrl,
+      passportUrl,
+      resumeUrl,
+      cvUrl,
+      admissionID,
+      paymentRef,
+      paymentStatus: "Completed",
+      amountPaid: 5000,
+      status: "Pending Review",
+      createdAt: new Date().toISOString(),
+    });
 
-      await set(newApplicationRef, {
-        ...dbData,
-        photoUrl,
-        passportUrl,
-        resumeUrl,
-        cvUrl,
-        status: "Pending Review",
-        paymentStatus: "Paid",
-        createdAt: new Date().toISOString(),
-        admissionID: admissionID,
-      });
-
-      // WhatsApp Automation
-      const adminNumber = "2347087244444";
-      const messageText = `*NEW ADMISSION ALERT!*%0A%0A*Name:* ${formData.name}%0A*ID:* ${admissionID}%0A*Course:* ${formData.selectedCourseTitle}%0A*WhatsApp:* ${formData.whatsapp}%0A*Status:* PAID (₦5,000)`;
-      window.open(
-        `https://api.whatsapp.com/send?phone=${adminNumber}&text=${messageText}`,
-        `_blank`,
-      );
-    } catch (error) {
-      console.error("Critical Submission Error:", error);
-      throw error;
-    }
+    // 3. WhatsApp Integration
+    const adminNumber = "2347087244444";
+    const msg = `*NEW ADMISSION ALERT!*%0A%0A*Name:* ${formData.name}%0A*ID:* ${admissionID}%0A*Course:* ${formData.selectedCourseTitle}%0A*Status:* PAID (₦5,000)`;
+    window.open(
+      `https://api.whatsapp.com/send?phone=${adminNumber}&text=${msg}`,
+      "_blank",
+    );
   };
 
   const handlePaymentSuccess = async (reference) => {
@@ -189,20 +185,18 @@ const CourseApplicationForm = ({
     setGeneratedID(admissionID);
 
     try {
-      const finalData = {
-        ...applicationData,
-        amountPaid: 5000,
-        paymentStatus: "Completed",
-        paymentRef: reference.reference || reference,
-        type: "Course Application",
-      };
+      // Execute the heavy submission tasks
+      await handleSubmitApplication(
+        applicationData,
+        admissionID,
+        reference.reference || reference,
+      );
 
-      await handleSubmitApplication(finalData, admissionID);
-
+      // Transition to Success Receipt View
       setIsSuccess(true);
       setShowPaymentStep(false);
     } catch (error) {
-      console.error("Payment Success Handler Error:", error);
+      console.error("Submission Error:", error);
       alert("Submission Failed! Please contact support.");
     } finally {
       setIsSubmitting(false);
@@ -218,7 +212,6 @@ const CourseApplicationForm = ({
         scale: 3,
         useCORS: true,
         logging: false,
-        allowTaint: true,
       });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
@@ -227,8 +220,7 @@ const CourseApplicationForm = ({
       pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
       pdf.save(`AVA-RECEIPT-${generatedID}.pdf`);
     } catch (error) {
-      console.error("Download Error:", error);
-      alert("Error generating PDF. Please try again.");
+      console.error("PDF Generation Error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -238,7 +230,7 @@ const CourseApplicationForm = ({
 
   return (
     <div
-      className="position-fixed top-0 start-0 w-100 h-100 px-2 py-4 shadow-lg"
+      className="position-fixed top-0 start-0 w-100 h-100 px-2 py-4"
       style={{
         zIndex: 10000,
         backgroundColor: "rgba(0,0,0,0.92)",
@@ -287,7 +279,6 @@ const CourseApplicationForm = ({
             {isSuccess ? (
               <div
                 ref={receiptRef}
-                id="printable-receipt"
                 className="p-4 p-md-5 text-dark text-start animate__animated animate__fadeIn bg-white"
                 style={{ border: "15px solid #1a1a1a" }}
               >
@@ -348,11 +339,11 @@ const CourseApplicationForm = ({
                     <h5 className="fw-black border-bottom border-danger border-opacity-25 pb-2 mb-3 text-uppercase tracking-tighter">
                       Candidate Profile
                     </h5>
-                    <table className="table table-sm table-borderless">
-                      <tbody
-                        className="text-uppercase"
-                        style={{ fontSize: "0.85rem" }}
-                      >
+                    <table
+                      className="table table-sm table-borderless uppercase"
+                      style={{ fontSize: "0.85rem" }}
+                    >
+                      <tbody>
                         <tr>
                           <td className="text-muted fw-bold py-1">
                             Full Name:
@@ -463,7 +454,7 @@ const CourseApplicationForm = ({
                         <Loader2 className="animate-spin" size={20} />
                       ) : (
                         <Download size={20} />
-                      )}
+                      )}{" "}
                       PDF DOWNLOAD
                     </button>
                     <button
