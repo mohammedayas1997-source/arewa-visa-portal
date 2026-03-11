@@ -1,16 +1,10 @@
 import React, { useState } from "react";
-import { firestore as db, auth } from "../firebase";
-import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+// Import everything directly to avoid naming conflicts
+import { auth, firestore as db } from "../firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import {
-  BookOpen,
-  Loader2,
-  UserCheck,
-  X,
-  Mail,
-  LockKeyhole,
-} from "lucide-react";
+import { BookOpen, Loader2, X } from "lucide-react";
 
 const StudentLogin = () => {
   const [email, setEmail] = useState("");
@@ -21,62 +15,51 @@ const StudentLogin = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (loading) return;
-    setLoading(true);
     setError("");
+    setLoading(true);
 
     try {
-      const cleanEmail = email.trim().toLowerCase();
-
-      // STEP 1: AUTHENTICATION
+      // 1. Try to sign in
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        cleanEmail,
+        email.trim().toLowerCase(),
         password,
       );
+
       const user = userCredential.user;
-      console.log("Auth Success. UID:", user.uid);
+      console.log("Step 1 Success: Authenticated UID:", user.uid);
 
-      // STEP 2: FIRESTORE LOOKUP
-      // We try the 'applications' collection first
-      const userRef = doc(db, "applications", user.uid);
-
-      let userSnap;
+      // 2. Try to get data, but DON'T stop if it fails
       try {
-        userSnap = await getDoc(userRef);
-      } catch (firestoreErr) {
-        console.error("Firestore access error:", firestoreErr);
-        // If Firestore fails, we force entry to test the route
-        navigate("/student-portal");
-        return;
-      }
+        const userRef = doc(db, "applications", user.uid);
+        const userSnap = await getDoc(userRef);
 
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-        const pStatus = (userData.paymentStatus || "").toLowerCase();
-
-        // If you want to be strict about payment, keep this.
-        // If you just want to login now, comment out the next 5 lines.
-        if (
-          pStatus !== "paid" &&
-          pStatus !== "completed" &&
-          pStatus !== "success"
-        ) {
-          console.warn("Payment unverified for:", user.uid);
+        if (userSnap.exists()) {
+          console.log("Step 2 Success: Profile Found");
+        } else {
+          console.log(
+            "Step 2 Warning: No profile in 'applications', checking 'users'...",
+          );
+          const backupRef = doc(db, "users", user.uid);
+          await getDoc(backupRef);
         }
-
-        navigate("/student-portal");
-      } else {
-        // Fallback: If no profile exists, still allow login for now to test the dashboard
-        console.log("No profile found, but allowing access for testing.");
-        navigate("/student-portal");
+      } catch (dbError) {
+        console.error(
+          "Database check failed, but forcing navigation anyway:",
+          dbError,
+        );
       }
+
+      // 3. FORCE NAVIGATION
+      // If the screen still doesn't change, your App.js route is the problem
+      console.log("Step 3: Attempting redirect to /student-portal");
+      navigate("/student-portal");
     } catch (err) {
-      console.error("Login System Error:", err.code);
+      console.error("Login Error:", err.code, err.message);
       if (err.code === "auth/invalid-credential") {
         setError("Invalid email or password.");
       } else {
-        setError("Security System Error: " + err.message);
+        setError("System Error: " + err.message);
       }
     } finally {
       setLoading(false);
@@ -91,58 +74,41 @@ const StudentLogin = () => {
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "#0a0a0a",
-        padding: "20px",
+        color: "white",
         fontFamily: "sans-serif",
       }}
     >
       <div
         style={{
           width: "100%",
-          maxWidth: "440px",
-          backgroundColor: "#141414",
-          borderRadius: "40px",
+          maxWidth: "400px",
+          background: "#111",
           padding: "40px",
-          position: "relative",
-          border: "1px solid rgba(255,255,255,0.05)",
+          borderRadius: "30px",
+          border: "1px solid #222",
         }}
       >
-        <div style={{ textAlign: "center", marginBottom: "40px" }}>
-          <div
-            style={{
-              width: "80px",
-              height: "80px",
-              backgroundColor: "#dc2626",
-              borderRadius: "24px",
-              display: "flex",
-              alignItems: "center",
-              justifyCenter: "center",
-              margin: "0 auto 20px",
-            }}
-          >
-            <BookOpen size={40} color="white" style={{ margin: "auto" }} />
-          </div>
-          <h2
-            style={{
-              color: "white",
-              fontSize: "28px",
-              fontWeight: "900",
-              textTransform: "uppercase",
-            }}
-          >
-            Student Portal
+        <div style={{ textAlign: "center", marginBottom: "30px" }}>
+          <BookOpen
+            size={40}
+            color="#dc2626"
+            style={{ marginBottom: "15px" }}
+          />
+          <h2 style={{ textTransform: "uppercase", fontWeight: "900" }}>
+            Student Login
           </h2>
         </div>
 
         {error && (
           <div
             style={{
+              background: "rgba(220,38,38,0.1)",
               color: "#f87171",
-              padding: "15px",
+              padding: "10px",
               borderRadius: "10px",
+              marginBottom: "20px",
               fontSize: "12px",
               textAlign: "center",
-              background: "rgba(220,38,38,0.1)",
-              marginBottom: "20px",
             }}
           >
             {error}
@@ -151,47 +117,45 @@ const StudentLogin = () => {
 
         <form
           onSubmit={handleLogin}
-          style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+          style={{ display: "flex", flexDirection: "column", gap: "15px" }}
         >
           <input
             type="email"
-            placeholder="Email Address"
-            required
+            placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={{
-              width: "100%",
-              padding: "18px",
-              borderRadius: "15px",
-              background: "#1a1a1a",
+              padding: "15px",
+              borderRadius: "10px",
+              background: "#000",
               border: "1px solid #333",
               color: "white",
             }}
+            required
           />
           <input
             type="password"
             placeholder="Password"
-            required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={{
-              width: "100%",
-              padding: "18px",
-              borderRadius: "15px",
-              background: "#1a1a1a",
+              padding: "15px",
+              borderRadius: "10px",
+              background: "#000",
               border: "1px solid #333",
               color: "white",
             }}
+            required
           />
           <button
             type="submit"
             disabled={loading}
             style={{
-              width: "100%",
-              padding: "20px",
+              padding: "15px",
               background: "#dc2626",
               color: "white",
-              borderRadius: "20px",
+              border: "none",
+              borderRadius: "10px",
               fontWeight: "bold",
               cursor: "pointer",
             }}
@@ -199,7 +163,7 @@ const StudentLogin = () => {
             {loading ? (
               <Loader2 className="animate-spin" style={{ margin: "auto" }} />
             ) : (
-              "AUTHORIZE ACCESS"
+              "LOGIN NOW"
             )}
           </button>
         </form>
