@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-// GYARA: Mun raba db (Firestore) da rtdb (Realtime Database) yadda ya kamata
-import { db, rtdb, storage } from "../firebase";
+import { db, rtdb, storage } from "../firebase"; // Ensure rtdb is imported
 import { ref, push, set, onValue } from "firebase/database";
 import ApplyPayment from "./ApplyPayment";
 import { QRCodeSVG } from "qrcode.react";
@@ -70,8 +69,8 @@ const CourseApplicationForm = ({
   // --- PORTAL STATUS CHECK ---
   useEffect(() => {
     if (!showCourseForm) return;
-    // GYARA: Amfani da rtdb maimakon db don duba portal status
-    const portalStatusRef = ref(rtdb, "settings/coursePortalStatus");
+    // FIXED: Using rtdb for Realtime Database calls
+    const portalRef = ref(rtdb, "settings/coursePortalStatus");
     const timeoutFallback = setTimeout(() => {
       if (loadingPortal) {
         setLoadingPortal(false);
@@ -80,7 +79,7 @@ const CourseApplicationForm = ({
     }, 2000);
 
     const unsubscribe = onValue(
-      portalStatusRef,
+      portalRef,
       (snapshot) => {
         clearTimeout(timeoutFallback);
         const data = snapshot.val();
@@ -150,7 +149,7 @@ const CourseApplicationForm = ({
           : null,
       ]);
 
-      // GYARA: Amfani da rtdb maimakon db don submit na application
+      // FIXED: Using rtdb for the application push
       const newApplicationRef = push(ref(rtdb, "applications"));
       await set(newApplicationRef, {
         ...formData,
@@ -191,6 +190,7 @@ const CourseApplicationForm = ({
         type: "Course Application",
       };
 
+      // The submission happens here, ONLY after payment success
       await handleSubmitApplication(finalData, admissionID);
 
       setIsSuccess(true);
