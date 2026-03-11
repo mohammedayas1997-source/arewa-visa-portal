@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { firestore as db } from "../firebase";
+// FIXED: Explicitly importing both firestore (as db) and auth from your configuration
+import { firestore as db, auth } from "../firebase";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { ShieldCheck, Loader2, ShieldAlert, X } from "lucide-react";
@@ -19,7 +20,7 @@ const StaffLogin = () => {
     setError("");
 
     try {
-      // 1. Firebase Authentication
+      // 1. Firebase Authentication (Fixed: auth is now imported)
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email.trim().toLowerCase(),
@@ -80,7 +81,8 @@ const StaffLogin = () => {
       if (
         err.code === "auth/invalid-credential" ||
         err.code === "auth/wrong-password" ||
-        err.code === "auth/user-not-found"
+        err.code === "auth/user-not-found" ||
+        err.code === "auth/invalid-email"
       ) {
         setError("AUTHENTICATION FAILED: Invalid credentials or security key.");
       } else {
@@ -105,7 +107,6 @@ const StaffLogin = () => {
         overflow: "hidden",
       }}
     >
-      {/* Background Glow Decoration */}
       <div
         style={{
           position: "absolute",

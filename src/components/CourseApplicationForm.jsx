@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { db, storage } from "../firebase";
+// GYARA: Mun raba db (Firestore) da rtdb (Realtime Database) yadda ya kamata
+import { db, rtdb, storage } from "../firebase";
 import { ref, push, set, onValue } from "firebase/database";
 import ApplyPayment from "./ApplyPayment";
 import { QRCodeSVG } from "qrcode.react";
@@ -69,7 +70,8 @@ const CourseApplicationForm = ({
   // --- PORTAL STATUS CHECK ---
   useEffect(() => {
     if (!showCourseForm) return;
-    const portalRef = ref(db, "settings/coursePortalStatus");
+    // GYARA: Amfani da rtdb maimakon db don duba portal status
+    const portalStatusRef = ref(rtdb, "settings/coursePortalStatus");
     const timeoutFallback = setTimeout(() => {
       if (loadingPortal) {
         setLoadingPortal(false);
@@ -78,7 +80,7 @@ const CourseApplicationForm = ({
     }, 2000);
 
     const unsubscribe = onValue(
-      portalRef,
+      portalStatusRef,
       (snapshot) => {
         clearTimeout(timeoutFallback);
         const data = snapshot.val();
@@ -132,7 +134,6 @@ const CourseApplicationForm = ({
   const handleSubmitApplication = async (formData, admissionID) => {
     try {
       const timestamp = Date.now();
-      const applicantName = formData.name.replace(/\s+/g, "_");
 
       const [photoUrl, passportUrl, resumeUrl, cvUrl] = await Promise.all([
         formData.photoFile
@@ -149,7 +150,8 @@ const CourseApplicationForm = ({
           : null,
       ]);
 
-      const newApplicationRef = push(ref(db, "applications"));
+      // GYARA: Amfani da rtdb maimakon db don submit na application
+      const newApplicationRef = push(ref(rtdb, "applications"));
       await set(newApplicationRef, {
         ...formData,
         photoUrl,
@@ -181,7 +183,6 @@ const CourseApplicationForm = ({
     setGeneratedID(admissionID);
 
     try {
-      // Merge all fields before submission
       const finalData = {
         ...applicationData,
         amountPaid: 5000,
@@ -202,7 +203,6 @@ const CourseApplicationForm = ({
     }
   };
 
-  // --- PDF RECEIPT DOWNLOAD ---
   const downloadReceipt = async () => {
     const element = receiptRef.current;
     if (!element) return;

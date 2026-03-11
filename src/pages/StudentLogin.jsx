@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { firestore as db } from "../firebase";
+// FIXED: Importing both firestore (as db) and auth correctly from your config
+import { firestore as db, auth } from "../firebase";
 import {
   signInWithEmailAndPassword,
   signOut,
@@ -31,6 +32,7 @@ const StudentLogin = () => {
       return;
     }
     try {
+      // Fixed: auth is now properly imported
       await sendPasswordResetEmail(auth, email.trim().toLowerCase());
       alert("RESET DISPATCHED: Check your inbox for the recovery link.");
     } catch (error) {
@@ -55,14 +57,13 @@ const StudentLogin = () => {
       );
       const user = userCredential.user;
 
-      // 2. Fetch User Profile from Firestore
+      // 2. Fetch User Profile from Firestore (Using 'firestore' instance)
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
         const userData = userSnap.data();
 
-        // Normalize Role and Status (Case-insensitive check)
         const rawRole = userData.role || userData.Role || "";
         const userRole = rawRole.toLowerCase().trim();
 
@@ -98,7 +99,8 @@ const StudentLogin = () => {
       console.error("Login Error:", error.code);
       if (
         error.code === "auth/invalid-credential" ||
-        error.code === "auth/wrong-password"
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/invalid-email"
       ) {
         setError("AUTHENTICATION FAILED: Invalid email or password.");
       } else if (error.code === "auth/user-not-found") {
@@ -125,7 +127,6 @@ const StudentLogin = () => {
         overflow: "hidden",
       }}
     >
-      {/* Background Decorative Glow */}
       <div
         style={{
           position: "absolute",
@@ -139,7 +140,6 @@ const StudentLogin = () => {
         }}
       ></div>
 
-      {/* Main Login Card */}
       <div
         style={{
           width: "100%",
