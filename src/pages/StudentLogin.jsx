@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 // Import everything directly to avoid naming conflicts
-import { firestore, auth } from "../firebase";
+import { auth } from '../firebase'; 
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
