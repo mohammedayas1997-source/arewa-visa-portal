@@ -69,8 +69,7 @@ const CourseApplicationForm = ({
   // --- PORTAL STATUS CHECK ---
   useEffect(() => {
     if (!showCourseForm) return;
-    // FIXED: Using rtdb for Realtime Database calls
-    const portalRef = ref(rtdb, "settings/coursePortalStatus");
+    const portalRef = ref(db, "settings/coursePortalStatus");
     const timeoutFallback = setTimeout(() => {
       if (loadingPortal) {
         setLoadingPortal(false);
@@ -134,6 +133,7 @@ const CourseApplicationForm = ({
     try {
       const timestamp = Date.now();
 
+      // Uploading Files sequentially or in parallel
       const [photoUrl, passportUrl, resumeUrl, cvUrl] = await Promise.all([
         formData.photoFile
           ? uploadFile(formData.photoFile, `apps/${timestamp}/photo`)
@@ -149,10 +149,17 @@ const CourseApplicationForm = ({
           : null,
       ]);
 
-      // FIXED: Using rtdb for the application push
-      const newApplicationRef = push(ref(rtdb, "applications"));
+      const newApplicationRef = push(ref(db, "applications"));
+
+      // Sanitizing data to remove File objects before saving to DB
+      const dbData = { ...formData };
+      delete dbData.photoFile;
+      delete dbData.passportFile;
+      delete dbData.resumeFile;
+      delete dbData.cvFile;
+
       await set(newApplicationRef, {
-        ...formData,
+        ...dbData,
         photoUrl,
         passportUrl,
         resumeUrl,
@@ -165,9 +172,9 @@ const CourseApplicationForm = ({
 
       // WhatsApp Automation
       const adminNumber = "2347087244444";
-      const message = `*NEW ADMISSION ALERT!*%0A%0A*Name:* ${formData.name}%0A*ID:* ${admissionID}%0A*Course:* ${formData.selectedCourseTitle}%0A*WhatsApp:* ${formData.whatsapp}%0A*Status:* PAID (₦5,000)`;
+      const messageText = `*NEW ADMISSION ALERT!*%0A%0A*Name:* ${formData.name}%0A*ID:* ${admissionID}%0A*Course:* ${formData.selectedCourseTitle}%0A*WhatsApp:* ${formData.whatsapp}%0A*Status:* PAID (₦5,000)`;
       window.open(
-        `https://api.whatsapp.com/send?phone=${adminNumber}&text=${message}`,
+        `https://api.whatsapp.com/send?phone=${adminNumber}&text=${messageText}`,
         `_blank`,
       );
     } catch (error) {
@@ -186,11 +193,10 @@ const CourseApplicationForm = ({
         ...applicationData,
         amountPaid: 5000,
         paymentStatus: "Completed",
-        paymentRef: reference.reference,
+        paymentRef: reference.reference || reference,
         type: "Course Application",
       };
 
-      // The submission happens here, ONLY after payment success
       await handleSubmitApplication(finalData, admissionID);
 
       setIsSuccess(true);
@@ -208,7 +214,12 @@ const CourseApplicationForm = ({
     if (!element) return;
     try {
       setIsSubmitting(true);
-      const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+      const canvas = await html2canvas(element, {
+        scale: 3,
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+      });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
       const imgWidth = 210;
@@ -217,6 +228,7 @@ const CourseApplicationForm = ({
       pdf.save(`AVA-RECEIPT-${generatedID}.pdf`);
     } catch (error) {
       console.error("Download Error:", error);
+      alert("Error generating PDF. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -280,19 +292,29 @@ const CourseApplicationForm = ({
                 style={{ border: "15px solid #1a1a1a" }}
               >
                 <div className="d-flex justify-content-between align-items-center border-bottom border-4 border-danger pb-3 mb-4 text-uppercase">
-                  <div className="flex items-center gap-3">
-                    <div className="w-20 h-20 bg-white flex items-center justify-center border p-1 shadow-sm">
+                  <div className="d-flex align-items-center gap-3">
+                    <div className="w-20 h-20 bg-white d-flex align-items-center justify-center border p-1 shadow-sm">
                       <img
                         src="/logo.png"
                         alt="Logo"
-                        className="w-full h-full object-contain"
+                        style={{
+                          width: "80px",
+                          height: "80px",
+                          objectFit: "contain",
+                        }}
                       />
                     </div>
                     <div>
-                      <h2 className="fw-black text-danger mb-0 tracking-tighter uppercase">
+                      <h2
+                        className="fw-black text-danger mb-0 tracking-tighter uppercase"
+                        style={{ fontSize: "1.8rem" }}
+                      >
                         AREWA VISA ACADEMY
                       </h2>
-                      <p className="small text-muted mb-0 fw-bold uppercase tracking-widest text-[10px]">
+                      <p
+                        className="small text-muted mb-0 fw-bold uppercase tracking-widest"
+                        style={{ fontSize: "10px" }}
+                      >
                         Excellence in Global Immigration & Education
                       </p>
                     </div>
@@ -378,13 +400,16 @@ const CourseApplicationForm = ({
                       </tbody>
                     </table>
                   </div>
-                  <div className="col-md-3 text-center d-flex flex-column align-items-center justify-content-center border-start border-md-none pt-3 pt-md-0">
+                  <div className="col-md-3 text-center d-flex flex-column align-items-center justify-content-center border-start pt-3 pt-md-0">
                     <QRCodeSVG
                       value={`https://arewavisa.com/verify/${generatedID}`}
                       size={110}
                       includeMargin={true}
                     />
-                    <p className="x-small text-muted mt-2 fw-black uppercase tracking-widest">
+                    <p
+                      className="mt-2 fw-black uppercase tracking-widest"
+                      style={{ fontSize: "8px", color: "#666" }}
+                    >
                       Verify Authenticity
                     </p>
                   </div>
@@ -392,20 +417,25 @@ const CourseApplicationForm = ({
 
                 <div className="bg-dark p-4 rounded-4 text-white mb-4 shadow-lg d-flex justify-content-between align-items-center">
                   <div>
-                    <p className="small mb-0 uppercase fw-bold text-emerald-400">
+                    <p className="small mb-0 uppercase fw-bold text-success">
                       Transaction Summary
                     </p>
-                    <h3 className="fw-black mb-0">PAID: ₦5,000.00</h3>
-                    <p className="x-small text-muted mb-0 font-monospace opacity-50 uppercase tracking-widest">
+                    <h3 className="fw-black mb-0 text-white">
+                      PAID: ₦5,000.00
+                    </h3>
+                    <p
+                      className="small text-muted mb-0 font-monospace opacity-75 uppercase tracking-widest"
+                      style={{ fontSize: "9px" }}
+                    >
                       Status: Successful Payment via Paystack
                     </p>
                   </div>
-                  <ShieldCheck size={45} className="text-emerald-400" />
+                  <ShieldCheck size={45} className="text-success" />
                 </div>
 
                 <div className="mt-5 border-top pt-4 text-center">
                   <div className="d-flex justify-content-between align-items-end mb-4">
-                    <p className="small text-muted italic fw-bold text-start w-50">
+                    <p className="small text-muted fst-italic fw-bold text-start w-50">
                       * This electronic receipt is officially issued by Arewa
                       Visa Academy Management.
                     </p>
@@ -414,7 +444,8 @@ const CourseApplicationForm = ({
                         <img
                           src="/signature.png"
                           alt="Sign"
-                          className="h-10 opacity-75"
+                          style={{ height: "40px" }}
+                          className="opacity-75"
                         />
                       </div>
                       <p className="small fw-black uppercase border-top border-dark pt-1">
@@ -432,7 +463,7 @@ const CourseApplicationForm = ({
                         <Loader2 className="animate-spin" size={20} />
                       ) : (
                         <Download size={20} />
-                      )}{" "}
+                      )}
                       PDF DOWNLOAD
                     </button>
                     <button
@@ -481,8 +512,8 @@ const CourseApplicationForm = ({
                     }}
                   >
                     <div className="col-12 border-bottom pb-2">
-                      <h6 className="fw-bold text-danger uppercase small tracking-widest">
-                        <User size={16} className="me-2" />
+                      <h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2 tracking-widest">
+                        <User size={16} />
                         Personal Information
                       </h6>
                     </div>
@@ -550,8 +581,8 @@ const CourseApplicationForm = ({
                     </div>
 
                     <div className="col-12 border-bottom pb-2 mt-4">
-                      <h6 className="fw-bold text-danger uppercase small tracking-widest">
-                        <FileText size={16} className="me-2" />
+                      <h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2 tracking-widest">
+                        <FileText size={16} />
                         Identity & Origin
                       </h6>
                     </div>
@@ -606,8 +637,8 @@ const CourseApplicationForm = ({
                     </div>
 
                     <div className="col-12 border-bottom pb-2 mt-4">
-                      <h6 className="fw-bold text-danger uppercase small tracking-widest">
-                        <Briefcase size={16} className="me-2" />
+                      <h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2 tracking-widest">
+                        <Briefcase size={16} />
                         Career & Home
                       </h6>
                     </div>
@@ -650,8 +681,8 @@ const CourseApplicationForm = ({
                     </div>
 
                     <div className="col-12 border-bottom pb-2 mt-4">
-                      <h6 className="fw-bold text-danger uppercase small tracking-widest">
-                        <GraduationCap size={16} className="me-2" />
+                      <h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2 tracking-widest">
+                        <GraduationCap size={16} />
                         Select Course & Uploads
                       </h6>
                     </div>
@@ -664,11 +695,12 @@ const CourseApplicationForm = ({
                         required
                       >
                         <option value="">-- Choose Course --</option>
-                        {coursesData.map((c) => (
-                          <option key={c.id} value={c.title}>
-                            {c.title}
-                          </option>
-                        ))}
+                        {coursesData &&
+                          coursesData.map((c) => (
+                            <option key={c.id} value={c.title}>
+                              {c.title}
+                            </option>
+                          ))}
                       </select>
                     </div>
                     <div className="col-md-6">
@@ -708,7 +740,7 @@ const CourseApplicationForm = ({
                 </div>
               </div>
             ) : (
-              <div className="p-4 p-md-5 text-center bg-white text-dark">
+              <div className="p-4 p-md-5 text-center bg-white text-dark animate__animated animate__zoomIn">
                 <Wallet
                   size={55}
                   className="text-danger mb-3 mx-auto shadow-sm"
@@ -738,12 +770,14 @@ const CourseApplicationForm = ({
                     isSubmitting={isSubmitting}
                   />
                 </div>
-                <button
-                  onClick={() => setShowPaymentStep(false)}
-                  className="btn btn-link text-muted mt-3 fw-bold text-decoration-none uppercase small tracking-widest"
-                >
-                  Back to Review
-                </button>
+                {!isSubmitting && (
+                  <button
+                    onClick={() => setShowPaymentStep(false)}
+                    className="btn btn-link text-muted mt-3 fw-bold text-decoration-none uppercase small tracking-widest"
+                  >
+                    Back to Review
+                  </button>
+                )}
               </div>
             )}
           </div>
