@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-// GYARA: Mun tabbatar 'db' (Real-time DB) da 'storage' suna nan kamar yadda kake so
-// Amma muna bukatar 'firestore' idan har zaka taba bangaren roles a nan gaba
-import { db, storage } from "../firebase";
+// GYARA: Shigo da 'firestore' da 'db' (Real-time DB) duka
+import { db, storage, firestore } from "../firebase"; 
 import { ref, push, set, onValue } from "firebase/database";
+// GYARA: Mun kara Firestore functions domin idan kana so ka bi tsarin AYAX
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import ApplyPayment from "./ApplyPayment";
 import { QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
@@ -13,30 +14,12 @@ import {
   getDownloadURL,
 } from "firebase/storage";
 import {
-  X,
-  GraduationCap,
-  ArrowRight,
-  Loader2,
-  Wallet,
-  CheckCircle,
-  Lock,
-  User,
-  MapPin,
-  FileText,
-  Printer,
-  Download,
-  Briefcase,
-  Globe,
-  Calendar,
-  ShieldCheck,
+  X, GraduationCap, ArrowRight, Loader2, Wallet, CheckCircle,
+  Lock, User, MapPin, FileText, Printer, Download,
+  Briefcase, Globe, Calendar, ShieldCheck
 } from "lucide-react";
 
-const CourseApplicationForm = ({
-  showCourseForm,
-  setShowCourseForm,
-  coursesData,
-}) => {
-  // --- STATES ---
+const CourseApplicationForm = ({ showCourseForm, setShowCourseForm, coursesData }) => {
   const [showPaymentStep, setShowPaymentStep] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -47,135 +30,37 @@ const CourseApplicationForm = ({
   const receiptRef = useRef(null);
 
   const [applicationData, setApplicationData] = useState({
-    name: "",
-    email: "",
-    gender: "",
-    age: "",
-    nin: "",
-    passportNo: "",
-    whatsapp: "",
-    state: "",
-    lga: "",
-    residenceCountry: "Nigeria",
-    address: "",
-    country: "",
-    job: "",
-    jobCountry: "",
-    selectedCourseTitle: "",
-    photoFile: null,
-    passportFile: null,
-    resumeFile: null,
-    cvFile: null,
+    name: "", email: "", gender: "", age: "", nin: "",
+    passportNo: "", whatsapp: "", state: "", lga: "",
+    residenceCountry: "Nigeria", address: "", job: "",
+    selectedCourseTitle: "", photoFile: null, resumeFile: null
   });
 
-  // --- PORTAL STATUS CHECK ---
+  // Check Portal Status
   useEffect(() => {
     if (!showCourseForm) return;
     const portalRef = ref(db, "settings/coursePortalStatus");
-    const timeoutFallback = setTimeout(() => {
-      if (loadingPortal) {
-        setLoadingPortal(false);
-        setIsPortalOpen(true);
-      }
-    }, 2000);
-
-    const unsubscribe = onValue(
-      portalRef,
-      (snapshot) => {
-        clearTimeout(timeoutFallback);
-        const data = snapshot.val();
-        setIsPortalOpen(data === null ? true : data);
-        setLoadingPortal(false);
-      },
-      (error) => {
-        clearTimeout(timeoutFallback);
-        setIsPortalOpen(true);
-        setLoadingPortal(false);
-      },
-    );
-
-    return () => {
-      unsubscribe();
-      clearTimeout(timeoutFallback);
-    };
+    const unsubscribe = onValue(portalRef, (snapshot) => {
+      const data = snapshot.val();
+      setIsPortalOpen(data === null ? true : data);
+      setLoadingPortal(false);
+    });
+    return () => unsubscribe();
   }, [showCourseForm]);
 
-  // --- FUNCTIONS ---
   const uploadFile = async (file, path) => {
     const fRef = storageRef(storage, path);
     await uploadBytes(fRef, file);
     return getDownloadURL(fRef);
   };
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("The image is too large! Max 2MB.");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => setPhotoPreview(reader.result);
-      reader.readAsDataURL(file);
-      setApplicationData((prev) => ({ ...prev, photoFile: file }));
-    }
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setApplicationData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleFileChange = (e) => {
-    const { name, files } = e.target;
-    setApplicationData((prev) => ({ ...prev, [name]: files[0] }));
-  };
-
-  const handleSubmitApplication = async (formData, admissionID, paymentRef) => {
-    try {
-      const timestamp = Date.now();
-
-      // 1. Upload files to Storage first
-      // MUN GYARA: Mun tabbatar 'uploadFile' yana aiki ba tare da tsayawa ba
-      const photoUrl = formData.photoFile ? await uploadFile(formData.photoFile, `apps/${timestamp}/photo`) : null;
-      const resumeUrl = formData.resumeFile ? await uploadFile(formData.resumeFile, `apps/${timestamp}/resume`) : null;
-      const passportUrl = formData.passportFile ? await uploadFile(formData.passportFile, `apps/${timestamp}/passport`) : null;
-      const cvUrl = formData.cvFile ? await uploadFile(formData.cvFile, `apps/${timestamp}/cv`) : null;
-
-      // 2. Prepare Clean Data
-      const cleanData = { ...formData };
-      delete cleanData.photoFile;
-      delete cleanData.passportFile;
-      delete cleanData.resumeFile;
-      delete cleanData.cvFile;
-
-      // 3. Save to Realtime Database (db)
-      // MUHIMMI: Tabbatar 'db' dinka a firebase.js Realtime Database ne
-      const newApplicationRef = push(ref(db, "applications"));
-      await set(newApplicationRef, {
-        ...cleanData,
-        photoUrl,
-        resumeUrl,
-        passportUrl,
-        cvUrl,
-        admissionID,
-        paymentRef,
-        paymentStatus: "paid",
-        status: "Pending Review",
-        createdAt: new Date().toISOString(),
-      });
-
-      // 4. WhatsApp Automation
-      const adminNumber = "2347087244444";
-      const msg = `*NEW ADMISSION ALERT!*%0A%0A*Name:* ${formData.name}%0A*ID:* ${admissionID}%0A*Course:* ${formData.selectedCourseTitle}%0A*Status:* PAID (₦5,000)`;
-      window.open(
-        `https://api.whatsapp.com/send?phone=${adminNumber}&text=${msg}`,
-        "_blank",
-      );
-    } catch (error) {
-      console.error("Submission Error:", error);
-      throw error;
-    }
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    if (!isPortalOpen) return alert("Admission Portal is currently closed.");
+    if (!applicationData.photoFile) return alert("Please upload your passport photo.");
+    
+    // Kamar AYAX, muna wucewa zuwa Payment step ne kafin mu adana a Database
+    setShowPaymentStep(true);
   };
 
   const handlePaymentSuccess = async (reference) => {
@@ -184,24 +69,48 @@ const CourseApplicationForm = ({
     setGeneratedID(admissionID);
 
     try {
-      // Calling the submission function
-      await handleSubmitApplication(
-        applicationData,
+      const timestamp = Date.now();
+
+      // 1. Upload files zuwa Storage (Kamar yadda AYAX yake yi, amma mu muna amfani da actual files)
+      const photoUrl = await uploadFile(applicationData.photoFile, `apps/${timestamp}/photo`);
+      const resumeUrl = applicationData.resumeFile ? await uploadFile(applicationData.resumeFile, `apps/${timestamp}/resume`) : null;
+
+      // 2. Prepare Clean Data (Cire file objects)
+      const { photoFile, resumeFile, ...cleanData } = applicationData;
+
+      // 3. Save to Realtime Database (Domin shine tsarin AVA)
+      const newAppRef = push(ref(db, "applications"));
+      await set(newAppRef, {
+        ...cleanData,
+        photoUrl,
+        resumeUrl,
         admissionID,
-        reference.reference || reference,
-      );
+        paymentRef: reference.reference || reference,
+        paymentStatus: "Paid",
+        status: "Pending Review",
+        appliedAt: new Date().toISOString()
+      });
+
+      // 4. Optionally: Save to Firestore ma (Kamar AYAX) idan kana so
+      await addDoc(collection(firestore, "student_records"), {
+        fullName: cleanData.name,
+        admissionID,
+        email: cleanData.email,
+        course: cleanData.selectedCourseTitle,
+        status: "Paid"
+      });
 
       setIsSuccess(true);
       setShowPaymentStep(false);
     } catch (error) {
-      console.error("Process Failure:", error);
-      alert(
-        "System Error: Could not save admission data. Check your connection.",
-      );
+      console.error("Critical Error:", error);
+      alert("Submission failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // ... (Sauran code din downloadReceipt da UI)
 
   const downloadReceipt = async () => {
     const element = receiptRef.current;
