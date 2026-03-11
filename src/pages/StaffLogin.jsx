@@ -1,61 +1,81 @@
-import React, { useState } from 'react';
-// Import 'firestore' to match your latest firebase.js configuration
+import React, { useState } from "react";
 import { auth, firestore } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
-import { signInWithEmailAndPassword, signOut } from "firebase/auth"; 
-import { Lock, User, ShieldAlert } from "lucide-react";
+import { collection, query, where, getDocs, limit } from "firebase/firestore"; // Added Query imports
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { Lock, User, ShieldAlert, Loader2 } from "lucide-react";
 
 const AdminLogin = ({ onLogin }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
+      const cleanEmail = username.trim().toLowerCase();
+
       // 1. Authenticate with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(
-        auth, 
-        username.trim().toLowerCase(), 
-        password
+        auth,
+        cleanEmail,
+        password,
       );
-      
       const user = userCredential.user;
 
-      // 2. CRITICAL: Role Verification Logic
-      // We must check the "users" collection in Firestore to verify the role
-      const userDocRef = doc(firestore, "users", user.uid);
-      const userSnap = await getDoc(userDocRef);
+      // 2. SEARCH FIRESTORE BY EMAIL (The "Bulletproof" Method)
+      // This ensures that even if the UID doesn't match, we find the staff by email
+      const staffQuery = query(
+        collection(firestore, "users"),
+        where("email", "==", cleanEmail),
+        limit(1),
+      );
 
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-        const allowedRoles = ['admin', 'rector', 'instructor', 'admission-officer'];
+      const querySnapshot = await getDocs(staffQuery);
+
+      if (!querySnapshot.empty) {
+        const userData = querySnapshot.docs[0].data();
+        const allowedRoles = [
+          "admin",
+          "rector",
+          "instructor",
+          "admission-officer",
+        ];
 
         if (allowedRoles.includes(userData.role)) {
-          // SUCCESS: User is authorized staff
+          // SUCCESS
           onLogin(true);
         } else {
-          // FAILURE: User is authenticated but NOT an admin (e.g., a student)
-          await signOut(auth); // Log them out immediately
-          setError('ACCESS DENIED: You do not have administrative privileges.');
+          await signOut(auth);
+          setError("ACCESS DENIED: Insufficient administrative privileges.");
         }
       } else {
-        await signOut(auth);
-        setError('PROFILE ERROR: No administrative profile found.');
+        // Double check: Look for doc ID as UID just in case
+        const backupRef = await getDocs(
+          query(collection(firestore, "users"), where("uid", "==", user.uid)),
+        );
+        if (!backupRef.empty) {
+          onLogin(true);
+        } else {
+          await signOut(auth);
+          setError(
+            "PROFILE ERROR: No administrative record found for this account.",
+          );
+        }
       }
-
     } catch (err) {
       console.error("Auth Error:", err.code);
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError('Invalid email or password. Please try again.');
-      } else if (err.code === 'auth/too-many-requests') {
-        setError('Access denied due to too many failed attempts.');
+      if (
+        err.code === "auth/invalid-credential" ||
+        err.code === "auth/user-not-found"
+      ) {
+        setError("Invalid official email or password.");
       } else {
-        setError('Connection failed. Please check your network.');
+        setError("Connection error: Please check your internet.");
       }
     } finally {
       setLoading(false);
@@ -64,52 +84,69 @@ const AdminLogin = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen d-flex align-items-center justify-content-center bg-dark">
-      <div className="card border-0 shadow-lg p-4 p-md-5" style={{ maxWidth: '400px', borderRadius: '20px' }}>
+      <div
+        className="card border-0 shadow-lg p-4 p-md-5"
+        style={{ maxWidth: "400px", borderRadius: "20px" }}
+      >
         <div className="text-center mb-4">
           <div className="bg-danger text-white rounded-circle d-inline-block p-3 mb-3 shadow">
-            <Lock size={32}/>
+            <Lock size={32} />
           </div>
-          <h4 className="fw-bold text-dark">AVA Admin Portal</h4>
+          <h4 className="fw-bold text-dark uppercase">AVA Admin Portal</h4>
           <p className="text-muted small">Authorized Personnel Only</p>
         </div>
 
         {error && (
-          <div className="alert alert-danger d-flex align-items-center gap-2 py-2 small border-0 shadow-sm">
-            <ShieldAlert size={16}/> {error}
+          <div className="alert alert-danger d-flex align-items-center gap-2 py-2 small border-0 shadow-sm animate-pulse">
+            <ShieldAlert size={16} /> {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
-            <label className="form-label small fw-bold text-muted mb-1">OFFICIAL EMAIL</label>
-            <div className="input-group">
-              <span className="input-group-text bg-light border-0"><User size={18}/></span>
-              <input 
-                type="email" 
-                placeholder="admin@arewavacademy.edu.ng"
-                className="form-control bg-light border-0 py-2" 
+            <label className="form-label small fw-bold text-muted mb-1 uppercase">
+              Official Email
+            </label>
+            <div className="input-group shadow-sm">
+              <span className="input-group-text bg-white border-end-0">
+                <User size={18} className="text-danger" />
+              </span>
+              <input
+                type="email"
+                className="form-control border-start-0 py-2 shadow-none"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)} 
-                required 
+                onChange={(e) => setUsername(e.target.value)}
+                required
               />
             </div>
           </div>
           <div className="mb-4">
-            <label className="form-label small fw-bold text-muted mb-1">PASSWORD</label>
-            <div className="input-group">
-              <span className="input-group-text bg-light border-0"><Lock size={18}/></span>
-              <input 
-                type="password" 
-                placeholder="••••••••"
-                className="form-control bg-light border-0 py-2" 
+            <label className="form-label small fw-bold text-muted mb-1 uppercase">
+              Security Password
+            </label>
+            <div className="input-group shadow-sm">
+              <span className="input-group-text bg-white border-end-0">
+                <Lock size={18} className="text-danger" />
+              </span>
+              <input
+                type="password"
+                className="form-control border-start-0 py-2 shadow-none"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)} 
-                required 
+                onChange={(e) => setPassword(e.target.value)}
+                required
               />
             </div>
           </div>
-          <button type="submit" className="btn btn-danger w-100 py-3 rounded-pill fw-bold shadow" disabled={loading}>
-            {loading ? 'Verifying Credentials...' : 'SIGN IN'}
+          <button
+            type="submit"
+            className="btn btn-danger w-100 py-3 rounded-pill fw-bold shadow-lg"
+            disabled={loading}
+          >
+            {loading ? (
+              <Loader2 className="animate-spin mx-auto" />
+            ) : (
+              "SECURE SIGN IN"
+            )}
           </button>
         </form>
       </div>
