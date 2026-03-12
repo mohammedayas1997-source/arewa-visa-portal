@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { usePaystackPayment } from "react-paystack";
 
 const ApplyPayment = ({ amount, email, onSuccessAction, isSubmitting }) => {
@@ -6,32 +6,34 @@ const ApplyPayment = ({ amount, email, onSuccessAction, isSubmitting }) => {
     reference: "AVA-" + new Date().getTime().toString(),
     email: email || "customer@arewavisa.com",
     amount: amount * 100,
-    publicKey: "pk_test_962a83d0a3b1d3c993e245757351a3834bfe91c0", // Kept as Test per your request
+    publicKey: "pk_test_962a83d0a3b1d3c993e245757351a3834bfe91c0", // Test Key
   };
 
   const initializePayment = usePaystackPayment(config);
 
-  const onSuccess = (reference) => {
-    // This MUST call the parent function to change the screen
-    console.log("Payment Success Reference:", reference);
-    onSuccessAction(reference);
-  };
-
-  const onClose = () => {
-    console.log("Payment window closed");
+  const handleButtonClick = () => {
+    // Check if initializePayment is a function before calling
+    if (typeof initializePayment === "function") {
+      initializePayment(onSuccessAction, () => console.log("Closed"));
+    } else {
+      alert("Payment system is still warming up. Please wait 2 seconds and try again.");
+    }
   };
 
   return (
     <button
       type="button"
       disabled={isSubmitting}
-      className="btn btn-danger w-100 py-3 fw-bold rounded-pill shadow-lg text-uppercase d-flex align-items-center justify-content-center gap-2"
-      onClick={() => initializePayment(onSuccess, onClose)}
+      className="btn btn-danger w-100 py-3 fw-bold rounded-pill shadow-lg text-uppercase"
+      onClick={handleButtonClick}
     >
       {isSubmitting ? (
-        <span className="spinner-border spinner-border-sm" role="status"></span>
+        <div className="d-flex align-items-center justify-content-center gap-2">
+          <span className="spinner-border spinner-border-sm" role="status"></span>
+          <span>Processing...</span>
+        </div>
       ) : (
-        "PAY ₦5,000 NOW"
+        `PAY ₦${amount.toLocaleString()} NOW`
       )}
     </button>
   );

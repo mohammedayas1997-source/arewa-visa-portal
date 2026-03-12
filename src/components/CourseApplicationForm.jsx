@@ -163,21 +163,23 @@ const CourseApplicationForm = ({
   // --- STEP 2: PAYSTACK INTEGRATION FIX ---
   const triggerPaystack = () => {
     if (!window.PaystackPop) {
-        return alert("Payment gateway is loading, please wait or refresh.");
+      return alert("The payment gateway is still loading. Please wait 3 seconds and try again.");
     }
     
-    setIsSubmitting(true); // Fara loading
+    setIsSubmitting(true);
 
     const handler = window.PaystackPop.setup({
       key: "pk_test_962a83d0a3b1d3c993e245757351a3834bfe91c0", 
       email: applicationData.email,
-      amount: 5000 * 100,
+      amount: 5000 * 100, // 5000 Naira in Kobo
       currency: "NGN",
+      // Generate a clean reference string
+      ref: "AVA-" + Math.floor((Math.random() * 1000000000) + 1),
       callback: (response) => {
         handlePaymentSuccess(response.reference);
       },
       onClose: () => {
-        setIsSubmitting(false); // Kashe loading idan an rufe ba tare da an biya ba
+        setIsSubmitting(false);
       },
     });
 
