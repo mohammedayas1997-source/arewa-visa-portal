@@ -43,7 +43,6 @@ const CourseApplicationForm = ({
   // --- STATES ---
   const [step, setStep] = useState("form"); // "form", "payment", "success"
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [generatedID, setGeneratedID] = useState("");
   const [applicationDocId, setApplicationDocId] = useState("");
@@ -114,6 +113,17 @@ const CourseApplicationForm = ({
     }
   };
 
+  const handlePassportUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) return alert("Image too large! Max 2MB.");
+      setApplicationData(prev => ({ ...prev, photoFile: file }));
+      const reader = new FileReader();
+      reader.onload = (event) => setPhotoPreview(event.target.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setApplicationData((prev) => ({ ...prev, [name]: value }));
@@ -174,7 +184,7 @@ const CourseApplicationForm = ({
   const triggerPaystack = () => {
     setIsSubmitting(true);
     const handler = window.PaystackPop.setup({
-      key: "pk_test_962a83d0a3b1d3c993e245757351a3834bfe91c0", // Replace with your key
+      key: "pk_test_962a83d0a3b1d3c993e245757351a3834bfe91c0", 
       email: applicationData.email,
       amount: 5000 * 100,
       callback: (response) => handlePaymentSuccess(response.reference),
@@ -201,7 +211,6 @@ const CourseApplicationForm = ({
       const msg = `*NEW ADMISSION PAID*%0A%0AID: ${admissionID}%0AName: ${applicationData.name}`;
       window.open(`https://wa.me/${adminWA}?text=${msg}`, "_blank");
 
-      setIsSuccess(true);
       setStep("success");
       window.scrollTo(0, 0);
     } catch (error) {
@@ -213,6 +222,7 @@ const CourseApplicationForm = ({
 
   const downloadReceipt = async () => {
     const element = receiptRef.current;
+    if (!element) return;
     setIsSubmitting(true);
     try {
       const canvas = await html2canvas(element, { scale: 3, useCORS: true });
@@ -230,7 +240,7 @@ const CourseApplicationForm = ({
   return (
     <div className="position-fixed top-0 start-0 w-100 h-100 px-2 py-4 shadow-lg" style={{ zIndex: 10000, backgroundColor: "rgba(0,0,0,0.92)", overflowY: "auto", display: "block" }}>
       <div className="card border-0 w-100 mx-auto" style={{ maxWidth: "1000px", borderRadius: "24px", overflow: "hidden" }}>
-        <button onClick={() => { setShowCourseForm(false); setIsSuccess(false); setStep("form"); }} className="position-absolute top-0 end-0 m-3 btn btn-light rounded-circle shadow-sm" style={{ zIndex: 11000 }}><X size={20} /></button>
+        <button onClick={() => { setShowCourseForm(false); setStep("form"); }} className="position-absolute top-0 end-0 m-3 btn btn-light rounded-circle shadow-sm" style={{ zIndex: 11000 }}><X size={20} /></button>
 
         <div className="card-body p-0 bg-white">
           {step === "success" ? (
@@ -250,7 +260,7 @@ const CourseApplicationForm = ({
                 </div>
               </div>
               <div className="row g-4 mb-4 bg-light p-4 rounded-4 mx-0 border">
-                <div className="col-md-3"><img src={photoPreview} style={{ width: "150px", height: "185px", objectFit: "cover" }} className="rounded-3 shadow-lg" /></div>
+                <div className="col-md-3"><img src={photoPreview} style={{ width: "150px", height: "185px", objectFit: "cover" }} className="rounded-3 shadow-lg" alt="Student" /></div>
                 <div className="col-md-6">
                    <h5 className="fw-black border-bottom border-danger pb-2 mb-3 uppercase text-start">Candidate Profile</h5>
                    <table className="table table-sm table-borderless uppercase small">
@@ -290,7 +300,7 @@ const CourseApplicationForm = ({
             /* --- FORM VIEW --- */
             <div className="row g-0">
                <div className="col-md-3 bg-danger p-4 text-white text-center d-flex flex-column justify-content-center">
-                 {photoPreview ? <img src={photoPreview} className="mx-auto mb-3 border border-3 border-white rounded-3 shadow-lg" style={{width: '110px', height: '145px', objectFit: 'cover'}} /> : <School size={65} className="mx-auto mb-3 opacity-75" />}
+                 {photoPreview ? <img src={photoPreview} className="mx-auto mb-3 border border-3 border-white rounded-3 shadow-lg" style={{width: '110px', height: '145px', objectFit: 'cover'}} alt="Passport" /> : <School size={65} className="mx-auto mb-3 opacity-75" />}
                  <h4 className="fw-black text-uppercase">Admission Portal</h4>
                  <p className="small opacity-75 fw-bold mt-2">Arewa Visa Academy</p>
                </div>
