@@ -5,7 +5,7 @@ import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Loader2, X, ShieldAlert } from "lucide-react";
 
-const StudentLogin = ({ onClose }) => { // Added onClose prop
+const StudentLogin = ({ onClose }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,7 +24,7 @@ const StudentLogin = ({ onClose }) => { // Added onClose prop
       // 1. Authenticate with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
       
-      // 2. SEARCH BY EMAIL in Applications
+      // 2. SEARCH BY EMAIL in Applications (The "Bulletproof" Method)
       const appQuery = query(
         collection(firestore, "applications"), 
         where("email", "==", cleanEmail),
@@ -36,16 +36,17 @@ const StudentLogin = ({ onClose }) => { // Added onClose prop
       if (!querySnapshot.empty) {
         const userData = querySnapshot.docs[0].data();
 
-        // 3. Verify Payment Status
+        // 3. Verify Payment Status (Checks both 'status' and 'paymentStatus' fields)
         const pStatus = (userData.status || userData.paymentStatus || "").toLowerCase();
+        
         if (pStatus !== "paid" && pStatus !== "completed") {
-          await signOut(auth);
+          await signOut(auth); // Kick them out if they haven't paid
           setError("PAYMENT REQUIRED: Your application fee has not been verified.");
           setLoading(false);
           return;
         }
 
-        // Success!
+        // Success: Redirect to the student portal
         navigate("/student-portal");
       } else {
         setError("RECORD NOT FOUND: No student record found for this email.");

@@ -4,7 +4,7 @@ import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { Lock, User, ShieldAlert, Loader2, X } from "lucide-react";
 
-const AdminLogin = ({ onLogin, onClose }) => { // Added onClose prop
+const AdminLogin = ({ onLogin, onClose }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -28,7 +28,7 @@ const AdminLogin = ({ onLogin, onClose }) => { // Added onClose prop
       
       const user = userCredential.user;
 
-      // 2. Search Firestore by Email
+      // 2. Search Firestore by Email (Primary Method)
       const staffQuery = query(
         collection(firestore, "users"),
         where("email", "==", cleanEmail),
@@ -37,24 +37,25 @@ const AdminLogin = ({ onLogin, onClose }) => { // Added onClose prop
 
       const querySnapshot = await getDocs(staffQuery);
 
+      const allowedRoles = [
+        "admin",
+        "rector",
+        "instructor",
+        "admission-officer",
+      ];
+
       if (!querySnapshot.empty) {
         const userData = querySnapshot.docs[0].data();
-        const allowedRoles = [
-          "admin",
-          "rector",
-          "instructor",
-          "admission-officer",
-        ];
 
-        // Check if the user has the correct role
+        // 3. Role Verification
         if (allowedRoles.includes(userData.role?.toLowerCase())) {
-          onLogin(true);
+          onLogin(true); // Grant Access
         } else {
           await signOut(auth);
-          setError("ACCESS DENIED: You do not have administrative privileges.");
+          setError("ACCESS DENIED: Insufficient administrative privileges.");
         }
       } else {
-        // Fallback: Check if UID is the document ID or a field
+        // Fallback Method: Search by UID if email query failed
         const backupQuery = query(
           collection(firestore, "users"),
           where("uid", "==", user.uid),
@@ -63,7 +64,13 @@ const AdminLogin = ({ onLogin, onClose }) => { // Added onClose prop
         const backupSnapshot = await getDocs(backupQuery);
         
         if (!backupSnapshot.empty) {
-            onLogin(true);
+            const backupData = backupSnapshot.docs[0].data();
+            if (allowedRoles.includes(backupData.role?.toLowerCase())) {
+                onLogin(true);
+            } else {
+                await signOut(auth);
+                setError("ACCESS DENIED: Insufficient administrative privileges.");
+            }
         } else {
             await signOut(auth);
             setError("PROFILE ERROR: No administrative record found.");
@@ -86,26 +93,27 @@ const AdminLogin = ({ onLogin, onClose }) => { // Added onClose prop
   };
 
   return (
-    <div className="min-h-screen d-flex align-items-center justify-content-center bg-dark position-relative">
-      {/* CLOSE BUTTON */}
+    <div className="min-h-screen d-flex align-items-center justify-content-center bg-dark position-relative" style={{ backgroundColor: "#0a0a0a" }}>
+      
+      {/* CLOSE BUTTON (X) */}
       <button 
         onClick={onClose} 
         className="btn btn-light rounded-circle position-absolute top-0 end-0 m-4 shadow-sm border-0 d-flex align-items-center justify-content-center"
-        style={{ width: '45px', height: '45px', zIndex: 100 }}
+        style={{ width: '45px', height: '45px', zIndex: 100, backgroundColor: "#fff" }}
       >
         <X size={24} className="text-dark" />
       </button>
 
       <div
         className="card border-0 shadow-lg p-4 p-md-5"
-        style={{ maxWidth: "400px", borderRadius: "24px", width: "90%" }}
+        style={{ maxWidth: "400px", borderRadius: "24px", width: "90%", backgroundColor: "#fff" }}
       >
         <div className="text-center mb-4">
           <div className="bg-danger text-white rounded-circle d-inline-block p-3 mb-3 shadow">
             <Lock size={32} />
           </div>
-          <h4 className="fw-bold text-dark text-uppercase">AVA Admin Portal</h4>
-          <p className="text-muted small">Authorized Personnel Only</p>
+          <h4 className="fw-bold text-dark text-uppercase tracking-tighter">AVA Admin Portal</h4>
+          <p className="text-muted small uppercase fw-bold" style={{ fontSize: '10px' }}>Authorized Personnel Only</p>
         </div>
 
         {error && (
@@ -116,7 +124,7 @@ const AdminLogin = ({ onLogin, onClose }) => { // Added onClose prop
 
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
-            <label className="form-label small fw-bold text-muted mb-1 text-uppercase">
+            <label className="form-label small fw-bold text-muted mb-1 text-uppercase" style={{ fontSize: '10px' }}>
               Official Email
             </label>
             <div className="input-group shadow-sm">
@@ -135,7 +143,7 @@ const AdminLogin = ({ onLogin, onClose }) => { // Added onClose prop
           </div>
           
           <div className="mb-4">
-            <label className="form-label small fw-bold text-muted mb-1 text-uppercase">
+            <label className="form-label small fw-bold text-muted mb-1 text-uppercase" style={{ fontSize: '10px' }}>
               Security Password
             </label>
             <div className="input-group shadow-sm">
@@ -157,9 +165,10 @@ const AdminLogin = ({ onLogin, onClose }) => { // Added onClose prop
             type="submit"
             className="btn btn-danger w-100 py-3 rounded-pill fw-bold shadow-lg text-uppercase tracking-widest border-0"
             disabled={loading}
+            style={{ fontSize: '14px' }}
           >
             {loading ? (
-              <Loader2 className="animate-spin mx-auto text-white" />
+              <Loader2 className="animate-spin mx-auto text-white" size={20} />
             ) : (
               "SECURE SIGN IN"
             )}
