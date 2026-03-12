@@ -37,7 +37,6 @@ import AcademicExam from "./components/AcademicExam";
 import StaffLogin from "./pages/StaffLogin";
 import AdmissionOfficerDashboard from "./pages/AdmissionOfficerDashboard.jsx";
 import RectorDashboard from "./pages/RectorDashboard.jsx";
-// IMPORT THE FORM COMPONENT
 import CourseApplicationForm from "./components/CourseApplicationForm"; 
 
 import "./App.css";
@@ -146,9 +145,7 @@ function App() {
           <Route path="/login" element={<StudentLoginWithClose />} />
           <Route path="/student-login" element={<StudentLoginWithClose />} />
           <Route path="/admin-gateway" element={<StaffLoginWithClose />} />
-          
-          /* Add this inside your <Routes> block */
-          <Route path="/apply" element={<CourseApplicationForm showCourseForm={true} setShowCourseForm={() => window.location.href='/'} />} />
+
           <Route path="/student-portal" element={<ProtectedRoute requiredRole="student"><StudentPortal /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute requiredRole="student"><LMSDashboard /></ProtectedRoute>} />
           <Route path="/forum/:courseId/:weekId" element={<ProtectedRoute requiredRole="student"><WeeklyForumWrapper /></ProtectedRoute>} />
@@ -175,7 +172,7 @@ function App() {
 
 const WeeklyForumWrapper = () => {
   const { courseId, weekId } = useParams();
-  return <WeeklyForum courseId={courseId} weekId={parseInt(weekId)} />;
+  return <WeeklyForum courseId={courseId} weekId={parseInt(weekId || "0")} />;
 };
 
 const LeaderboardWrapper = () => {
