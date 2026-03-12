@@ -27,7 +27,7 @@ const JobApplicationForm = ({
   setIsSuccess,
   photoPreview,
   setPhotoPreview,
-  applicationData,
+  applicationData = {}, // MUN SAKA DEFAULT {} DON KARE BLANK SCREEN
   setApplicationData,
   handleChange,
   handlePhotoChange,
