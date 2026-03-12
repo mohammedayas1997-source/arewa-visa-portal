@@ -32,7 +32,9 @@ import {
   School,
   PlusCircle,
   Trash2,
-  BookOpen
+  BookOpen,
+  FileUp,
+  Globe
 } from "lucide-react";
 
 const CourseApplicationForm = ({
@@ -50,38 +52,25 @@ const CourseApplicationForm = ({
   const receiptRef = useRef(null);
   const schoolLogo = "/logo.png";
 
-  const secondarySubjects = [
-    "English Language", "Mathematics", "Physics", "Chemistry", "Biology",
-    "Economics", "Geography", "Agricultural Science", "Civic Education",
-    "Further Mathematics", "Literature in English", "Government", "History",
-    "CRS", "IRS", "Hausa", "Igbo", "Yoruba", "French", "Commerce",
-    "Financial Accounting", "Technical Drawing", "Data Processing",
-    "Computer Studies", "Food & Nutrition", "Home Management",
-    "Animal Husbandry", "Marketing", "Insurance", "Office Practice",
-  ];
-
   const [applicationData, setApplicationData] = useState({
     name: "",
     email: "",
     gender: "",
     age: "",
     nin: "",
-    passportNo: "",
+    intlPassportNo: "", // New Optional field
     whatsapp: "",
-    state: "",
-    lga: "",
-    residenceCountry: "Nigeria",
+    stateOrigin: "", // Re-added
+    lgaOrigin: "",   // Re-added
+    stateResidence: "", // Re-added
+    lgaResidence: "",   // Re-added
     address: "",
     job: "",
     jobCountry: "",
     selectedCourseTitle: "",
     photoFile: null,
-    resumeFile: null,
+    resumeFile: null, // For Credentials/CV
   });
-
-  const [oLevelResults, setOLevelResults] = useState(
-    Array(9).fill(null).map((_, i) => ({ id: i, subject: "", grade: "" }))
-  );
 
   const [qualifications, setQualifications] = useState([
     { id: Date.now(), type: "", institution: "", course: "", year: "", examNo: "", centerNo: "" },
@@ -102,17 +91,6 @@ const CourseApplicationForm = ({
     return await getDownloadURL(snapshot.ref);
   };
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) return alert("Image too large! Max 2MB.");
-      const reader = new FileReader();
-      reader.onloadend = () => setPhotoPreview(reader.result);
-      reader.readAsDataURL(file);
-      setApplicationData((prev) => ({ ...prev, photoFile: file }));
-    }
-  };
-
   const handlePassportUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -129,6 +107,11 @@ const CourseApplicationForm = ({
     setApplicationData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleFileChange = (e) => {
+    const { name, files } = e.target;
+    setApplicationData((prev) => ({ ...prev, [name]: files[0] }));
+  };
+
   const handleQualificationChange = (id, field, value) => {
     setQualifications((prev) => prev.map((q) => (q.id === id ? { ...q, [field]: value } : q)));
   };
@@ -139,10 +122,6 @@ const CourseApplicationForm = ({
 
   const removeQualification = (id) => {
     if (qualifications.length > 1) setQualifications(qualifications.filter((q) => q.id !== id));
-  };
-
-  const handleSubjectChange = (id, field, value) => {
-    setOLevelResults((prev) => prev.map((res) => (res.id === id ? { ...res, [field]: value } : res)));
   };
 
   // --- STEP 1: SUBMISSION ---
@@ -156,14 +135,15 @@ const CourseApplicationForm = ({
       const ts = Date.now();
       const photoUrl = await uploadFile(applicationData.photoFile, `apps/${ts}/photo`);
       let resumeUrl = "";
-      if (applicationData.resumeFile) resumeUrl = await uploadFile(applicationData.resumeFile, `apps/${ts}/resume`);
+      if (applicationData.resumeFile) {
+        resumeUrl = await uploadFile(applicationData.resumeFile, `apps/${ts}/credentials`);
+      }
 
       const { photoFile, resumeFile, ...cleanData } = applicationData;
 
       const docRef = await addDoc(collection(firestore, "applications"), {
         ...cleanData,
         qualifications,
-        oLevelResults,
         photoUrl,
         resumeUrl,
         status: "Pending Payment",
@@ -182,6 +162,7 @@ const CourseApplicationForm = ({
 
   // --- STEP 2: PAYSTACK INTEGRATION ---
   const triggerPaystack = () => {
+    // Correctly setting loading state for the button
     setIsSubmitting(true);
     const handler = window.PaystackPop.setup({
       key: "pk_test_962a83d0a3b1d3c993e245757351a3834bfe91c0", 
@@ -244,7 +225,6 @@ const CourseApplicationForm = ({
 
         <div className="card-body p-0 bg-white">
           {step === "success" ? (
-            /* --- RECEIPT VIEW --- */
             <div ref={receiptRef} className="p-4 p-md-5 text-dark text-start bg-white" style={{ border: "15px solid #1a1a1a" }}>
               <div className="d-flex justify-content-between align-items-center border-bottom border-4 border-danger pb-3 mb-4 text-uppercase">
                 <div className="d-flex align-items-center gap-3">
@@ -284,7 +264,6 @@ const CourseApplicationForm = ({
               </div>
             </div>
           ) : step === "payment" ? (
-            /* --- PAYMENT VIEW --- */
             <div className="p-5 text-center bg-white min-h-[500px] flex flex-col justify-center items-center">
                <Wallet size={80} className="text-danger mb-4 animate-bounce" />
                <h2 className="fw-black text-danger uppercase display-5">Application Fee</h2>
@@ -297,7 +276,6 @@ const CourseApplicationForm = ({
                </button>
             </div>
           ) : (
-            /* --- FORM VIEW --- */
             <div className="row g-0">
                <div className="col-md-3 bg-danger p-4 text-white text-center d-flex flex-column justify-content-center">
                  {photoPreview ? <img src={photoPreview} className="mx-auto mb-3 border border-3 border-white rounded-3 shadow-lg" style={{width: '110px', height: '145px', objectFit: 'cover'}} alt="Passport" /> : <School size={65} className="mx-auto mb-3 opacity-75" />}
@@ -306,21 +284,31 @@ const CourseApplicationForm = ({
                </div>
                <div className="col-md-9 p-4 p-md-5 bg-white text-dark text-start">
                   <form className="row g-4" onSubmit={handleFormSubmit}>
-                     {/* PERSONAL SECTION */}
                      <div className="col-12 border-bottom pb-2"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><User size={18} /> Personal Profile</h6></div>
                      <div className="col-md-6"><label className="label-style">Full Name</label><input required name="name" onChange={handleChange} className="sky-input" /></div>
                      <div className="col-md-6"><label className="label-style">Email Address</label><input required type="email" name="email" onChange={handleChange} className="sky-input" /></div>
                      <div className="col-md-4"><label className="label-style">Gender</label><select required name="gender" onChange={handleChange} className="sky-input"><option value="">Select</option><option>Male</option><option>Female</option></select></div>
                      <div className="col-md-4"><label className="label-style">WhatsApp</label><input required name="whatsapp" onChange={handleChange} className="sky-input" /></div>
                      <div className="col-md-4"><label className="label-style">NIN Number</label><input required name="nin" onChange={handleChange} className="sky-input" /></div>
+                     
+                     {/* Identity and Origin Section */}
+                     <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><Globe size={18} /> Identity & Origin</h6></div>
+                     <div className="col-md-4"><label className="label-style">Intl. Passport No (Optional)</label><input name="intlPassportNo" onChange={handleChange} className="sky-input" placeholder="A00000000" /></div>
+                     <div className="col-md-4"><label className="label-style">State of Origin</label><input required name="stateOrigin" onChange={handleChange} className="sky-input" /></div>
+                     <div className="col-md-4"><label className="label-style">LGA of Origin</label><input required name="lgaOrigin" onChange={handleChange} className="sky-input" /></div>
 
-                     {/* EDUCATION SECTION */}
+                     {/* Residential Section */}
+                     <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><MapPin size={18} /> Residential Address</h6></div>
+                     <div className="col-md-6"><label className="label-style">State of Residence</label><input required name="stateResidence" onChange={handleChange} className="sky-input" /></div>
+                     <div className="col-md-6"><label className="label-style">LGA of Residence</label><input required name="lgaResidence" onChange={handleChange} className="sky-input" /></div>
+                     <div className="col-12"><label className="label-style">Full Home Address</label><textarea required name="address" onChange={handleChange} className="sky-input" rows="2"></textarea></div>
+
                      <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><GraduationCap size={18} /> Education History</h6></div>
                      {qualifications.map((qual) => (
                        <div key={qual.id} className="col-12 p-4 bg-light rounded-4 border position-relative mb-2">
                           {qualifications.length > 1 && <button type="button" onClick={() => removeQualification(qual.id)} className="btn btn-link text-danger position-absolute top-0 end-0 p-2"><Trash2 size={18} /></button>}
                           <div className="row g-3">
-                             <div className="col-md-4"><select required value={qual.type} onChange={(e) => handleQualificationChange(qual.id, "type", e.target.value)} className="sky-input"><option value="">Qualification</option><option>SSCE</option><option>ND</option><option>Degree</option></select></div>
+                             <div className="col-md-4"><select required value={qual.type} onChange={(e) => handleQualificationChange(qual.id, "type", e.target.value)} className="sky-input"><option value="">Qualification</option><option>SSCE</option><option>ND</option><option>Degree</option><option>Master</option></select></div>
                              <div className="col-md-4"><input required placeholder="Institution" value={qual.institution} onChange={(e) => handleQualificationChange(qual.id, "institution", e.target.value)} className="sky-input" /></div>
                              <div className="col-md-4"><input required placeholder="Year" value={qual.year} onChange={(e) => handleQualificationChange(qual.id, "year", e.target.value)} className="sky-input" /></div>
                           </div>
@@ -328,16 +316,10 @@ const CourseApplicationForm = ({
                      ))}
                      <button type="button" onClick={addQualification} className="btn btn-outline-danger btn-sm rounded-pill w-auto ms-3 mt-2 font-black uppercase"><PlusCircle size={14} className="me-1"/> Add More</button>
 
-                     {/* O-LEVEL TRANSCRIPT */}
-                     <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><BookOpen size={18} /> O-Level Transcript</h6></div>
-                     <div className="row g-2 px-3">
-                        {oLevelResults.map((res) => (
-                          <div key={res.id} className="col-md-4 mb-2"><div className="d-flex gap-1"><select required className="sky-input !p-2 !text-xs" onChange={(e) => handleSubjectChange(res.id, "subject", e.target.value)}><option value="">Subject</option>{secondarySubjects.map(s => <option key={s}>{s}</option>)}</select><select required className="sky-input !p-2 !w-25 !text-xs" onChange={(e) => handleSubjectChange(res.id, "grade", e.target.value)}><option value="">Grade</option>{["A1", "C6", "F9"].map(g => <option key={g}>{g}</option>)}</select></div></div>
-                        ))}
-                     </div>
+                     <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><FileUp size={18} /> Upload Credentials (Optional)</h6></div>
+                     <div className="col-md-12"><label className="label-style">CV / Academic Documents (PDF/JPG)</label><input type="file" name="resumeFile" onChange={handleFileChange} className="sky-input" accept=".pdf,.jpg,.jpeg,.png" /></div>
 
-                     {/* FINAL SELECTION */}
-                     <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><ArrowRight size={18} /> Course & Passport</h6></div>
+                     <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><ArrowRight size={18} /> Final Selection</h6></div>
                      <div className="col-md-12"><select required name="selectedCourseTitle" onChange={handleChange} className="sky-input font-black uppercase"><option value="">-- Choose Course --</option>{coursesData?.map(c => <option key={c.id} value={c.title}>{c.title}</option>)}</select></div>
                      <div className="col-md-6"><label className="label-style">Passport Photo</label><input required type="file" accept="image/*" onChange={handlePassportUpload} className="sky-input" /></div>
                      
