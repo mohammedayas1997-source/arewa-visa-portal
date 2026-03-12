@@ -1,196 +1,170 @@
 import React, { useState, useEffect, useRef } from "react";
-import { db, storage, firestore } from "../firebase";
-import { ref, push, set, onValue } from "firebase/database";
+import { db, storage, firestore } from "../firebase"; 
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
-  collection,
-  addDoc,
-  serverTimestamp,
-  doc,
-  updateDoc,
+  collection, addDoc, serverTimestamp, updateDoc, doc, onSnapshot
 } from "firebase/firestore";
-import ApplyPayment from "./ApplyPayment";
-import { QRCodeSVG } from "qrcode.react";
+import {
+  Upload, CreditCard, Loader2, User, School, BookOpen, Download,
+  MapPin, GraduationCap, Lock, PlusCircle, Trash2, ArrowRight,
+  ShieldCheck, Wallet, FileUp, X as CloseIcon
+} from "lucide-react";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
-import {
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
-import {
-  X,
-  GraduationCap,
-  ArrowRight,
-  Loader2,
-  Wallet,
-  CheckCircle,
-  Lock,
-  User,
-  MapPin,
-  FileText,
-  Printer,
-  Download,
-  Briefcase,
-  Globe,
-  Calendar,
-  ShieldCheck,
-  Check,
-} from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
-const CourseApplicationForm = ({
-  showCourseForm,
-  setShowCourseForm,
-  coursesData,
-}) => {
-  // --- STATES ---
-  const [showPaymentStep, setShowPaymentStep] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [photoPreview, setPhotoPreview] = useState(null);
-  const [generatedID, setGeneratedID] = useState("");
-  const [applicationDocId, setApplicationDocId] = useState("");
+const CourseEnrollment = ({ showCourseForm, setShowCourseForm, coursesData }) => {
+  const [step, setStep] = useState("form"); // "form", "payment", "success"
+  const [loading, setLoading] = useState(false);
+  const [applicationId, setApplicationId] = useState(null);
+  const [passportPreview, setPassportPreview] = useState(null);
+  const [passportFile, setPassportFile] = useState(null);
+  const [cvFile, setCvFile] = useState(null);
+  const [otherDocFile, setOtherDocFile] = useState(null);
+  const [portalSettings, setPortalSettings] = useState({ isOpen: true });
+  const [admissionID, setAdmissionID] = useState("");
   const receiptRef = useRef(null);
+  const modalRef = useRef(null);
 
-  const [applicationData, setApplicationData] = useState({
-    name: "",
-    email: "",
-    gender: "",
-    age: "",
-    nin: "",
-    passportNo: "",
-    whatsapp: "",
-    state: "",
-    lga: "",
-    residenceCountry: "Nigeria",
-    address: "",
-    job: "",
-    jobCountry: "",
-    selectedCourseTitle: "",
-    photoFile: null,
-    resumeFile: null,
+  const [formData, setFormData] = useState({
+    fullName: "", email: "", phone: "", gender: "",
+    stateOrigin: "", lgaOrigin: "", stateResidence: "",
+    lgaResidence: "", residentialAddress: "", selectedCourse: "",
   });
 
-  // --- FUNCTIONS ---
- const uploadFile = async (file, path) => {
-    const fRef = storageRef(storage, path);
-    // Dole ne ka saka 'await' a nan don upload din ya gama
-    const snapshot = await uploadBytes(fRef, file);
-    // WANNAN SHINE GYARAN: Dole ne ka kira snapshot.ref
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    return downloadURL;
-  };
+  const [qualifications, setQualifications] = useState([
+    { id: Date.now(), type: "", institution: "", course: "", year: "" },
+  ]);
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Image is too large! Max 2MB.");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => setPhotoPreview(reader.result);
-      reader.readAsDataURL(file);
-      setApplicationData((prev) => ({ ...prev, photoFile: file }));
+  // AUTO-SCROLL TO TOP ON STEP CHANGE
+  useEffect(() => {
+    if (showCourseForm && modalRef.current) {
+      modalRef.current.scrollTo(0, 0);
     }
-  };
+  }, [showCourseForm, step]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(firestore, "systemSettings", "admissionControl"), (snapshot) => {
+      if (snapshot.exists()) setPortalSettings(snapshot.data());
+    });
+    return () => unsub();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setApplicationData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e) => {
-    const { name, files } = e.target;
-    setApplicationData((prev) => ({ ...prev, [name]: files[0] }));
-  };
-
-  // --- STEP 1: INITIAL SUBMISSION (PENDING PAYMENT) ---
-  // --- STEP 1: INITIAL SUBMISSION (PENDING PAYMENT) ---
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    if (!applicationData.photoFile)
-      return alert("Please upload your passport photo.");
-
-    setIsSubmitting(true);
-    try {
-      const timestamp = Date.now();
-
-      // 1. Upload Photo
-      const photoUrl = await uploadFile(
-        applicationData.photoFile,
-        `apps/${timestamp}/photo`
-      );
-      
-      // 2. Upload Resume (Optional)
-      let resumeUrl = "";
-      if (applicationData.resumeFile) {
-        resumeUrl = await uploadFile(
-          applicationData.resumeFile,
-          `apps/${timestamp}/resume`
-        );
-      }
-
-      // 3. Cire file objects kafin adana su a Firestore
-      const { photoFile, resumeFile, ...cleanData } = applicationData;
-
-      const docRef = await addDoc(collection(firestore, "applications"), {
-        ...cleanData,
-        photoUrl: photoUrl,
-        resumeUrl: resumeUrl,
-        status: "Pending Payment", // Admin zai gani a matsayin 'Pending'
-        paymentStatus: "Unpaid",
-        appliedAt: serverTimestamp(),
-      });
-
-      setApplicationDocId(docRef.id);
-      setShowPaymentStep(true);
-      
-      // Gungura (Scroll) zuwa sama don ganin bangaren biya
-      window.scrollTo(0, 0); 
-
-    } catch (error) {
-      console.error("Submission Error:", error);
-      alert("Submission Error: " + error.message);
-    } finally {
-      setIsSubmitting(false);
+  const handlePassportUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) return alert("Max 2MB!");
+      setPassportFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => setPassportPreview(event.target.result);
+      reader.readAsDataURL(file);
     }
   };
 
-  // --- STEP 2: UPDATE AFTER PAYMENT SUCCESS ---
-  const handlePaymentSuccess = async (reference) => {
-    setIsSubmitting(true);
-    try {
-      const admissionID = `AVA-${Math.floor(10000 + Math.random() * 90000)}`;
-      setGeneratedID(admissionID);
+  const uploadFile = async (file, path) => {
+    if (!file) return "";
+    const fRef = ref(storage, path);
+    const snapshot = await uploadBytes(fRef, file);
+    return getDownloadURL(snapshot.ref);
+  };
 
-      const appRef = doc(firestore, "applications", applicationDocId);
+  // STEP 1: UPLOAD AND CREATE PENDING RECORD
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    if (!passportFile) return alert("Please upload your passport!");
+    setLoading(true);
+
+    try {
+      const ts = Date.now();
+      const photoUrl = await uploadFile(passportFile, `apps/${ts}/passport`);
+      const cvUrl = cvFile ? await uploadFile(cvFile, `apps/${ts}/cv`) : "";
       
-      // Wannan zai canza matsayin dalibi a Admin Dashboard daga 'Pending' zuwa 'Paid'
+      const finalRecord = {
+        ...formData,
+        email: formData.email.toLowerCase().trim(),
+        qualifications,
+        photoUrl,
+        cvUrl,
+        status: "Pending Payment",
+        paymentStatus: "Unpaid",
+        appliedAt: serverTimestamp(),
+      };
+
+      const docRef = await addDoc(collection(firestore, "applications"), finalRecord);
+      setApplicationId(docRef.id);
+      setStep("payment"); // MOVE TO PAYMENT SCREEN
+    } catch (error) {
+      alert("Submission Error: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // STEP 2: AUTOMATIC UPDATE AFTER PAYMENT
+  const triggerPaystack = () => {
+    setLoading(true);
+    const handler = window.PaystackPop.setup({
+      key: "pk_test_962a83d0a3b1d3c993e245757351a3834bfe91c0", 
+      email: formData.email,
+      amount: 5000 * 100,
+      callback: (response) => {
+        // THIS CALLS AUTOMATICALLY ON SUCCESS
+        handlePaymentSuccess(response.reference);
+      },
+      onClose: () => setLoading(false),
+    });
+    handler.openIframe();
+  };
+
+  const handlePaymentSuccess = async (reference) => {
+    setLoading(true);
+    try {
+      const newID = `AVA-${Math.floor(10000 + Math.random() * 90000)}`;
+      setAdmissionID(newID);
+
+      const appRef = doc(firestore, "applications", applicationId);
       await updateDoc(appRef, {
-        admissionID: admissionID,
-        paymentRef: reference?.reference || reference || "REF-" + Date.now(),
-        paymentStatus: "Paid",
         status: "Paid",
+        paymentStatus: "Paid",
+        admissionID: newID,
+        paymentRef: reference,
         paidAt: serverTimestamp(),
       });
 
-      // Notification zuwa WhatsApp
-      const adminWhatsApp = "2348165372359";
-      const message = `*NEW ADMISSION PAID*%0A%0A*ID:* ${admissionID}%0A*Name:* ${applicationData.name}%0A*Program:* ${applicationData.selectedCourseTitle}`;
-      window.open(`https://wa.me/${adminWhatsApp}?text=${message}`, "_blank");
-
-      setIsSuccess(true);
-      setShowPaymentStep(false);
-      window.scrollTo(0, 0);
+      // NO REFRESH NEEDED - JUST CHANGE STATE
+      setStep("success"); 
+      
+      // Notify Admin
+      const msg = `*NEW ADMISSION PAID*%0A%0AID: ${newID}%0AName: ${formData.fullName}`;
+      window.open(`https://wa.me/2348165372359?text=${msg}`, "_blank");
 
     } catch (error) {
-      console.error("Payment Update Error:", error);
-      alert("Payment successful, but database update failed. Screenshot this!");
+      alert("Payment Successful! But we couldn't update the database. Please screenshot this!");
+      setStep("success"); // Still show success so they can screenshot
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
-  
+
+  const downloadReceipt = async () => {
+    const element = receiptRef.current;
+    setLoading(true);
+    try {
+      const canvas = await html2canvas(element, { scale: 3, useCORS: true });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      pdf.addImage(imgData, "PNG", 0, 0, 210, (canvas.height * 210) / canvas.width);
+      pdf.save(`RECEIPT-${admissionID}.pdf`);
+    } finally {
+      setLoading(false);
+    }
+  };
+    
   if (!showCourseForm) return null;
 
   return (
