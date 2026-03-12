@@ -1,508 +1,655 @@
 import React, { useState, useEffect, useRef } from "react";
-import { db, storage, firestore } from "../firebase"; 
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db, storage, firestore } from "../firebase";
+import { ref, push, set, onValue } from "firebase/database";
 import {
   collection,
   addDoc,
   serverTimestamp,
-  updateDoc,
   doc,
-  onSnapshot,
+  updateDoc,
 } from "firebase/firestore";
-import {
-  Upload,
-  CreditCard,
-  Loader2,
-  User,
-  School,
-  BookOpen,
-  Download,
-  MapPin,
-  GraduationCap,
-  Lock,
-  PlusCircle,
-  Trash2,
-  ArrowRight,
-  ShieldCheck,
-  Wallet,
-  FileText,
-  FileUp,
-  X as CloseIcon
-} from "lucide-react";
+import ApplyPayment from "./ApplyPayment";
+import { QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
-import { QRCodeSVG } from "qrcode.react";
+import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage";
+import {
+  X,
+  GraduationCap,
+  ArrowRight,
+  Loader2,
+  Wallet,
+  CheckCircle,
+  Lock,
+  User,
+  MapPin,
+  FileText,
+  Printer,
+  Download,
+  Briefcase,
+  Globe,
+  Calendar,
+  ShieldCheck,
+  Check,
+} from "lucide-react";
 
-const CourseEnrollment = ({ showCourseForm, setShowCourseForm, coursesData }) => {
+const CourseApplicationForm = ({
+  showCourseForm,
+  setShowCourseForm,
+  coursesData,
+}) => {
   // --- STATES ---
-  const [step, setStep] = useState("form");
-  const [loading, setLoading] = useState(false);
-  const [applicationId, setApplicationId] = useState(null);
-  const [passportPreview, setPassportPreview] = useState(null);
-  const [passportFile, setPassportFile] = useState(null);
-  
-  const [cvFile, setCvFile] = useState(null);
-  const [otherDocFile, setOtherDocFile] = useState(null);
-
-  const [portalSettings, setPortalSettings] = useState({ isOpen: true });
+  const [showPaymentStep, setShowPaymentStep] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [generatedID, setGeneratedID] = useState("");
+  const [applicationDocId, setApplicationDocId] = useState("");
   const receiptRef = useRef(null);
-  const modalRef = useRef(null); // Ref for scrolling to top
 
-  const schoolLogo = "/logo.png";
-
-  const [formData, setFormData] = useState({
-    fullName: "",
+  const [applicationData, setApplicationData] = useState({
+    name: "",
     email: "",
-    phone: "",
     gender: "",
-    stateOrigin: "",
-    lgaOrigin: "",
-    stateResidence: "",
-    lgaResidence: "",
-    residentialAddress: "",
-    selectedCourse: "",
+    age: "",
+    nin: "",
+    passportNo: "",
+    whatsapp: "",
+    state: "",
+    lga: "",
+    residenceCountry: "Nigeria",
+    address: "",
+    job: "",
+    jobCountry: "",
+    selectedCourseTitle: "",
+    photoFile: null,
+    resumeFile: null,
   });
 
-  const [qualifications, setQualifications] = useState([
-    {
-      id: Date.now(),
-      type: "",
-      institution: "",
-      course: "",
-      year: "",
-    },
-  ]);
-
-  // --- AUTO-SCROLL TO TOP ON OPEN ---
-  useEffect(() => {
-    if (showCourseForm && modalRef.current) {
-      modalRef.current.scrollTo(0, 0);
-    }
-  }, [showCourseForm, step]);
-
-  // --- PORTAL STATUS REALTIME SYNC ---
-  useEffect(() => {
-    const unsub = onSnapshot(
-      doc(firestore, "systemSettings", "admissionControl"),
-      (snapshot) => {
-        if (snapshot.exists()) {
-          setPortalSettings(snapshot.data());
-        }
-      },
-      (error) => {
-        console.error("Portal Settings Error:", error);
-      }
-    );
-    return () => unsub();
-  }, []);
-
-  // --- HANDLERS ---
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleQualificationChange = (id, field, value) => {
-    setQualifications((prev) =>
-      prev.map((q) => (q.id === id ? { ...q, [field]: value } : q))
-    );
-  };
-
-  const addQualification = () => {
-    setQualifications([
-      ...qualifications,
-      { id: Date.now(), type: "", institution: "", course: "", year: "" },
-    ]);
-  };
-
-  const removeQualification = (id) => {
-    if (qualifications.length > 1) {
-      setQualifications(qualifications.filter((q) => q.id !== id));
-    }
-  };
-
-  const handlePassportUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) return alert("Image too large (Max 2MB)");
-      setPassportFile(file);
-      const reader = new FileReader();
-      reader.onload = (event) => setPassportPreview(event.target.result);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const uploadFile = async (file, path) => {
-    if (!file) return "";
-    const fRef = ref(storage, path);
+  // --- FUNCTIONS ---
+ const uploadFile = async (file, path) => {
+    const fRef = storageRef(storage, path);
+    // Dole ne ka saka 'await' a nan don upload din ya gama
     const snapshot = await uploadBytes(fRef, file);
+    // WANNAN SHINE GYARAN: Dole ne ka kira snapshot.ref
     const downloadURL = await getDownloadURL(snapshot.ref);
     return downloadURL;
   };
 
-  // --- STEP 1: SUBMIT DATA ---
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    if (!portalSettings.isOpen) return alert("Portal is currently closed.");
-    if (!passportFile) return alert("Please upload a passport photograph!");
-
-    setLoading(true);
-    try {
-      const timestamp = Date.now();
-      const photoUrl = await uploadFile(passportFile, `apps/${timestamp}/passport`);
-      const cvUrl = cvFile ? await uploadFile(cvFile, `apps/${timestamp}/cv`) : "";
-      const otherDocUrl = otherDocFile ? await uploadFile(otherDocFile, `apps/${timestamp}/others`) : "";
-
-      const finalRecord = {
-        fullName: formData.fullName,
-        email: formData.email.toLowerCase().trim(),
-        phone: formData.phone,
-        gender: formData.gender,
-        stateOrigin: formData.stateOrigin,
-        lgaOrigin: formData.lgaOrigin,
-        stateResidence: formData.stateResidence,
-        lgaResidence: formData.lgaResidence,
-        residentialAddress: formData.residentialAddress,
-        selectedCourse: formData.selectedCourse,
-        qualifications: qualifications.map(q => ({
-          type: q.type,
-          institution: q.institution,
-          course: q.course,
-          year: q.year
-        })),
-        photoUrl: photoUrl,
-        cvUrl: cvUrl,
-        otherDocUrl: otherDocUrl,
-        status: "Pending Payment",
-        paymentStatus: "Unpaid",
-        appliedAt: serverTimestamp(),
-      };
-
-      const docRef = await addDoc(collection(firestore, "applications"), finalRecord);
-      setApplicationId(docRef.id);
-      setStep("payment");
-    } catch (error) {
-      console.error("Submission Error:", error);
-      alert("Error: " + error.message);
-    } finally {
-      setLoading(false);
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Image is too large! Max 2MB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => setPhotoPreview(reader.result);
+      reader.readAsDataURL(file);
+      setApplicationData((prev) => ({ ...prev, photoFile: file }));
     }
   };
 
-  // --- STEP 2: VERIFY PAYMENT ---
-  const triggerPaystack = () => {
-    setLoading(true);
-    const handler = window.PaystackPop.setup({
-      key: "pk_test_962a83d0a3b1d3c993e245757351a3834bfe91c0", 
-      email: formData.email,
-      amount: 5000 * 100,
-      callback: (response) => handlePaymentSuccess(response.reference),
-      onClose: () => {
-        setLoading(false);
-        alert("Payment cancelled.");
-      },
-    });
-    handler.openIframe();
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setApplicationData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleFileChange = (e) => {
+    const { name, files } = e.target;
+    setApplicationData((prev) => ({ ...prev, [name]: files[0] }));
+  };
+
+  // --- STEP 1: INITIAL SUBMISSION (PENDING PAYMENT) ---
+  // --- STEP 1: INITIAL SUBMISSION (PENDING PAYMENT) ---
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    if (!applicationData.photoFile)
+      return alert("Please upload your passport photo.");
+
+    setIsSubmitting(true);
+    try {
+      const timestamp = Date.now();
+
+      // 1. Upload Photo
+      const photoUrl = await uploadFile(
+        applicationData.photoFile,
+        `apps/${timestamp}/photo`
+      );
+      
+      // 2. Upload Resume (Optional)
+      let resumeUrl = "";
+      if (applicationData.resumeFile) {
+        resumeUrl = await uploadFile(
+          applicationData.resumeFile,
+          `apps/${timestamp}/resume`
+        );
+      }
+
+      // 3. Cire file objects kafin adana su a Firestore
+      const { photoFile, resumeFile, ...cleanData } = applicationData;
+
+      const docRef = await addDoc(collection(firestore, "applications"), {
+        ...cleanData,
+        photoUrl: photoUrl,
+        resumeUrl: resumeUrl,
+        status: "Pending Payment", // Admin zai gani a matsayin 'Pending'
+        paymentStatus: "Unpaid",
+        appliedAt: serverTimestamp(),
+      });
+
+      setApplicationDocId(docRef.id);
+      setShowPaymentStep(true);
+      
+      // Gungura (Scroll) zuwa sama don ganin bangaren biya
+      window.scrollTo(0, 0); 
+
+    } catch (error) {
+      console.error("Submission Error:", error);
+      alert("Submission Error: " + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // --- STEP 2: UPDATE AFTER PAYMENT SUCCESS ---
   const handlePaymentSuccess = async (reference) => {
-    setLoading(true);
+    setIsSubmitting(true);
     try {
       const admissionID = `AVA-${Math.floor(10000 + Math.random() * 90000)}`;
-      await updateDoc(doc(firestore, "applications", applicationId), {
-        status: "Paid",
-        paymentStatus: "Paid",
+      setGeneratedID(admissionID);
+
+      const appRef = doc(firestore, "applications", applicationDocId);
+      
+      // Wannan zai canza matsayin dalibi a Admin Dashboard daga 'Pending' zuwa 'Paid'
+      await updateDoc(appRef, {
         admissionID: admissionID,
-        paymentRef: reference || "PAY-" + Date.now(),
+        paymentRef: reference?.reference || reference || "REF-" + Date.now(),
+        paymentStatus: "Paid",
+        status: "Paid",
         paidAt: serverTimestamp(),
       });
 
+      // Notification zuwa WhatsApp
       const adminWhatsApp = "2348165372359";
-      const message = `*NEW ADMISSION PAID*%0A%0A*ID:* ${admissionID}%0A*Name:* ${formData.fullName}%0A*Program:* ${formData.selectedCourse}`;
+      const message = `*NEW ADMISSION PAID*%0A%0A*ID:* ${admissionID}%0A*Name:* ${applicationData.name}%0A*Program:* ${applicationData.selectedCourseTitle}`;
       window.open(`https://wa.me/${adminWhatsApp}?text=${message}`, "_blank");
 
-      setStep("success");
+      setIsSuccess(true);
+      setShowPaymentStep(false);
+      window.scrollTo(0, 0);
+
     } catch (error) {
-      console.error("Update Error:", error);
-      alert("Payment successful but record update failed.");
+      console.error("Payment Update Error:", error);
+      alert("Payment successful, but database update failed. Screenshot this!");
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
-
-  const downloadReceipt = async () => {
-    const element = receiptRef.current;
-    if (!element) return;
-    try {
-      setLoading(true);
-      const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      pdf.addImage(imgData, "PNG", 0, 0, 210, (canvas.height * 210) / canvas.width);
-      pdf.save(`AVA-RECEIPT-${applicationId?.substr(0, 5)}.pdf`);
-    } catch (error) { console.error(error); } finally { setLoading(false); }
-  };
-
+  
   if (!showCourseForm) return null;
 
-  if (!portalSettings.isOpen) {
-    return (
-      <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[10000] flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white p-12 rounded-[40px] text-center shadow-2xl">
-          <Lock size={80} className="mx-auto text-red-600 mb-6" />
-          <h1 className="text-3xl font-black text-[#002147] uppercase">Portal Closed</h1>
-          <p className="text-slate-500 mt-4 font-bold">Admission applications are currently disabled.</p>
-          <button onClick={() => setShowCourseForm(false)} className="mt-8 bg-red-600 text-white px-8 py-3 rounded-full font-bold">Exit</button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div 
-      ref={modalRef}
-      className="fixed inset-0 bg-[#F0F4F8] z-[10000] overflow-y-auto pt-4 pb-20 px-4 md:px-20 animate-in fade-in duration-500"
-      style={{ scrollBehavior: 'smooth' }}
+    <div
+      className="position-fixed top-0 start-0 w-100 h-100 px-2 py-4 shadow-lg"
+      style={{
+        zIndex: 10000,
+        backgroundColor: "rgba(0,0,0,0.92)",
+        overflowY: "auto",
+        display: "block",
+      }}
     >
-      <div className="max-w-5xl mx-auto bg-white shadow-2xl rounded-[40px] overflow-hidden border border-slate-100 relative mb-10">
-        <button 
-          onClick={() => setShowCourseForm(false)} 
-          className="absolute top-6 right-6 z-50 bg-red-600 hover:bg-[#002147] p-2 rounded-full text-white shadow-lg transition-all"
+      <div
+        className="card border-0 w-100 mx-auto"
+        style={{
+          maxWidth: "900px",
+          borderRadius: "24px",
+          overflow: "hidden",
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+        }}
+      >
+        <button
+          onClick={() => {
+            setShowCourseForm(false);
+            setIsSuccess(false);
+          }}
+          className="position-absolute top-0 end-0 m-3 btn btn-light rounded-circle shadow-sm d-print-none"
+          style={{ zIndex: 11000 }}
         >
-          <CloseIcon size={24} />
+          <X size={20} />
         </button>
 
-        {step === "form" && (
-          <>
-            <div className="bg-gradient-to-r from-[#002147] to-[#003366] p-12 text-white flex justify-between items-center relative overflow-hidden border-b-8 border-red-600">
-              <div className="z-10 flex items-center gap-6">
-                <div className="w-24 h-24 bg-white rounded-2xl p-2 shadow-xl flex items-center justify-center">
-                  <img src={schoolLogo} alt="Logo" className="w-full h-full object-contain" />
+        <div className="card-body p-0 bg-white">
+          {isSuccess ? (
+            /* --- RECEIPT VIEW --- */
+            <div
+              ref={receiptRef}
+              className="p-4 p-md-5 text-dark text-start bg-white"
+              style={{ border: "15px solid #1a1a1a" }}
+            >
+              <div className="d-flex justify-content-between align-items-center border-bottom border-4 border-danger pb-3 mb-4 text-uppercase">
+                <div className="d-flex align-items-center gap-3">
+                  <img
+                    src="/logo.png"
+                    alt="Logo"
+                    style={{
+                      width: "80px",
+                      height: "80px",
+                      objectFit: "contain",
+                    }}
+                  />
+                  <div>
+                    <h2
+                      className="fw-black text-danger mb-0 uppercase"
+                      style={{ fontSize: "1.8rem" }}
+                    >
+                      AREWA VISA ACADEMY
+                    </h2>
+                    <p
+                      className="small text-muted mb-0 fw-bold uppercase"
+                      style={{ fontSize: "10px" }}
+                    >
+                      Excellence in Global Immigration & Education
+                    </p>
+                  </div>
                 </div>
+                <div className="text-end">
+                  <h6 className="fw-bold mb-0 text-uppercase">
+                    ADMISSION ID: {generatedID}
+                  </h6>
+                  <p className="small text-muted mb-0 font-monospace">
+                    DATE: {new Date().toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="row g-4 mb-4 mt-2 bg-light p-4 rounded-4 mx-0 border">
+                <div className="col-md-3">
+                  <img
+                    src={photoPreview}
+                    alt="Student"
+                    style={{
+                      width: "150px",
+                      height: "185px",
+                      objectFit: "cover",
+                    }}
+                    className="rounded-3 shadow-lg"
+                  />
+                </div>
+                <div className="col-md-6">
+                  <h5 className="fw-black border-bottom border-danger border-opacity-25 pb-2 mb-3 text-uppercase">
+                    Candidate Profile
+                  </h5>
+                  <table className="table table-sm table-borderless uppercase small">
+                    <tbody>
+                      <tr>
+                        <td className="fw-bold">Full Name:</td>
+                        <td>{applicationData.name}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold">Program:</td>
+                        <td className="text-danger">
+                          {applicationData.selectedCourseTitle}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold">NIN:</td>
+                        <td>{applicationData.nin}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold">WhatsApp:</td>
+                        <td>{applicationData.whatsapp}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div className="col-md-3 text-center border-start">
+                  <QRCodeSVG
+                    value={`https://arewavisa.com/verify/${generatedID}`}
+                    size={110}
+                    includeMargin={true}
+                  />
+                  <p
+                    className="mt-2 fw-bold uppercase"
+                    style={{ fontSize: "8px" }}
+                  >
+                    Verify Authenticity
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-dark p-4 rounded-4 text-white d-flex justify-content-between align-items-center mb-4 shadow-lg">
                 <div>
-                  <h1 className="text-4xl font-black uppercase tracking-tighter text-white">Admission Portal</h1>
-                  <p className="text-emerald-400 font-black mt-2 uppercase text-[10px] tracking-[0.3em]">Arewa Visa Academy</p>
+                  <h3 className="fw-black mb-0">PAID: ₦5,000.00</h3>
+                  <p className="small text-muted mb-0 uppercase tracking-widest">
+                    Status: Payment Verified Successful
+                  </p>
                 </div>
+                <ShieldCheck size={45} className="text-success" />
               </div>
-              <School size={150} className="opacity-10 absolute -right-10 -bottom-10" />
-            </div>
 
-            <form onSubmit={handleFormSubmit} className="p-8 md:p-14 space-y-12 text-left bg-white">
-              <section className="space-y-8 p-6 bg-blue-50/50 rounded-[2.5rem] border border-blue-100">
-                <div className="flex items-center gap-4 border-b-2 border-blue-200 pb-4">
-                  <User className="text-red-600" />
-                  <h2 className="text-[#002147] text-xl font-black uppercase italic">Personal Data</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                  <div className="flex flex-col items-center">
-                    <div className="w-44 h-52 bg-white border-4 border-dashed border-blue-200 rounded-[2rem] relative flex items-center justify-center overflow-hidden hover:border-[#002147] transition-all shadow-inner">
-                      {passportPreview ? (
-                        <img src={passportPreview} className="w-full h-full object-cover" alt="Preview" />
-                      ) : (
-                        <div className="text-center">
-                          <Upload className="mx-auto text-blue-300 mb-2" />
-                          <span className="text-[10px] font-black text-blue-400 uppercase">Passport</span>
-                        </div>
-                      )}
-                      <input required type="file" accept="image/*" onChange={handlePassportUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-                    </div>
-                  </div>
-                  <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="group"><label className="label-style">Full Name</label><input required name="fullName" onChange={handleChange} placeholder="Surname First" className="sky-input" /></div>
-                    <div className="group"><label className="label-style">Email Address</label><input required name="email" type="email" onChange={handleChange} placeholder="example@mail.com" className="sky-input" /></div>
-                    <div className="group"><label className="label-style">Phone Number</label><input required name="phone" type="tel" onChange={handleChange} placeholder="WhatsApp Number" className="sky-input" /></div>
-                    <div className="group"><label className="label-style">Gender</label><select required name="gender" onChange={handleChange} className="sky-input"><option value="">Select</option><option>Male</option><option>Female</option></select></div>
-                    <div className="group"><label className="label-style">State of Origin</label><input required name="stateOrigin" onChange={handleChange} className="sky-input" /></div>
-                    <div className="group"><label className="label-style">LGA of Origin</label><input required name="lgaOrigin" onChange={handleChange} className="sky-input" /></div>
-                  </div>
-                </div>
-              </section>
-
-              <section className="space-y-8 p-6 bg-emerald-50/30 rounded-[2.5rem] border border-emerald-100">
-                <div className="flex items-center gap-4 border-b-2 border-emerald-200 pb-4">
-                  <MapPin className="text-emerald-600" />
-                  <h2 className="text-[#002147] text-xl font-black uppercase italic">Contact Address</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <input required name="stateResidence" onChange={handleChange} placeholder="State of Residence" className="sky-input" />
-                  <input required name="lgaResidence" onChange={handleChange} placeholder="LGA of Residence" className="sky-input" />
-                  <textarea required name="residentialAddress" onChange={handleChange} placeholder="Full Home Address" className="sky-input md:col-span-2" rows="2" />
-                </div>
-              </section>
-
-              <section className="space-y-8 bg-slate-50 p-6 md:p-8 rounded-[2.5rem] border border-slate-200">
-                <div className="flex items-center justify-between border-b-2 border-slate-300 pb-4">
-                  <div className="flex items-center gap-4">
-                    <GraduationCap className="text-blue-600" />
-                    <h2 className="text-[#002147] text-xl font-black uppercase">Educational Background</h2>
-                  </div>
-                  <button type="button" onClick={addQualification} className="bg-[#002147] text-white px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 hover:bg-red-600 transition-all shadow-md">
-                    <PlusCircle size={16} /> Add More
-                  </button>
-                </div>
-                <div className="space-y-6">
-                  {qualifications.map((qual) => (
-                    <div key={qual.id} className="p-6 bg-white border border-slate-200 rounded-3xl relative animate-in fade-in zoom-in duration-300 shadow-sm">
-                      {qualifications.length > 1 && (
-                        <button type="button" onClick={() => removeQualification(qual.id)} className="absolute top-4 right-4 text-red-500 hover:scale-110">
-                          <Trash2 size={20} />
-                        </button>
-                      )}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <select required value={qual.type} onChange={(e) => handleQualificationChange(qual.id, "type", e.target.value)} className="sky-input !py-3">
-                          <option value="">Qualification</option>
-                          <option>SSCE</option><option>ND</option><option>HND</option><option>Degree</option><option>NCE</option><option>Master</option>
-                        </select>
-                        <input required placeholder="Institution" value={qual.institution} onChange={(e) => handleQualificationChange(qual.id, "institution", e.target.value)} className="sky-input !py-3" />
-                        <input required placeholder="Course" value={qual.course} onChange={(e) => handleQualificationChange(qual.id, "course", e.target.value)} className="sky-input !py-3" />
-                        <input required placeholder="Year" value={qual.year} onChange={(e) => handleQualificationChange(qual.id, "year", e.target.value)} className="sky-input !py-3" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <section className="space-y-8 p-6 bg-red-50/30 rounded-[2.5rem] border border-red-100">
-                <div className="flex items-center gap-4 border-b-2 border-red-200 pb-4">
-                  <FileUp className="text-red-600" />
-                  <h2 className="text-[#002147] text-xl font-black uppercase italic">Documents (Optional)</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                   <div className="bg-white p-5 rounded-3xl border-2 border-dashed border-red-200">
-                      <label className="text-xs font-black text-[#002147] mb-3 block uppercase">Upload CV / Resume</label>
-                      <input type="file" onChange={(e) => setCvFile(e.target.files[0])} className="text-xs font-bold text-slate-500 w-full" accept=".pdf,.doc,.docx" />
-                   </div>
-                   <div className="bg-white p-5 rounded-3xl border-2 border-dashed border-red-200">
-                      <label className="text-xs font-black text-[#002147] mb-3 block uppercase">Other Credentials</label>
-                      <input type="file" onChange={(e) => setOtherDocFile(e.target.files[0])} className="text-xs font-bold text-slate-500 w-full" accept=".pdf,.jpg,.png" />
-                   </div>
-                </div>
-              </section>
-
-              <section className="bg-gradient-to-br from-[#002147] to-[#001a35] p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-10"><BookOpen size={100} /></div>
-                <label className="text-xs font-black uppercase mb-6 block tracking-widest text-red-500">Course Specialization</label>
-                <select required name="selectedCourse" onChange={handleChange} className="w-full p-5 rounded-2xl bg-white text-[#002147] font-black outline-none shadow-xl border-0">
-                  <option value="">Choose your course...</option>
-                  {coursesData?.map((c) => (
-                    <option key={c.id} value={c.title}>{c.title}</option>
-                  ))}
-                </select>
-              </section>
-
-              <button disabled={loading} type="submit" className="w-full bg-red-600 text-white font-black py-8 rounded-[2.5rem] uppercase tracking-[0.2em] shadow-2xl hover:bg-[#002147] transition-all flex items-center justify-center gap-4 transform hover:scale-[1.02] active:scale-95">
-                {loading ? <Loader2 className="animate-spin text-white" /> : <span className="text-white">Complete Enrollment <ArrowRight className="inline ml-2" /></span>}
-              </button>
-            </form>
-          </>
-        )}
-
-        {step === "payment" && (
-          <div className="p-10 md:p-20 text-center animate-in zoom-in duration-300 min-h-[600px] flex flex-col justify-center bg-white">
-            <div className="max-w-md mx-auto w-full">
-              <div className="bg-[#002147] p-10 rounded-t-[40px] text-white">
-                <Wallet size={60} className="mx-auto mb-4 text-emerald-400" />
-                <h2 className="text-2xl font-black uppercase text-white">Tuition Fee</h2>
-              </div>
-              <div className="p-10 bg-slate-50 border border-slate-100 rounded-b-[40px] shadow-xl">
-                <p className="text-slate-500 font-bold mb-2 uppercase text-xs">Processing application for:</p>
-                <p className="text-[#002147] font-black mb-6 truncate text-xl">{formData.fullName}</p>
-                <span className="text-6xl font-black text-[#002147]">₦5,000</span>
-                <button onClick={triggerPaystack} className="w-full mt-8 bg-emerald-600 text-white font-black py-5 rounded-2xl uppercase shadow-xl hover:bg-[#002147] transition-all">
-                  {loading ? <Loader2 className="animate-spin mx-auto text-white" /> : <span className="text-white">Pay Now</span>}
+              <div className="mt-5 d-flex gap-3 justify-content-center d-print-none">
+                <button
+                  onClick={downloadReceipt}
+                  disabled={isSubmitting}
+                  className="btn btn-danger px-5 py-3 rounded-pill fw-black d-flex align-items-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="animate-spin" size={20} />
+                  ) : (
+                    <Download size={20} />
+                  )}{" "}
+                  PDF DOWNLOAD
                 </button>
-                <button onClick={() => setStep("form")} className="mt-4 text-slate-400 font-bold text-xs uppercase hover:text-red-600 transition-colors">Back to Edit</button>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="btn btn-outline-dark px-5 py-3 rounded-pill fw-bold"
+                >
+                  FINISH
+                </button>
               </div>
             </div>
-          </div>
-        )}
+          ) : !showPaymentStep ? (
+            /* --- FULL APPLICATION FORM --- */
+            <div className="row g-0">
+              <div className="col-md-3 bg-danger p-4 text-white text-center d-flex flex-column justify-content-center">
+                {photoPreview ? (
+                  <img
+                    src={photoPreview}
+                    className="mx-auto mb-3 border border-3 border-white rounded-3 shadow-lg"
+                    style={{
+                      width: "110px",
+                      height: "145px",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <GraduationCap
+                    size={65}
+                    className="mx-auto mb-3 opacity-75"
+                  />
+                )}
+                <h4 className="fw-black text-uppercase tracking-tighter">
+                  Admission Portal
+                </h4>
+              </div>
+              <div className="col-md-9 p-4 p-md-5 bg-white text-dark text-start">
+                <form className="row g-3" onSubmit={handleFormSubmit}>
+                  {/* PERSONAL */}
+                  <div className="col-12 border-bottom pb-2">
+                    <h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2">
+                      <User size={16} /> Personal Information
+                    </h6>
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label small fw-bold">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={applicationData.name}
+                      onChange={handleChange}
+                      className="form-control shadow-none"
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label small fw-bold">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={applicationData.email}
+                      onChange={handleChange}
+                      className="form-control shadow-none"
+                      required
+                    />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label small fw-bold">Gender</label>
+                    <select
+                      name="gender"
+                      value={applicationData.gender}
+                      onChange={handleChange}
+                      className="form-select shadow-none"
+                      required
+                    >
+                      <option value="">Select</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </select>
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label small fw-bold">Age</label>
+                    <input
+                      type="number"
+                      name="age"
+                      value={applicationData.age}
+                      onChange={handleChange}
+                      className="form-control shadow-none"
+                      required
+                    />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label small fw-bold">WhatsApp</label>
+                    <input
+                      type="tel"
+                      name="whatsapp"
+                      value={applicationData.whatsapp}
+                      onChange={handleChange}
+                      className="form-control shadow-none"
+                      required
+                    />
+                  </div>
 
-        {step === "success" && (
-          <div className="p-4 md:p-10 flex flex-col items-center bg-white animate-in slide-in-from-bottom duration-500">
-            <div ref={receiptRef} className="w-full max-w-[800px] bg-white p-6 md:p-12 shadow-2xl border-[12px] border-[#002147] mb-10 relative">
-              <div className="flex justify-between items-start mb-8">
-                <div className="flex items-center gap-4 text-left">
-                  <img src={schoolLogo} alt="Logo" className="w-20 h-20 object-contain" />
-                  <div>
-                    <h1 className="text-2xl font-black text-[#002147]">AREWA VISA ACADEMY</h1>
-                    <p className="text-[10px] text-red-600 font-black uppercase tracking-[0.2em]">Excellence in Global Immigration</p>
+                  {/* IDENTITY */}
+                  <div className="col-12 border-bottom pb-2 mt-4">
+                    <h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2">
+                      <FileText size={16} /> Identity & Origin
+                    </h6>
                   </div>
-                </div>
-                <QRCodeSVG value={applicationId} size={80} />
+                  <div className="col-md-6">
+                    <label className="form-label small fw-bold">
+                      NIN Number
+                    </label>
+                    <input
+                      type="text"
+                      name="nin"
+                      value={applicationData.nin}
+                      onChange={handleChange}
+                      className="form-control shadow-none"
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label small fw-bold">
+                      Passport No (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      name="passportNo"
+                      value={applicationData.passportNo}
+                      onChange={handleChange}
+                      className="form-control shadow-none"
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label small fw-bold">
+                      State of Origin
+                    </label>
+                    <input
+                      type="text"
+                      name="state"
+                      value={applicationData.state}
+                      onChange={handleChange}
+                      className="form-control shadow-none"
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label small fw-bold">LGA</label>
+                    <input
+                      type="text"
+                      name="lga"
+                      value={applicationData.lga}
+                      onChange={handleChange}
+                      className="form-control shadow-none"
+                      required
+                    />
+                  </div>
+
+                  {/* CAREER */}
+                  <div className="col-12 border-bottom pb-2 mt-4">
+                    <h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2">
+                      <Briefcase size={16} /> Career & Home
+                    </h6>
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label small fw-bold">
+                      Occupation
+                    </label>
+                    <input
+                      type="text"
+                      name="job"
+                      value={applicationData.job}
+                      onChange={handleChange}
+                      className="form-control shadow-none"
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label small fw-bold">
+                      Job Country
+                    </label>
+                    <input
+                      type="text"
+                      name="jobCountry"
+                      value={applicationData.jobCountry}
+                      onChange={handleChange}
+                      className="form-control shadow-none"
+                    />
+                  </div>
+                  <div className="col-12">
+                    <label className="form-label small fw-bold">
+                      Full Address
+                    </label>
+                    <textarea
+                      name="address"
+                      value={applicationData.address}
+                      onChange={handleChange}
+                      className="form-control shadow-none"
+                      rows="2"
+                      required
+                    ></textarea>
+                  </div>
+
+                  {/* SELECTION */}
+                  <div className="col-12 border-bottom pb-2 mt-4">
+                    <h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2">
+                      <GraduationCap size={16} /> Program Selection
+                    </h6>
+                  </div>
+                  <div className="col-12">
+                    <select
+                      className="form-select py-2 shadow-none"
+                      name="selectedCourseTitle"
+                      value={applicationData.selectedCourseTitle}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">-- Choose Course --</option>
+                      {coursesData?.map((c) => (
+                        <option key={c.id} value={c.title}>
+                          {c.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label small fw-bold">
+                      Passport Photo
+                    </label>
+                    <input
+                      type="file"
+                      className="form-control shadow-none"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label small fw-bold">
+                      Credentials (Optional)
+                    </label>
+                    <input
+                      type="file"
+                      name="resumeFile"
+                      className="form-control shadow-none"
+                      onChange={handleFileChange}
+                    />
+                  </div>
+
+                  <div className="col-12 mt-4">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="btn btn-warning w-100 py-3 fw-black rounded-pill shadow-lg text-uppercase tracking-widest border-0"
+                    >
+                      {isSubmitting ? (
+                        <Loader2 className="animate-spin mx-auto" size={24} />
+                      ) : (
+                        <>
+                          PROCEED TO PAYMENT{" "}
+                          <ArrowRight size={20} className="ms-2" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
               </div>
-              <div className="flex flex-col md:flex-row gap-8 border-y-2 border-slate-100 py-8">
-                <img src={passportPreview} className="w-32 h-40 object-cover rounded-xl border-4 border-slate-100 mx-auto md:mx-0 shadow-md" alt="Student" />
-                <div className="flex-1 space-y-4">
-                  <div>
-                    <p className="text-[10px] font-black uppercase text-slate-400">Student Name</p>
-                    <p className="text-xl font-black text-[#002147] uppercase">{formData.fullName}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-[10px] font-black uppercase text-slate-400">Program</p>
-                      <p className="text-sm font-bold text-slate-700">{formData.selectedCourse}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase text-slate-400">Status</p>
-                      <p className="text-sm font-black text-emerald-600 uppercase">Paid - Success</p>
-                    </div>
-                  </div>
-                </div>
+            </div>
+          ) : (
+            /* --- PAYMENT STEP --- */
+            <div className="p-4 p-md-5 text-center bg-white text-dark animate__animated animate__zoomIn">
+              <Wallet size={55} className="text-danger mb-3 mx-auto" />
+              <h3 className="fw-black mb-1 uppercase tracking-tighter">
+                Tuition Payment
+              </h3>
+              <p className="text-muted">
+                Enrollment for:{" "}
+                <strong className="text-danger">{applicationData.name}</strong>
+              </p>
+              <div className="py-4 px-4 bg-light rounded-4 mb-4 border-start border-danger border-5 text-start shadow-sm">
+                <span className="text-muted small d-block fw-bold opacity-75 uppercase">
+                  Processing Fee
+                </span>
+                <h2 className="display-4 fw-black text-danger mb-0">₦5,000</h2>
               </div>
-              <p className="mt-6 text-[10px] text-slate-400 font-bold uppercase">Official Receipt Generated: {new Date().toLocaleString()}</p>
+              <div className="payment-btn-container shadow-lg p-4 rounded-4 border bg-white mb-3">
+                <ApplyPayment
+                  amount={5000}
+                  email={applicationData.email}
+                  onSuccessAction={handlePaymentSuccess}
+                  isSubmitting={isSubmitting}
+                />
+              </div>
+              {!isSubmitting && (
+                <button
+                  onClick={() => setShowPaymentStep(false)}
+                  className="btn btn-link text-muted mt-3 fw-bold text-decoration-none uppercase small"
+                >
+                  Back to Review
+                </button>
+              )}
             </div>
-            <div className="flex gap-4 mb-10">
-              <button onClick={downloadReceipt} className="bg-emerald-600 text-white px-8 py-4 rounded-xl font-black flex items-center gap-2 shadow-lg hover:scale-105 transition-all">
-                <Download size={20} className="text-white" /> <span className="text-white uppercase">PDF Receipt</span>
-              </button>
-              <button onClick={() => window.location.reload()} className="bg-[#002147] text-white px-8 py-4 rounded-xl font-black shadow-lg transition-all">
-                <span className="text-white uppercase">Finish</span>
-              </button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-
-      <style jsx>{`
-        .sky-input {
-          width: 100%;
-          padding: 1.2rem 1.5rem;
-          background: #ffffff;
-          border: 2px solid #e2e8f0;
-          border-radius: 1.2rem;
-          font-weight: 700;
-          font-size: 0.875rem;
-          color: #002147;
-          outline: none;
-          transition: all 0.3s ease;
-        }
-        .sky-input:focus {
-          border-color: #002147;
-          background: white;
-          box-shadow: 0 10px 15px -3px rgba(0, 33, 71, 0.1);
-        }
-        .label-style {
-          font-size: 10px;
-          font-weight: 900;
-          text-transform: uppercase;
-          color: #64748b;
-          margin-bottom: 8px;
-          display: block;
-          margin-left: 5px;
-        }
-        @keyframes zoom-in {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .animate-in { animation: zoom-in 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        .fade-in { animation: fade-in 0.5s ease-out; }
-      `}</style>
     </div>
   );
 };
 
-export default CourseEnrollment;
+export default CourseApplicationForm;
