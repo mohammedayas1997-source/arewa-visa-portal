@@ -38,6 +38,7 @@ import StaffLogin from "./pages/StaffLogin";
 import AdmissionOfficerDashboard from "./pages/AdmissionOfficerDashboard.jsx";
 import RectorDashboard from "./pages/RectorDashboard.jsx";
 import CourseApplicationForm from "./components/CourseApplicationForm"; 
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 
 import "./App.css";
 
@@ -164,6 +165,14 @@ function App() {
           <Route path="/admin-portal" element={<ProtectedRoute requiredRole="admin"><AdminDashboard approveAndSendCertificate={approveAndSendCertificate} QRCodeSVG={QRCodeSVG} /></ProtectedRoute>} />
           <Route path="/instructor-hub" element={<ProtectedRoute requiredRole="instructor"><InstructorHub isAdmin={false} /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
+          <Route 
+            path="/super-portal" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <SuperAdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
         </Routes>
       </div>
     </Router>
