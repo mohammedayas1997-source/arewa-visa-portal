@@ -32,7 +32,8 @@ import {
   Trash2,
   FileUp,
   Globe,
-  Monitor
+  Monitor,
+  X // AN KARA WANNAN ICON DIN NA RUFEWA
 } from "lucide-react";
 
 const CourseApplicationForm = ({
@@ -281,7 +282,17 @@ const CourseApplicationForm = ({
         display: "block" 
       }}
     >
-      <div className="card border-0 w-100 mx-auto" style={{ maxWidth: "1000px", borderRadius: "24px", overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
+      <div className="card border-0 w-100 mx-auto position-relative" style={{ maxWidth: "1000px", borderRadius: "24px", overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
+        
+        {/* CLOSE BUTTON - AN KARA SHI A NAN */}
+        <button 
+          onClick={() => setShowCourseForm(false)} 
+          className="position-absolute top-0 end-0 m-3 btn btn-light rounded-circle shadow-lg d-flex align-items-center justify-content-center"
+          style={{ zIndex: 100, width: '40px', height: '40px', border: '1px solid #ddd' }}
+        >
+          <X size={24} className="text-danger" />
+        </button>
+
         <div className="card-body p-0 bg-white text-start">
           {step === "success" ? (
             <div ref={receiptRef} className="p-4 p-md-5 text-dark text-start bg-white" style={{ border: "15px solid #1a1a1a" }}>

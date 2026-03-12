@@ -39,7 +39,10 @@ const AdminLogin = ({ onLogin, onClose }) => {
 
       if (!querySnapshot.empty) {
         const userData = querySnapshot.docs[0].data();
+        
+        // AN KARA 'super-admin' A CIKIN ALLOWED ROLES
         const allowedRoles = [
+          "super-admin", // Sabon role da aka kara
           "admin",
           "rector",
           "instructor",
@@ -125,7 +128,7 @@ const AdminLogin = ({ onLogin, onClose }) => {
               <input
                 type="email"
                 className="form-control border-start-0 py-2 shadow-none"
-                placeholder="name@arewavacademy.edu.ng" // Updated placeholder
+                placeholder="name@arewavacademy.edu.ng"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required

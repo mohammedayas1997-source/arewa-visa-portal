@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-// FIXED: Import 'firestore' instead of 'db' to match your firebase.js
 import { auth, firestore } from "../firebase"; 
 import { doc, getDoc } from "firebase/firestore";
 import { Navigate, useLocation } from "react-router-dom";
@@ -16,16 +15,16 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       try {
         if (currentUser) {
-          // FIXED: Using 'firestore' instance here for user role lookup
+          // Duba cikin 'users' collection
           const userRef = doc(firestore, "users", currentUser.uid);
           const userDoc = await getDoc(userRef);
 
           if (userDoc.exists()) {
             const userData = userDoc.data();
 
-            // SMART DETECTION: Check for 'role' or 'Role' and 'status' or 'Status'
-            const userRole = userData.role || userData.Role;
-            const userStatus = userData.status || userData.Status || "active";
+            // SMART DETECTION: Karatun Role da Status koda da manyan haruffa aka rubuta
+            const userRole = (userData.role || userData.Role || "").toLowerCase();
+            const userStatus = (userData.status || userData.Status || "active").toLowerCase();
 
             if (userStatus === "suspended" || userStatus === "inactive") {
               await signOut(auth);
@@ -38,7 +37,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
               setUser(currentUser);
             }
           } else {
-            // Check applications collection if not in users (for students)
+            // Idan ba a samu a 'users' ba, duba 'applications' (na dalibai)
             const appRef = doc(firestore, "applications", currentUser.uid);
             const appDoc = await getDoc(appRef);
             
@@ -115,6 +114,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
   // 3. UNAUTHENTICATED REDIRECTION
   if (!user) {
+    // Tabbatar idan staff ne a tura shi Admin Gateway
     const isStaffPath = ["/admin", "/super", "/rector", "/staff"].some((path) =>
       location.pathname.includes(path),
     );
@@ -123,7 +123,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
-  // 4. ROLE BASED ACCESS CONTROL (RBAC)
+  // 4. ROLE BASED ACCESS CONTROL (RBAC) - GYARARRE
   if (requiredRole) {
     const isSuperAdmin = role === "super-admin";
     const isRector = role === "rector";
@@ -132,20 +132,27 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
     let hasAccess = false;
 
+    // Super Admin da Rector suna iya shiga ko'ina
     if (isSuperAdmin || isRector) {
       hasAccess = true;
-    } else if (requiredRole === "admin") {
+    } 
+    // Idan shafin na admin ne gaba daya (General Admin area)
+    else if (requiredRole === "admin") {
       hasAccess = isAdmin || isAdmissionOfficer;
-    } else if (requiredRole === "student") {
+    } 
+    // Idan shafin na dalibai ne kawai
+    else if (requiredRole === "student") {
       hasAccess = role === "student";
-    } else {
+    } 
+    // Idan takamaiman role aka nema (misali instructor kawai)
+    else {
       hasAccess = role === requiredRole;
     }
 
     if (!hasAccess) {
       let redirectPath = "/login";
       if (role === "student") redirectPath = "/student-portal";
-      else if (isSuperAdmin || isRector || isAdmin) redirectPath = "/admin";
+      else if (isSuperAdmin || isRector || isAdmin || isAdmissionOfficer) redirectPath = "/admin";
 
       return <Navigate to={redirectPath} replace />;
     }

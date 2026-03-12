@@ -52,7 +52,7 @@ const JobApplicationForm = ({
   const nigeriaData = {
     "Abia": ["Aba North", "Aba South", "Arochukwu", "Bende", "Ikwuano", "Isiala Ngwa North", "Isiala Ngwa South", "Isuikwuato", "Obingwa", "Ohafia", "Osisioma", "Ugwunagbo", "Ukwa West", "Ukwa East", "Umuahia North", "Umuahia South", "Umu-Nneochi"],
     "Adamawa": ["Demsa", "Fufore", "Ganye", "Girei", "Gombi", "Guyuk", "Hong", "Jada", "Lamurde", "Madagali", "Maiha", "Mayo-Belwa", "Michika", "Mubi North", "Mubi South", "Numan", "Shelleng", "Song", "Toungo", "Yola North", "Yola South"],
-    "Akwa Ibom": ["Abak", "Eket", "Ikot Ekpene", "Uyo"], // (Full list preserved in real logic)
+    "Akwa Ibom": ["Abak", "Eket", "Ikot Ekpene", "Uyo"], 
     "Bauchi": ["Alkaleri", "Bauchi", "Dass", "Katagum", "Misau", "Ningi", "Toro"],
     "Borno": ["Bama", "Biu", "Chibok", "Gwoza", "Jere", "Maiduguri", "Monguno"],
     "Gombe": ["Akko", "Billiri", "Dukku", "Gombe", "Kaltungo", "Kwami", "Yamaltu/Deba"],
@@ -113,11 +113,16 @@ const JobApplicationForm = ({
   };
 
   return (
-    <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-2 py-4" style={{ zIndex: 9999, backgroundColor: "rgba(0,0,0,0.95)", overflowY: "auto", backdropFilter: "blur(12px)" }}>
-      <div className="card border-0 shadow-lg w-100" style={{ maxWidth: "950px", borderRadius: "35px", overflow: "hidden", height: window.innerWidth < 768 ? "95vh" : "auto" }}>
+    <div className="form-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style={{ zIndex: 9999, backgroundColor: "rgba(0,0,0,0.98)", overflowY: "auto", backdropFilter: "blur(12px)" }}>
+      <div className="card-container card border-0 shadow-lg w-100 position-relative" style={{ maxWidth: "950px", overflow: "hidden" }}>
         
+        {/* CLOSE BUTTON FOR MOBILE - CLEARER */}
+        <button onClick={() => setShowForm(false)} className="position-absolute top-0 end-0 m-3 btn btn-danger rounded-circle d-md-none" style={{ zIndex: 10001, width: '40px', height: '40px' }}>
+            <X size={20} />
+        </button>
+
         {step === "success" ? (
-          <div className="bg-white p-0 overflow-auto">
+          <div className="bg-white p-0 overflow-auto h-100">
              <div ref={receiptRef} className="p-4 p-md-5 text-dark text-start bg-white" style={{ border: "10px solid #000" }}>
                 <div className="d-flex justify-content-between align-items-center border-bottom border-4 border-danger pb-3 mb-4">
                   <div className="text-start">
@@ -158,20 +163,20 @@ const JobApplicationForm = ({
              </div>
           </div>
         ) : (
-          <div className="row g-0 h-100">
+          <div className="row g-0 h-100 flex-column flex-md-row">
             {/* SIDEBAR */}
-            <div className="col-md-3 bg-danger p-4 text-white text-center d-flex flex-column justify-content-center h-auto">
+            <div className="col-md-3 bg-danger p-4 text-white text-center d-flex flex-column justify-content-center sidebar-header">
               {photoPreview ? (
-                <img src={photoPreview} className="mx-auto mb-3 border border-3 border-white rounded-4 shadow-lg" style={{ width: "100px", height: "130px", objectFit: "cover" }} alt="Applicant" />
+                <img src={photoPreview} className="mx-auto mb-3 border border-3 border-white rounded-4 shadow-lg" style={{ width: "90px", height: "115px", objectFit: "cover" }} alt="Applicant" />
               ) : (
-                <div className="bg-white/20 p-3 rounded-circle d-inline-block mx-auto mb-3"><UserCheck size={50} /></div>
+                <div className="bg-white/20 p-3 rounded-circle d-inline-block mx-auto mb-3"><UserCheck size={40} /></div>
               )}
               <h5 className="fw-black text-uppercase italic mb-0">Job Portal</h5>
-              <button onClick={() => setShowForm(false)} className="btn btn-light btn-sm rounded-pill mt-3 fw-bold">Cancel</button>
+              <button onClick={() => setShowForm(false)} className="btn btn-light btn-sm rounded-pill mt-3 fw-bold d-none d-md-inline-block">Cancel</button>
             </div>
 
             {/* FORM */}
-            <div className="col-md-9 p-3 p-md-5 bg-white text-dark text-start overflow-auto h-100" style={{ maxHeight: "80vh" }}>
+            <div className="col-md-9 p-3 p-md-5 bg-white text-dark text-start overflow-auto form-content">
               <form className="row g-3" onSubmit={(e) => { e.preventDefault(); triggerPaystack(); }}>
                 <div className="col-12 border-bottom pb-2"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><User size={18} /> Candidate Identity</h6></div>
                 
@@ -257,13 +262,13 @@ const JobApplicationForm = ({
                    <input type="file" name="othersFile" className="sky-input" onChange={handleFileChange} />
                 </div>
 
-                <div className="col-12 mt-4">
-                   <div className="bg-dark p-3 rounded-4 text-white d-flex justify-content-between align-items-center shadow-lg">
+                <div className="col-12 mt-4 mb-5">
+                   <div className="bg-dark p-3 p-md-4 rounded-4 text-white d-flex justify-content-between align-items-center shadow-lg">
                       <div className="text-start">
                          <p className="x-small uppercase opacity-50 mb-0">Match Fee</p>
                          <h5 className="fw-black mb-0 italic">₦100,000</h5>
                       </div>
-                      <button type="submit" disabled={isProcessing} className="btn btn-warning px-4 py-2 rounded-pill fw-black uppercase small border-0 text-dark">
+                      <button type="submit" disabled={isProcessing} className="btn btn-warning px-4 py-3 rounded-pill fw-black uppercase small border-0 text-dark">
                         {isProcessing ? <Loader2 className="animate-spin" size={16}/> : "Pay Now"}
                       </button>
                    </div>
@@ -275,15 +280,23 @@ const JobApplicationForm = ({
       </div>
 
       <style jsx>{`
-        .sky-input { width: 100%; padding: 0.7rem 1rem; background: #f8fafc; border: 2px solid #eee; border-radius: 0.8rem; font-weight: 700; font-size: 0.8rem; outline: none; transition: 0.3s; }
+        .sky-input { width: 100%; padding: 0.8rem 1rem; background: #f8fafc; border: 2px solid #eee; border-radius: 0.8rem; font-weight: 700; font-size: 0.85rem; outline: none; transition: 0.3s; }
         .sky-input:focus { border-color: #dc3545; background: white; }
-        .label-style { font-size: 9px; font-weight: 900; text-transform: uppercase; color: #64748b; margin-bottom: 4px; display: block; margin-left: 5px; }
+        .label-style { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #64748b; margin-bottom: 4px; display: block; margin-left: 5px; }
         .fw-black { font-weight: 900; }
         .uppercase { text-transform: uppercase; }
         .italic { font-style: italic; }
-        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
-        @media (max-width: 768px) {
-          .card { border-radius: 20px !important; }
+        
+        @media (max-width: 767px) {
+          .form-overlay { padding: 0 !important; align-items: flex-start !important; }
+          .card-container { height: 100vh !important; max-height: 100vh !important; border-radius: 0 !important; }
+          .sidebar-header { padding: 20px !important; flex-shrink: 0; }
+          .form-content { height: 100% !important; max-height: none !important; padding-bottom: 100px !important; }
+          .display-3 { font-size: 2.5rem; }
+        }
+
+        @media (min-width: 768px) {
+          .card-container { border-radius: 35px; height: auto; max-height: 90vh; }
         }
       `}</style>
     </div>
