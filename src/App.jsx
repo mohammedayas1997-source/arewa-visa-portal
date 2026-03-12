@@ -146,7 +146,9 @@ function App() {
           <Route path="/login" element={<StudentLoginWithClose />} />
           <Route path="/student-login" element={<StudentLoginWithClose />} />
           <Route path="/admin-gateway" element={<StaffLoginWithClose />} />
-
+          
+          /* Add this inside your <Routes> block */
+          <Route path="/apply" element={<CourseApplicationForm showCourseForm={true} setShowCourseForm={() => window.location.href='/'} />} />
           <Route path="/student-portal" element={<ProtectedRoute requiredRole="student"><StudentPortal /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute requiredRole="student"><LMSDashboard /></ProtectedRoute>} />
           <Route path="/forum/:courseId/:weekId" element={<ProtectedRoute requiredRole="student"><WeeklyForumWrapper /></ProtectedRoute>} />
