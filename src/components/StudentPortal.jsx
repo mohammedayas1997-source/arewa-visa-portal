@@ -21,6 +21,7 @@ import {
   onSnapshot,
   where,
   setDoc,
+  limit,
 } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import {
@@ -53,7 +54,7 @@ const libraryLinks = [
 const StudentPortal = () => {
   const navigate = useNavigate();
 
-  // --- ALL STATES RESTORED ---
+  // --- STATES ---
   const [activeTab, setActiveTab] = useState("dashboard");
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("stu-theme") === "dark");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -66,17 +67,11 @@ const StudentPortal = () => {
   const [weeksData, setWeeksData] = useState({});
   const [viewState, setViewState] = useState("list");
   const [selectedCourse, setSelectedCourse] = useState(null);
-  const [selectedPath, setSelectedPath] = useState(null);
   const [forumThreads, setForumThreads] = useState([]);
   const [newPost, setNewPost] = useState({ title: "", content: "" });
   const [privateMessages, setPrivateMessages] = useState([]);
-  const [newPrivateMsg, setNewPrivateMsg] = useState("");
   const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" });
   const [settingsMessage, setSettingsMessage] = useState({ type: "", text: "" });
-  const [examActive, setExamActive] = useState(false);
-  const [answers, setAnswers] = useState({});
-  const [examScore, setExamScore] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(3600);
 
   const availableCourses = [
     { id: "cleaning_course", name: "Cleaning Course", icon: <Brush size={24} /> },
@@ -93,12 +88,13 @@ const StudentPortal = () => {
     { id: "travel_tourism", name: "Travels and Tourism", icon: <Globe2 size={24} /> },
   ];
 
-  // --- CORE SYSTEM SYNC ---
+  // --- CLOCK ---
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  // --- CORE SYSTEM SYNC (FIXED: QUERY BY EMAIL) ---
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -106,30 +102,43 @@ const StudentPortal = () => {
         navigate("/student-login");
         return;
       }
-      try {
-        // FIXED: Using 'firestore' instead of 'db' for Doc Reference
-        const userRef = doc(firestore, "applications", user.email); 
-        const unsubUser = onSnapshot(userRef, async (snap) => {
-          if (snap.exists()) {
-            const data = snap.data();
-            setStudentData({ id: user.uid, ...data });
-            if (data.selectedCourseId) setSelectedCourseId(data.selectedCourseId);
 
-            const courseStartDate = data.appliedAt ? new Date(data.appliedAt) : new Date();
+      try {
+        // CRITICAL FIX: We query the 'applications' collection for the document 
+        // that has this user's email inside it.
+        const q = query(
+          collection(firestore, "applications"),
+          where("email", "==", user.email.toLowerCase()),
+          limit(1)
+        );
+
+        const unsubUser = onSnapshot(q, async (snapshot) => {
+          if (!snapshot.empty) {
+            const docData = snapshot.docs[0].data();
+            const docId = snapshot.docs[0].id;
+            
+            // Store Document ID for future updates
+            setStudentData({ 
+              firestoreId: docId, 
+              id: user.uid, 
+              ...docData 
+            });
+
+            if (docData.selectedCourseId) setSelectedCourseId(docData.selectedCourseId);
+
+            // Logic for Week Calculation
+            const courseStartDate = docData.appliedAt ? new Date(docData.appliedAt) : new Date();
             const diffTime = new Date() - courseStartDate;
             const weekCount = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7)) + 1;
             setCurrentWeek(weekCount > 16 ? 16 : weekCount < 1 ? 1 : weekCount);
-            
-            // Check Midterm Status (Week 8)
-            const midtermRef = doc(firestore, `students/${user.uid}/exams`, "week_8");
-            const midtermSnap = await getDoc(midtermRef);
-            if (midtermSnap.exists() && midtermSnap.data().passed) setHasPassedMidterm(true);
 
             setLoading(false);
           } else {
+            console.error("No record found in applications collection for:", user.email);
             setLoading(false);
           }
         });
+
         return () => unsubUser();
       } catch (error) {
         console.error("Portal Sync Failure:", error);
@@ -139,7 +148,7 @@ const StudentPortal = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  // Sync Weeks Data
+  // Sync Weeks Curriculum
   useEffect(() => {
     if (!selectedCourseId) return;
     const unsubWeeks = onSnapshot(collection(firestore, "course_settings"), (snapshot) => {
@@ -155,21 +164,13 @@ const StudentPortal = () => {
     return () => unsubWeeks();
   }, [selectedCourseId]);
 
-  // Private Messages Sync
-  useEffect(() => {
-    if (!studentData?.id) return;
-    const q = query(collection(firestore, "private_chats"), where("studentId", "==", studentData.id), orderBy("createdAt", "asc"));
-    const unsubChat = onSnapshot(q, (snap) => {
-      setPrivateMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
-    return () => unsubChat();
-  }, [studentData]);
-
   // --- ACTIONS ---
   const handleInitialCourseSelection = async (courseId) => {
+    if (!studentData?.firestoreId) return;
     setLoading(true);
     try {
-      const userRef = doc(firestore, "applications", auth.currentUser.email);
+      // Use the Firestore Document ID we found during sync
+      const userRef = doc(firestore, "applications", studentData.firestoreId);
       await updateDoc(userRef, {
         selectedCourseId: courseId,
         courseSelectionDate: serverTimestamp(),
@@ -184,25 +185,19 @@ const StudentPortal = () => {
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file || !studentData) return;
+    if (!file || !studentData?.firestoreId) return;
     setLoading(true);
     try {
       const sRef = storageRef(storage, `profiles/${studentData.id}_${Date.now()}`);
       await uploadBytes(sRef, file);
       const url = await getDownloadURL(sRef);
-      await updateDoc(doc(firestore, "applications", auth.currentUser.email), { photoURL: url });
+      await updateDoc(doc(firestore, "applications", studentData.firestoreId), { photoURL: url });
       setSettingsMessage({ type: "success", text: "Identity image updated." });
     } catch (err) {
       setSettingsMessage({ type: "error", text: "Upload failed." });
     } finally {
       setLoading(false);
     }
-  };
-
-  const isWeekLocked = (weekNumber) => {
-    if (weekNumber === 1) return false;
-    if (weekNumber > 8 && !hasPassedMidterm) return true;
-    return false; 
   };
 
   if (loading) return (
@@ -266,7 +261,6 @@ const StudentPortal = () => {
 
       {/* MAIN CONTENT */}
       <main className="flex-1 p-14 overflow-y-auto">
-        {/* DASHBOARD TAB */}
         {activeTab === "dashboard" && (
           <div className="animate-in fade-in duration-700 space-y-10">
             <div className="p-20 bg-blue-600 rounded-[5rem] text-white relative overflow-hidden shadow-2xl">
@@ -274,7 +268,7 @@ const StudentPortal = () => {
               <div className="relative z-10">
                 <span className="bg-white/20 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Active Specialization</span>
                 <h2 className="text-7xl font-black italic uppercase tracking-tighter mt-4 mb-2">{selectedCourseId?.replace("_", " ")}</h2>
-                <p className="text-lg opacity-80 font-bold max-w-xl">Portal Sync Confirmed. Accessing Week {currentWeek} academic nodes for {studentData?.name}.</p>
+                <p className="text-lg opacity-80 font-bold max-w-xl">Portal Sync Confirmed for {studentData?.name}. Accessing Week {currentWeek}.</p>
               </div>
             </div>
             
@@ -295,19 +289,10 @@ const StudentPortal = () => {
           </div>
         )}
 
-        {/* CURRICULUM TAB (VIDEO PLAYER & PDFS) */}
         {activeTab === "courses" && (
            <div className="space-y-8 animate-in fade-in duration-500">
              <div className="bg-black aspect-video rounded-[3rem] overflow-hidden shadow-2xl relative border-4 border-white/5">
-                {isWeekLocked(currentWeek) ? (
-                   <div className="absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center text-center p-10">
-                      <Lock size={64} className="text-red-600 mb-6 animate-pulse" />
-                      <h3 className="text-3xl font-black uppercase italic">Module Temporarily Locked</h3>
-                      <p className="font-bold opacity-60">Pass the Midterm Exam in Week 8 to unlock the advanced half of the course.</p>
-                   </div>
-                ) : (
-                  <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${currentWeekInfo.videoId || "dQw4w9WgXcQ"}`} frameBorder="0" allowFullScreen></iframe>
-                )}
+                <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${currentWeekInfo.videoId || "dQw4w9WgXcQ"}`} frameBorder="0" allowFullScreen></iframe>
              </div>
              <div className={`p-10 rounded-[3rem] border ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white shadow-xl"}`}>
                 <h3 className="text-3xl font-black uppercase italic mb-6">{currentWeekInfo.title || `Week ${currentWeek} Curriculum`}</h3>
@@ -317,22 +302,21 @@ const StudentPortal = () => {
                       <a href={currentWeekInfo.pdfNode} target="_blank" className="block w-full py-4 bg-white text-blue-600 rounded-2xl font-black text-center text-[10px] uppercase">Download Resources</a>
                    </div>
                    <div className={`p-8 rounded-[2.5rem] border ${darkMode ? "bg-white/5" : "bg-gray-50"}`}>
-                      <h5 className="text-[10px] font-black text-blue-600 uppercase mb-4 flex items-center gap-2"><Clock size={18} /> Current Assignment</h5>
-                      <p className="text-sm font-bold opacity-70 italic">{currentWeekInfo.assignment || "Watch the video and complete the PDF practical exercises."}</p>
+                      <h5 className="text-[10px] font-black text-blue-600 uppercase mb-4 flex items-center gap-2"><Clock size={18} /> Assignment</h5>
+                      <p className="text-sm font-bold opacity-70 italic">{currentWeekInfo.assignment || "Complete the PDF practical exercises."}</p>
                    </div>
                 </div>
              </div>
            </div>
         )}
 
-        {/* SETTINGS TAB */}
         {activeTab === "settings" && (
           <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-700">
             <div className="flex items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-8">
               <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg"><ShieldCheck size={28} /></div>
               <div>
                 <h1 className="text-3xl font-black uppercase italic tracking-tighter">Account <span className="text-blue-600">& Security</span></h1>
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Reference Email: {auth.currentUser.email}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-40">User: {auth.currentUser.email}</p>
               </div>
             </div>
 
@@ -345,9 +329,9 @@ const StudentPortal = () => {
 
             <div className="grid md:grid-cols-3 gap-12">
               <div className="space-y-6">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-600">Identity Image</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-600">ID Image</h3>
                 <div className="relative">
-                  <div className="w-full aspect-square rounded-[3rem] overflow-hidden border-4 border-white/10 shadow-2xl bg-slate-800 flex items-center justify-center relative">
+                  <div className="w-full aspect-square rounded-[3rem] overflow-hidden border-4 border-white/10 shadow-2xl bg-slate-800 flex items-center justify-center">
                     {studentData?.photoURL ? <img src={studentData.photoURL} className="w-full h-full object-cover" /> : <User size={60} className="text-slate-700" />}
                   </div>
                   <label className="absolute -bottom-4 -right-4 p-4 bg-blue-600 text-white rounded-2xl shadow-xl cursor-pointer hover:scale-110 transition-all">
@@ -356,14 +340,14 @@ const StudentPortal = () => {
                 </div>
               </div>
               <div className="md:col-span-2 space-y-8">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-600">Security Access</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-600">Security Credentials</h3>
                 <form className={`p-10 rounded-[2.5rem] border shadow-xl space-y-6 ${darkMode ? "bg-slate-900 border-white/5" : "bg-white border-gray-100"}`}>
-                  <input type="password" placeholder="CURRENT KEY" className="s-input" />
+                  <input type="password" placeholder="CURRENT PASSWORD" className="s-input" />
                   <div className="grid grid-cols-2 gap-4">
-                    <input type="password" placeholder="NEW KEY" className="s-input" />
-                    <input type="password" placeholder="CONFIRM NEW" className="s-input" />
+                    <input type="password" placeholder="NEW PASSWORD" className="s-input" />
+                    <input type="password" placeholder="CONFIRM" className="s-input" />
                   </div>
-                  <button className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Update Credentials</button>
+                  <button className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Update Access Key</button>
                 </form>
               </div>
             </div>
