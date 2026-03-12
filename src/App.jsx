@@ -5,7 +5,7 @@ import {
   Route,
   Navigate,
   useParams,
-  useNavigate, // Required for the close logic
+  useNavigate,
 } from "react-router-dom";
 import { auth, db } from './firebase'; 
 import { ref, set } from 'firebase/database'; 
@@ -37,6 +37,8 @@ import AcademicExam from "./components/AcademicExam";
 import StaffLogin from "./pages/StaffLogin";
 import AdmissionOfficerDashboard from "./pages/AdmissionOfficerDashboard.jsx";
 import RectorDashboard from "./pages/RectorDashboard.jsx";
+// IMPORT THE FORM COMPONENT
+import CourseApplicationForm from "./components/CourseApplicationForm"; 
 
 import "./App.css";
 
@@ -70,6 +72,12 @@ const StudentLoginWithClose = () => {
 const StaffLoginWithClose = () => {
   const navigate = useNavigate();
   return <StaffLogin onClose={() => navigate("/")} />;
+};
+
+// WRAPPER FOR THE APPLICATION FORM TO HANDLE CLOSE BUTTON
+const ApplyFormWrapper = () => {
+  const navigate = useNavigate();
+  return <CourseApplicationForm showCourseForm={true} setShowCourseForm={() => navigate("/")} />;
 };
 
 function App() {
@@ -132,7 +140,9 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/gallery" element={<Gallery />} />
           
-          {/* UPDATED: LOGIN ROUTES NOW USE THE CLOSE HANDLER */}
+          {/* THE NEW APPLICATION LINK */}
+          <Route path="/apply" element={<ApplyFormWrapper />} />
+          
           <Route path="/login" element={<StudentLoginWithClose />} />
           <Route path="/student-login" element={<StudentLoginWithClose />} />
           <Route path="/admin-gateway" element={<StaffLoginWithClose />} />
