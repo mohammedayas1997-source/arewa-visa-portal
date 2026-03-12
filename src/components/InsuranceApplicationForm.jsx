@@ -11,7 +11,8 @@ import {
   Globe,
   Camera,
   UploadCloud,
-  Mail
+  Mail,
+  MessageSquare
 } from "lucide-react";
 import ApplyPayment from "./ApplyPayment";
 
@@ -23,10 +24,20 @@ const InsuranceApplicationForm = ({
   handleInsuranceApplication,
   uploading,
 }) => {
-  // --- NIGERIA DATA (Duk jihar ka da LGA dinta na asali) ---
+  // --- AFRICA COUNTRIES LIST ---
+  const africaCountries = [
+    "Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cabo Verde", "Cameroon", "Central African Republic", "Chad", "Comoros", "Congo (Congo-Brazzaville)", "Congo (Democratic Republic)", "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Ivory Coast", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles", "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania", "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe"
+  ];
+
+  // --- TARGET COUNTRIES (Global Destinations) ---
+  const targetCountriesList = [
+    "United Kingdom", "Canada", "United States", "Australia", "Germany", "France", "Saudi Arabia", "United Arab Emirates", "Qatar", "Turkey", "China", "Japan", "Schengen Area (Europe)", "Other"
+  ];
+
+  // --- NIGERIA DATA ---
   const nigeriaData = {
     "Abia": ["Aba North", "Aba South", "Arochukwu", "Bende", "Ikwuano", "Isiala Ngwa North", "Isiala Ngwa South", "Isuikwuato", "Obingwa", "Ohafia", "Osisioma", "Ugwunagbo", "Ukwa West", "Ukwa East", "Umuahia North", "Umuahia South", "Umu-Nneochi"],
-    "Adamawa": ["Demsa", "Fufore", "Ganye", "Girei", "Gombi", "Guyuk", "Hong", "Jada", "Lamurde", "Madagali", "Maiha", "Mayo-Belwa", "Michika", "Mubi North", "Mubi South", "Numan", "Shelleng", "Song", "Toungo", "Yola North", "Yola South"],
+    "Adamawa": ["Demsa", "Fufore", "Ganye", "Girei", "Gombi", "Guyuk", "Hong", "Jada", "Lamurde", "Madagali", "Mayo-Belwa", "Michika", "Mubi North", "Mubi South", "Numan", "Shelleng", "Song", "Toungo", "Yola North", "Yola South"],
     "Akwa Ibom": ["Abak", "Eastern Obolo", "Eket", "Esit Eket", "Essien Udim", "Etim Ekpo", "Etinan", "Ibeno", "Ibesikpo Asutan", "Ibiono Ibom", "Ika", "Ikono", "Ikot Abasi", "Ikot Ekpene", "Ini", "Itu", "Mbo", "Mkpat Enin", "Nsit Atai", "Nsit Ibom", "Nsit Ubium", "Obot Akara", "Okobo", "Onna", "Oron", "Oruk Anam", "Udung Uko", "Ukanafun", "Uruan", "Urue-Offong/Oruko", "Uyo"],
     "Anambra": ["Aguata", "Anambra East", "Anambra West", "Anaocha", "Awka North", "Awka South", "Ayamelum", "Dunukofia", "Ekwusigo", "Idemili North", "Idemili South", "Ihiala", "Njikoka", "Nnewi North", "Nnewi South", "Ogbaru", "Onitsha North", "Onitsha South", "Orumba North", "Orumba South", "Oyi"],
     "Bauchi": ["Alkaleri", "Bauchi", "Bogoro", "Damban", "Darazo", "Dass", "Gamawa", "Ganjuwa", "Giade", "Itas/Gadau", "Jama'are", "Katagum", "Kirfi", "Misau", "Ningi", "Shira", "Tafawa Balewa", "Toro", "Warji", "Zaki"],
@@ -82,7 +93,7 @@ const InsuranceApplicationForm = ({
         background: "rgba(0,0,0,0.92)",
         backdropFilter: "blur(15px)",
         zIndex: 11000,
-        padding: "15px",
+        padding: window.innerWidth < 768 ? "10px" : "15px",
       }}
     >
       <div
@@ -111,7 +122,7 @@ const InsuranceApplicationForm = ({
         </div>
 
         {/* FORM BODY */}
-        <div className="p-4 p-md-5 bg-white text-dark text-start overflow-auto custom-scrollbar">
+        <div className="p-4 p-md-5 bg-white text-dark text-start overflow-auto custom-scrollbar h-100">
           <form onSubmit={(e) => e.preventDefault()} className="row g-4">
             
             {/* PERSONAL SECTION */}
@@ -145,15 +156,15 @@ const InsuranceApplicationForm = ({
             {/* LOCATION SECTION */}
             <div className="col-12 border-bottom pb-2 mt-5">
               <h6 className="fw-black text-primary d-flex align-items-center gap-2 uppercase italic" style={{ fontSize: "0.8rem" }}>
-                <MapPin size={16} /> Contact & Residency
+                <MapPin size={16} /> Residency & Contact
               </h6>
             </div>
 
             <div className="col-md-6 text-start">
-              <label className="small fw-black mb-1 text-muted text-uppercase tracking-widest" style={{ fontSize: "0.65rem" }}>Country</label>
-              <select className="form-select bg-light border-0 py-3 rounded-3 shadow-sm font-bold" value={formData.country || "Nigeria"} onChange={(e) => setFormData({...formData, country: e.target.value})}>
-                <option value="Nigeria">Nigeria</option>
-                <option value="Other">Other Country</option>
+              <label className="small fw-black mb-1 text-muted text-uppercase tracking-widest" style={{ fontSize: "0.65rem" }}>Country of Residence</label>
+              <select className="form-select bg-light border-0 py-3 rounded-3 shadow-sm font-bold" value={formData.country || ""} onChange={(e) => setFormData({...formData, country: e.target.value})}>
+                <option value="">Select Country</option>
+                {africaCountries.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
 
@@ -163,7 +174,7 @@ const InsuranceApplicationForm = ({
             </div>
 
             <div className="col-md-6 text-start">
-              <label className="small fw-black mb-1 text-muted text-uppercase tracking-widest" style={{ fontSize: "0.65rem" }}>State of Origin (Nigeria)</label>
+              <label className="small fw-black mb-1 text-muted text-uppercase tracking-widest" style={{ fontSize: "0.65rem" }}>State (Nigeria Only)</label>
               <select className="form-select bg-light border-0 py-3 rounded-3 shadow-sm font-bold" value={formData.state || ""} onChange={(e) => setFormData({...formData, state: e.target.value, lga: ""})}>
                 <option value="">Select State</option>
                 {Object.keys(nigeriaData).map(st => <option key={st} value={st}>{st}</option>)}
@@ -171,7 +182,7 @@ const InsuranceApplicationForm = ({
             </div>
 
             <div className="col-md-6 text-start">
-              <label className="small fw-black mb-1 text-muted text-uppercase tracking-widest" style={{ fontSize: "0.65rem" }}>LGA of Origin</label>
+              <label className="small fw-black mb-1 text-muted text-uppercase tracking-widest" style={{ fontSize: "0.65rem" }}>LGA / District</label>
               <select className="form-select bg-light border-0 py-3 rounded-3 shadow-sm font-bold" disabled={!formData.state} value={formData.lga || ""} onChange={(e) => setFormData({...formData, lga: e.target.value})}>
                 <option value="">Select LGA</option>
                 {formData.state && nigeriaData[formData.state]?.map(lg => <option key={lg} value={lg}>{lg}</option>)}
@@ -196,8 +207,11 @@ const InsuranceApplicationForm = ({
             </div>
 
             <div className="col-md-6 text-start">
-              <label className="small fw-black mb-1 text-muted text-uppercase tracking-widest" style={{ fontSize: "0.65rem" }}>Target Country</label>
-              <input type="text" className="form-control bg-light border-0 py-3 rounded-3 shadow-sm font-bold" required value={formData.targetCountry} onChange={(e) => setFormData({ ...formData, targetCountry: e.target.value })} />
+              <label className="small fw-black mb-1 text-muted text-uppercase tracking-widest" style={{ fontSize: "0.65rem" }}>Target Destination</label>
+              <select className="form-select bg-light border-0 py-3 rounded-3 shadow-sm font-bold" required value={formData.targetCountry || ""} onChange={(e) => setFormData({...formData, targetCountry: e.target.value})}>
+                <option value="">Select Destination</option>
+                {targetCountriesList.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
             </div>
 
             <div className="col-12 text-start">
@@ -208,6 +222,20 @@ const InsuranceApplicationForm = ({
                 <option value="Health & Accident Premium">Health & Accident Premium (Schengen Standard)</option>
                 <option value="Global Medical Clearance">Comprehensive Global Medical Clearance</option>
               </select>
+            </div>
+
+            {/* ADDITIONAL INFO */}
+            <div className="col-12 text-start">
+              <label className="small fw-black mb-1 text-muted text-uppercase tracking-widest" style={{ fontSize: "0.65rem" }}>
+                <MessageSquare size={12} className="me-1 d-inline" /> Additional Information
+              </label>
+              <textarea 
+                className="form-control bg-light border-0 py-3 rounded-3 shadow-sm font-bold italic" 
+                rows="3" 
+                placeholder="Any special medical conditions, travel history, or specific requirements..." 
+                value={formData.additionalInfo || ""} 
+                onChange={(e) => setFormData({ ...formData, additionalInfo: e.target.value })}
+              ></textarea>
             </div>
 
             {/* UPLOADS */}
@@ -233,7 +261,6 @@ const InsuranceApplicationForm = ({
               </div>
             </div>
 
-            {/* OTHERS DOCUMENT UPLOAD */}
             <div className="col-12 text-start">
               <label className="small fw-black mb-1 text-muted text-uppercase tracking-widest" style={{ fontSize: "0.65rem" }}>Other Documents (Optional - PDF/JPG)</label>
               <div className="p-3 bg-light rounded-3 border-dashed border-2 d-flex flex-column align-items-center gap-2 text-start">
@@ -266,7 +293,7 @@ const InsuranceApplicationForm = ({
                 />
               </div>
 
-              <div className="text-center mt-4 pb-4 text-start">
+              <div className="text-center mt-4 pb-4">
                 <div className="d-flex align-items-center justify-content-center gap-2 mb-3">
                   <ShieldCheck size={16} className="text-success" />
                   <span className="small fw-black text-muted uppercase tracking-wider" style={{ fontSize: "0.6rem" }}>Secured Global Payment Gateway Active</span>
@@ -289,6 +316,10 @@ const InsuranceApplicationForm = ({
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #007bff; border-radius: 10px; }
         .fw-black { font-weight: 900; }
         .rounded-xl { border-radius: 1rem; }
+        @media (max-width: 768px) {
+           .card { border-radius: 20px !important; }
+           .p-4 { padding: 1rem !important; }
+        }
       `}</style>
     </div>
   );
