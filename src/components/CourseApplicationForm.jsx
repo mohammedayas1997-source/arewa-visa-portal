@@ -269,8 +269,18 @@ const CourseApplicationForm = ({
     }
   };
 
+  if (!showCourseForm) return null;
+
   return (
-    <div className="w-100 px-2 py-4 bg-light min-vh-100">
+    <div 
+      className="position-fixed top-0 start-0 w-100 h-100 px-2 py-4 shadow-lg" 
+      style={{ 
+        zIndex: 10000, 
+        backgroundColor: "rgba(0,0,0,0.92)", 
+        overflowY: "auto", 
+        display: "block" 
+      }}
+    >
       <div className="card border-0 w-100 mx-auto" style={{ maxWidth: "1000px", borderRadius: "24px", overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
         <div className="card-body p-0 bg-white text-start">
           {step === "success" ? (
