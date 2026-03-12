@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { db, auth } from "../firebase"; 
 import {
@@ -114,7 +114,7 @@ const AdmissionOfficerDashboard = () => {
 
   const handleSelectAll = () => {
     const pendingIds = candidates
-      .filter((c) => c.status === "Paid" || c.status === "Verified" || c.paymentStatus === "Completed")
+      .filter((c) => c.status === "Paid" || c.status === "Verified" || c.paymentStatus === "Completed" || c.paymentStatus === "Paid")
       .map((c) => c.id);
     if (selectedItems.length === pendingIds.length) setSelectedItems([]);
     else setSelectedItems(pendingIds);
@@ -247,17 +247,17 @@ const AdmissionOfficerDashboard = () => {
           </div>
           <div className="divide-y divide-slate-50">
             {filtered.map((c) => (
-              <div key={c.id} className="p-7 flex flex-col lg:flex-row items-center gap-8 hover:bg-blue-50/20 group transition-all">
-                {activeTab === "Dashboard" && (c.status === "Paid" || c.paymentStatus === "Completed") && (
-                  <input type="checkbox" checked={selectedItems.includes(c.id)} onChange={() => setSelectedItems(prev => prev.includes(c.id) ? prev.filter(i => i !== c.id) : [...prev, c.id])} className="w-6 h-6 accent-blue-600 rounded-lg" />
+              <div key={c.id} className="p-7 flex flex-col lg:flex-row items-center gap-8 hover:bg-blue-50/20 group transition-all text-start">
+                {activeTab === "Dashboard" && (c.status === "Paid" || c.paymentStatus === "Completed" || c.paymentStatus === "Paid" || c.status === "Pending Payment") && (
+                  <input type="checkbox" checked={selectedItems.includes(c.id)} onChange={() => setSelectedItems(prev => prev.includes(c.id) ? prev.filter(i => i !== c.id) : [...prev, c.id])} className="w-6 h-6 accent-blue-600 rounded-lg cursor-pointer" />
                 )}
                 <img src={c.photoUrl || c.passportUrl || "https://via.placeholder.com/150"} className="w-20 h-20 rounded-[30px] object-cover shadow-2xl border-4 border-white group-hover:scale-105 transition-all" />
-                <div className="flex-grow">
-                  <div className="flex gap-3 mb-2">
+                <div className="flex-grow text-start">
+                  <div className="flex gap-3 mb-2 justify-start">
                     <StatusTag status={c.status} />
                     <span className="text-[9px] font-black text-slate-500 uppercase bg-slate-100 px-4 py-1.5 rounded-full">{c.selectedCourseTitle || c.selectedCourse || c.course}</span>
                   </div>
-                  <h3 className="font-black text-slate-800 uppercase text-xl italic">{c.fullName || c.name}</h3>
+                  <h3 className="font-black text-slate-800 uppercase text-xl italic text-start">{c.fullName || c.name}</h3>
                 </div>
                 <div className="flex items-center gap-4">
                   <button onClick={() => setViewingStudent(c)} className="p-4 bg-slate-100 rounded-[22px] text-slate-500 hover:bg-blue-600 hover:text-white transition-all"><Eye size={20} /></button>
@@ -281,7 +281,7 @@ const AdmissionOfficerDashboard = () => {
           </div>
         </div>
 
-        {/* --- THE STUDENT DOSSIER --- */}
+        {/* --- THE STUDENT DOSSIER (FULLY UPDATED TO MATCH FORM) --- */}
         {viewingStudent && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#001529]/95 backdrop-blur-xl p-4 overflow-y-auto">
             <div className="bg-white w-full max-w-6xl rounded-[60px] shadow-2xl overflow-hidden flex flex-col md:flex-row relative animate-in zoom-in">
@@ -292,42 +292,62 @@ const AdmissionOfficerDashboard = () => {
                 <h3 className="font-black text-3xl text-slate-800 uppercase mb-4 italic">{viewingStudent.fullName || viewingStudent.name}</h3>
                 <div className="flex justify-center mb-10"><StatusTag status={viewingStudent.status} /></div>
                 
-                {/* CORE BIOMETRICS - SYNCED WITH FORM */}
+                {/* CORE BIOMETRICS - FULLY SYNCED WITH APPLICATION DATA */}
                 <div className="space-y-6 text-left max-w-xs mx-auto">
                   <Detail icon={<Mail size={16} />} label="Email Address" value={viewingStudent.email} />
-                  <Detail icon={<Phone size={16} />} label="WhatsApp / Phone" value={viewingStudent.whatsapp || viewingStudent.phone} />
-                  <Detail icon={<Fingerprint size={16} />} label="NIN / Identity" value={viewingStudent.nin} />
-                  <Detail icon={<MapPin size={16} />} label="Origin (State/LGA)" value={`${viewingStudent.state} / ${viewingStudent.lga}`} />
-                  <Detail icon={<Calendar size={16} />} label="Age / Gender" value={`${viewingStudent.age} / ${viewingStudent.gender}`} />
-                  <Detail icon={<Briefcase size={16} />} label="Occupation" value={viewingStudent.job} />
+                  <Detail icon={<Phone size={16} />} label="WhatsApp Number" value={viewingStudent.whatsapp} />
+                  <Detail icon={<Fingerprint size={16} />} label="NIN (National ID)" value={viewingStudent.nin} />
+                  <Detail icon={<Calendar size={16} />} label="Age / Gender" value={`${viewingStudent.age} Years / ${viewingStudent.gender}`} />
+                  <Detail icon={<MapPin size={16} />} label="State / LGA Origin" value={`${viewingStudent.stateOrigin || viewingStudent.state} / ${viewingStudent.lgaOrigin || viewingStudent.lga}`} />
+                  <Detail icon={<Globe size={16} />} label="Residence" value={`${viewingStudent.stateResidence || "N/A"} (${viewingStudent.lgaResidence || "N/A"})`} />
                 </div>
               </div>
 
-              <div className="md:w-2/3 p-12 lg:p-20 overflow-y-auto custom-scrollbar">
-                <header className="flex justify-between items-end mb-12 border-b border-slate-100 pb-10">
-                  <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter flex items-center gap-4 italic"><ClipboardCheck className="text-blue-600" size={40} /> Strategic Dossier</h2>
-                  <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-4 rounded-[20px] font-black text-[10px] uppercase print:hidden"><Printer size={18} /> Print Record</button>
+              <div className="md:w-2/3 p-12 lg:p-20 overflow-y-auto custom-scrollbar text-start">
+                <header className="flex justify-between items-end mb-12 border-b border-slate-100 pb-10 text-start">
+                  <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter flex items-center gap-4 italic text-start"><ClipboardCheck className="text-blue-600" size={40} /> Admission Intelligence</h2>
+                  <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-4 rounded-[20px] font-black text-[10px] uppercase print:hidden hover:bg-blue-600 transition-all"><Printer size={18} /> Print Record</button>
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                  <section className="space-y-8">
-                    <h4 className="font-black uppercase text-blue-600 text-xs tracking-widest">Enrollment Intelligence</h4>
-                    <Detail label="Applied Course" value={viewingStudent.selectedCourseTitle || viewingStudent.selectedCourse} />
-                    <Detail label="Permanent Address" value={viewingStudent.address} />
-                    <Detail label="Job Country" value={viewingStudent.jobCountry} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-start">
+                  <section className="space-y-8 text-start">
+                    <h4 className="font-black uppercase text-blue-600 text-xs tracking-widest text-start">Education & Career</h4>
+                    <Detail icon={<GraduationCap size={16} />} label="Program Selection" value={viewingStudent.selectedCourseTitle || viewingStudent.selectedCourse} />
+                    <Detail icon={<Briefcase size={16} />} label="Occupation" value={viewingStudent.job} />
+                    <Detail icon={<Globe size={16} />} label="Job Country" value={viewingStudent.jobCountry} />
+                    <Detail icon={<MapPin size={16} />} label="Permanent Address" value={viewingStudent.address} />
+
+                    {/* NEW SECTION: ACADEMIC QUALIFICATIONS */}
+                    {viewingStudent.qualifications && viewingStudent.qualifications.length > 0 && (
+                      <div className="mt-6 pt-6 border-t border-slate-100">
+                         <h4 className="font-black uppercase text-blue-600 text-[10px] tracking-widest mb-4">Qualifications History</h4>
+                         {viewingStudent.qualifications.map((q, idx) => (
+                           <div key={idx} className="mb-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                              <p className="font-black text-[11px] uppercase text-slate-700">{q.type} - {q.institution}</p>
+                              <p className="text-[10px] font-bold text-slate-400">Class of {q.year}</p>
+                           </div>
+                         ))}
+                      </div>
+                    )}
                   </section>
 
-                  <section className="space-y-8">
-                    <h4 className="font-black uppercase text-emerald-600 text-xs tracking-widest">Financial Auditing</h4>
-                    <Detail label="Admission ID" value={viewingStudent.admissionID || "SYSTEM_PENDING"} />
-                    <Detail label="Payment Reference" value={viewingStudent.paymentRef || "N/A"} />
+                  <section className="space-y-8 text-start">
+                    <h4 className="font-black uppercase text-emerald-600 text-xs tracking-widest text-start">Verification Details</h4>
+                    <Detail icon={<Award size={16} />} label="Admission Status" value={viewingStudent.status} />
+                    <Detail icon={<CreditCard size={16} />} label="Payment Ref" value={viewingStudent.paymentRef || "N/A"} />
+                    <Detail icon={<FileText size={16} />} label="Official Student ID" value={viewingStudent.studentId || "PENDING_FINAL_APPROVAL"} />
                     
-                    <div className="bg-slate-900 p-8 rounded-[40px] text-white">
-                      <h5 className="text-[9px] font-black uppercase text-blue-400 mb-6">Secured Document Vault</h5>
-                      <div className="grid grid-cols-2 gap-3">
-                        {viewingStudent.photoUrl && <a href={viewingStudent.photoUrl} target="_blank" className="text-[9px] font-bold uppercase p-3 border border-white/10 rounded-xl text-center hover:bg-white/10">Passport Photo</a>}
-                        {viewingStudent.resumeUrl && <a href={viewingStudent.resumeUrl} target="_blank" className="text-[9px] font-bold uppercase p-3 border border-white/10 rounded-xl text-center hover:bg-white/10">Credentials / CV</a>}
-                        {viewingStudent.passportUrl && <a href={viewingStudent.passportUrl} target="_blank" className="text-[9px] font-bold uppercase p-3 border border-white/10 rounded-xl text-center hover:bg-white/10">ID Data Page</a>}
+                    <div className="bg-slate-900 p-8 rounded-[40px] text-white shadow-2xl">
+                      <h5 className="text-[9px] font-black uppercase text-blue-400 mb-6 flex items-center gap-2 tracking-[0.2em]"><Lock size={12}/> Document Repository</h5>
+                      <div className="grid grid-cols-1 gap-3">
+                        {viewingStudent.photoUrl && <a href={viewingStudent.photoUrl} target="_blank" className="text-[10px] font-black uppercase p-4 border border-white/10 rounded-2xl text-center hover:bg-blue-600 hover:border-blue-600 transition-all flex items-center justify-center gap-2"><UserCircle2 size={14}/> View Passport</a>}
+                        {viewingStudent.resumeUrl && <a href={viewingStudent.resumeUrl} target="_blank" className="text-[10px] font-black uppercase p-4 border border-white/10 rounded-2xl text-center hover:bg-emerald-600 hover:border-emerald-600 transition-all flex items-center justify-center gap-2"><FileUp size={14}/> View Credentials</a>}
+                        {viewingStudent.intlPassportNo && (
+                          <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                            <p className="text-[8px] font-black text-blue-400 uppercase mb-1">Passport Number</p>
+                            <p className="font-black text-sm uppercase">{viewingStudent.intlPassportNo}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </section>
@@ -342,6 +362,9 @@ const AdmissionOfficerDashboard = () => {
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        @media print {
+          .print\:hidden { display: none !important; }
+        }
       `}</style>
     </div>
   );
@@ -356,15 +379,16 @@ const NavItem = ({ icon, label, active, onClick }) => (
 
 const StatusTag = ({ status }) => {
   const styles = {
-    Paid: "bg-blue-50 text-blue-600",
-    Verified: "bg-blue-50 text-blue-600",
-    "Awaiting Rector Approval": "bg-amber-50 text-amber-600 animate-pulse",
-    "Rector Approved": "bg-purple-50 text-purple-600 shadow-sm",
-    Approved: "bg-emerald-50 text-emerald-600 shadow-sm",
-    "Rejected by Rector": "bg-red-50 text-red-600",
+    Paid: "bg-blue-50 text-blue-600 border-blue-100",
+    Verified: "bg-blue-50 text-blue-600 border-blue-100",
+    "Pending Payment": "bg-slate-100 text-slate-500 border-slate-200",
+    "Awaiting Rector Approval": "bg-amber-50 text-amber-600 border-amber-100 animate-pulse",
+    "Rector Approved": "bg-purple-50 text-purple-600 border-purple-100 shadow-sm",
+    Approved: "bg-emerald-50 text-emerald-600 border-emerald-100 shadow-sm",
+    "Rejected by Rector": "bg-red-50 text-red-600 border-red-100",
   };
   return (
-    <span className={`px-5 py-2.5 rounded-[15px] text-[9px] font-black uppercase tracking-widest flex items-center gap-2 border border-slate-100 ${styles[status] || "bg-slate-50 text-slate-400"}`}>
+    <span className={`px-5 py-2.5 rounded-[15px] text-[9px] font-black uppercase tracking-widest flex items-center gap-2 border ${styles[status] || "bg-slate-50 text-slate-400 border-slate-100"}`}>
       <div className={`w-1.5 h-1.5 rounded-full ${status === "Approved" ? "bg-emerald-500" : "bg-current opacity-60"}`}></div>
       {status || "PENDING"}
     </span>
@@ -372,11 +396,11 @@ const StatusTag = ({ status }) => {
 };
 
 const Detail = ({ icon, label, value }) => (
-  <div className="flex items-start gap-4">
+  <div className="flex items-start gap-4 text-start">
     {icon && <span className="text-blue-500 mt-1 bg-blue-50 p-2 rounded-xl border border-blue-100">{icon}</span>}
-    <div>
-      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-      <p className="font-black text-slate-800 text-[13px] uppercase italic leading-tight">{value || "---"}</p>
+    <div className="text-start">
+      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 text-start">{label}</p>
+      <p className="font-black text-slate-800 text-[13px] uppercase italic leading-tight text-start">{value || "---"}</p>
     </div>
   </div>
 );

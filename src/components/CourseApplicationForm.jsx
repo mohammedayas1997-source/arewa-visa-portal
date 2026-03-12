@@ -169,7 +169,7 @@ const CourseApplicationForm = ({
     setIsSubmitting(true);
 
     const handler = window.PaystackPop.setup({
-      key: "pk_test_962a83d0a3b1d3c993e245757351a3834bfe91c0", 
+      key: "pk_live_501518dc4688ce1fc18be571fb9b81ab785af677", 
       email: applicationData.email,
       amount: 5000 * 100, // 5000 Naira in Kobo
       currency: "NGN",

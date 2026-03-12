@@ -6,7 +6,7 @@ const ApplyPayment = ({ amount, email, onSuccessAction, isSubmitting }) => {
     reference: "AVA-" + new Date().getTime().toString(),
     email: email || "customer@arewavisa.com",
     amount: amount * 100,
-    publicKey: "pk_test_962a83d0a3b1d3c993e245757351a3834bfe91c0", // Test Key
+    publicKey: "pk_live_501518dc4688ce1fc18be571fb9b81ab785af677", // Test Key
   };
 
   const initializePayment = usePaystackPayment(config);
