@@ -319,7 +319,8 @@ const CourseApplicationForm = ({
               </div>
               <div className="mt-5 d-flex gap-3 justify-content-center">
                 <button onClick={downloadReceipt} className="btn btn-danger px-5 py-3 rounded-pill fw-black d-flex align-items-center gap-2">{isSubmitting ? <Loader2 className="animate-spin" /> : <Download size={20} />} PDF DOWNLOAD</button>
-                <button onClick={() => window.location.reload()} className="btn btn-outline-dark px-5 py-3 rounded-pill fw-bold">FINISH</button>
+                {/* UPDATED BUTTON TO GO TO HOME PAGE */}
+                <button onClick={() => window.location.href = '/'} className="btn btn-outline-dark px-5 py-3 rounded-pill fw-bold">FINISH</button>
               </div>
             </div>
           ) : step === "payment" ? (
