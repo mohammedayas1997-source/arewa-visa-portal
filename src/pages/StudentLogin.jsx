@@ -1,13 +1,11 @@
 import React, { useState } from "react";
-// 1. FIXED: Imported firestore and auth correctly from your firebase.js
 import { auth, firestore } from "../firebase"; 
-// 2. FIXED: Added signOut so the payment-rejection logic works
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Loader2 } from "lucide-react";
+import { BookOpen, Loader2, X, ShieldAlert } from "lucide-react";
 
-const StudentLogin = () => {
+const StudentLogin = ({ onClose }) => { // Added onClose prop
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,47 +21,42 @@ const StudentLogin = () => {
     try {
       const cleanEmail = email.trim().toLowerCase();
 
-      // Authenticate with Firebase Auth
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        cleanEmail,
-        password
+      // 1. Authenticate with Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
+      
+      // 2. SEARCH BY EMAIL in Applications
+      const appQuery = query(
+        collection(firestore, "applications"), 
+        where("email", "==", cleanEmail),
+        limit(1)
       );
-      const user = userCredential.user;
+      
+      const querySnapshot = await getDocs(appQuery);
 
-      // 3. FIXED: Using 'firestore' instance correctly for Student Admission logic
-      // We check the "applications" collection for the payment status
-      const appRef = doc(firestore, "applications", user.uid);
-      const appSnap = await getDoc(appRef);
+      if (!querySnapshot.empty) {
+        const userData = querySnapshot.docs[0].data();
 
-      if (appSnap.exists()) {
-        const userData = appSnap.data();
-
-        // 4. FIXED: Enhanced payment status verification
-        const pStatus = (userData.paymentStatus || "").toLowerCase();
+        // 3. Verify Payment Status
+        const pStatus = (userData.status || userData.paymentStatus || "").toLowerCase();
         if (pStatus !== "paid" && pStatus !== "completed") {
-          await signOut(auth); // User is logged out if they haven't paid
-          setError("PAYMENT REQUIRED: Your admission fee is not verified.");
+          await signOut(auth);
+          setError("PAYMENT REQUIRED: Your application fee has not been verified.");
           setLoading(false);
           return;
         }
 
+        // Success!
         navigate("/student-portal");
       } else {
-        // If no application found, check for a standard user profile
-        const userDoc = await getDoc(doc(firestore, "users", user.uid));
-        if (userDoc.exists()) {
-          navigate("/student-portal");
-        } else {
-          setError("PROFILE NOT FOUND: Please contact AVA support.");
-        }
+        setError("RECORD NOT FOUND: No student record found for this email.");
+        await signOut(auth);
       }
     } catch (err) {
       console.error("Login Error:", err.code);
-      if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found") {
+      if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
         setError("Invalid email or password.");
       } else {
-        setError("System Link Error: " + err.message);
+        setError("System Error: Check your connection.");
       }
     } finally {
       setLoading(false);
@@ -71,104 +64,62 @@ const StudentLogin = () => {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#0a0a0a",
-        color: "white",
-        fontFamily: "sans-serif",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "400px",
-          background: "#111",
-          padding: "40px",
-          borderRadius: "30px",
-          border: "1px solid #222",
-        }}
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#0a0a0a", color: "white", position: "relative" }}>
+      
+      {/* CLOSE BUTTON */}
+      <button 
+        onClick={onClose} 
+        style={{ position: "absolute", top: "20px", right: "20px", background: "white", border: "none", borderRadius: "50%", width: "45px", height: "45px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 4px 12px rgba(0,0,0,0.5)", zIndex: 100 }}
       >
+        <X size={24} color="#000" />
+      </button>
+
+      <div style={{ width: "90%", maxWidth: "400px", background: "#111", padding: "40px", borderRadius: "30px", border: "1px solid #222", boxShadow: "0 20px 50px rgba(0,0,0,0.8)" }}>
         <div style={{ textAlign: "center", marginBottom: "30px" }}>
-          <BookOpen
-            size={40}
-            color="#dc2626"
-            style={{ marginBottom: "15px" }}
-          />
-          <h2 style={{ textTransform: "uppercase", fontWeight: "900" }}>
-            Student Login
-          </h2>
+          <div style={{ background: "rgba(220,38,38,0.1)", display: "inline-block", padding: "15px", borderRadius: "50%", marginBottom: "15px" }}>
+            <BookOpen size={40} color="#dc2626" />
+          </div>
+          <h2 style={{ textTransform: "uppercase", fontWeight: "900", letterSpacing: "1px", marginBottom: "5px" }}>Student Login</h2>
+          <p style={{ color: "#666", fontSize: "12px", textTransform: "uppercase" }}>Access Your Learning Dashboard</p>
         </div>
 
         {error && (
-          <div
-            style={{
-              background: "rgba(220,38,38,0.1)",
-              color: "#f87171",
-              padding: "10px",
-              borderRadius: "10px",
-              marginBottom: "20px",
-              fontSize: "12px",
-              textAlign: "center",
-            }}
-          >
-            {error}
+          <div style={{ background: "rgba(220,38,38,0.1)", color: "#f87171", padding: "12px", borderRadius: "12px", marginBottom: "20px", fontSize: "12px", textAlign: "center", border: "1px solid rgba(220,38,38,0.2)", display: "flex", alignItems: "center", gap: "10px", justifyContent: "center" }}>
+            <ShieldAlert size={16} /> {error}
           </div>
         )}
 
-        <form
-          onSubmit={handleLogin}
-          style={{ display: "flex", flexDirection: "column", gap: "15px" }}
-        >
-          <input
-            type="email"
-            placeholder="Email Address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{
-              padding: "15px",
-              borderRadius: "10px",
-              background: "#000",
-              border: "1px solid #333",
-              color: "white",
-            }}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Account Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{
-              padding: "15px",
-              borderRadius: "10px",
-              background: "#000",
-              border: "1px solid #333",
-              color: "white",
-            }}
-            required
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              padding: "15px",
-              background: "#dc2626",
-              color: "white",
-              border: "none",
-              borderRadius: "10px",
-              fontWeight: "bold",
-              cursor: "pointer",
-            }}
+        <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+            <label style={{ fontSize: "10px", textTransform: "uppercase", fontWeight: "bold", color: "#666", marginLeft: "5px" }}>Registered Email</label>
+            <input
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{ padding: "15px", borderRadius: "12px", background: "#000", border: "1px solid #333", color: "white", outline: "none" }}
+              required
+            />
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+            <label style={{ fontSize: "10px", textTransform: "uppercase", fontWeight: "bold", color: "#666", marginLeft: "5px" }}>Secret Password</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{ padding: "15px", borderRadius: "12px", background: "#000", border: "1px solid #333", color: "white", outline: "none" }}
+              required
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={loading} 
+            style={{ padding: "16px", background: "#dc2626", color: "white", border: "none", borderRadius: "50px", fontWeight: "900", cursor: "pointer", marginTop: "10px", textTransform: "uppercase", letterSpacing: "1px", transition: "0.3s shadow", boxShadow: "0 10px 20px rgba(220,38,38,0.3)" }}
           >
-            {loading ? (
-              <Loader2 className="animate-spin" style={{ margin: "auto" }} />
-            ) : (
-              "STUDENT ACCESS"
-            )}
+            {loading ? <Loader2 className="animate-spin" style={{ margin: "auto" }} /> : "STUDENT ACCESS"}
           </button>
         </form>
       </div>
