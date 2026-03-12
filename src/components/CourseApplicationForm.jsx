@@ -1,321 +1,452 @@
 import React, { useState, useEffect, useRef } from "react";
-import { db, storage, firestore } from "../firebase";
-import { ref, push, set, onValue } from "firebase/database";
+import { db, storage, firestore } from "../firebase"; // Using your existing exports
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   collection,
   addDoc,
   serverTimestamp,
-  doc,
   updateDoc,
+  doc,
+  onSnapshot,
 } from "firebase/firestore";
-import ApplyPayment from "./ApplyPayment";
-import { QRCodeSVG } from "qrcode.react";
+import {
+  Upload,
+  CreditCard,
+  Loader2,
+  User,
+  School,
+  BookOpen,
+  Download,
+  MapPin,
+  GraduationCap,
+  Lock,
+  PlusCircle,
+  Trash2,
+  ArrowRight,
+  ShieldCheck,
+  Wallet
+} from "lucide-react";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
-import {
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
-import {
-  X,
-  GraduationCap,
-  ArrowRight,
-  Loader2,
-  Wallet,
-  CheckCircle,
-  Lock,
-  User,
-  MapPin,
-  FileText,
-  Printer,
-  Download,
-  Briefcase,
-  Globe,
-  Calendar,
-  ShieldCheck,
-  Check,
-} from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
-const CourseApplicationForm = ({
-  showCourseForm,
-  setShowCourseForm,
-  coursesData,
-}) => {
+const CourseEnrollment = ({ showCourseForm, setShowCourseForm, coursesData }) => {
   // --- STATES ---
-  const [showPaymentStep, setShowPaymentStep] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [photoPreview, setPhotoPreview] = useState(null);
-  const [generatedID, setGeneratedID] = useState("");
-  const [applicationDocId, setApplicationDocId] = useState("");
+  const [step, setStep] = useState("form");
+  const [loading, setLoading] = useState(false);
+  const [applicationId, setApplicationId] = useState(null);
+  const [passportPreview, setPassportPreview] = useState(null);
+  const [passportFile, setPassportFile] = useState(null);
+  const [portalSettings, setPortalSettings] = useState({ isOpen: true });
   const receiptRef = useRef(null);
 
-  const [applicationData, setApplicationData] = useState({
-    name: "",
+  const schoolLogo = "/logo.png";
+
+  const [formData, setFormData] = useState({
+    fullName: "",
     email: "",
+    phone: "",
     gender: "",
-    age: "",
-    nin: "",
-    passportNo: "",
-    whatsapp: "",
-    state: "",
-    lga: "",
-    residenceCountry: "Nigeria",
-    address: "",
-    job: "",
-    jobCountry: "",
-    selectedCourseTitle: "",
-    photoFile: null,
-    resumeFile: null,
+    stateOrigin: "",
+    lgaOrigin: "",
+    stateResidence: "",
+    lgaResidence: "",
+    residentialAddress: "",
+    selectedCourse: "",
   });
 
-  // --- FUNCTIONS ---
+  const [qualifications, setQualifications] = useState([
+    {
+      id: Date.now(),
+      type: "",
+      institution: "",
+      course: "",
+      year: "",
+    },
+  ]);
+
+  // --- PORTAL STATUS REALTIME SYNC ---
+  useEffect(() => {
+    const unsub = onSnapshot(
+      doc(firestore, "systemSettings", "admissionControl"),
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setPortalSettings(snapshot.data());
+        }
+      }
+    );
+    return () => unsub();
+  }, []);
+
+  // --- HANDLERS ---
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleQualificationChange = (id, field, value) => {
+    setQualifications((prev) =>
+      prev.map((q) => (q.id === id ? { ...q, [field]: value } : q))
+    );
+  };
+
+  const addQualification = () => {
+    setQualifications([
+      ...qualifications,
+      { id: Date.now(), type: "", institution: "", course: "", year: "" },
+    ]);
+  };
+
+  const removeQualification = (id) => {
+    if (qualifications.length > 1) {
+      setQualifications(qualifications.filter((q) => q.id !== id));
+    }
+  };
+
+  const handlePassportUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) return alert("Image too large (Max 2MB)");
+      setPassportFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => setPassportPreview(event.target.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const uploadFile = async (file, path) => {
-    const fRef = storageRef(storage, path);
+    const fRef = ref(storage, path);
     const snapshot = await uploadBytes(fRef, file);
     return getDownloadURL(snapshot.ref);
   };
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Image is too large! Max 2MB.");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => setPhotoPreview(reader.result);
-      reader.readAsDataURL(file);
-      setApplicationData((prev) => ({ ...prev, photoFile: file }));
-    }
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setApplicationData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleFileChange = (e) => {
-    const { name, files } = e.target;
-    setApplicationData((prev) => ({ ...prev, [name]: files[0] }));
-  };
-
-  // --- STEP 1: INITIAL SUBMISSION (PENDING PAYMENT) ---
+  // --- STEP 1: SUBMIT DATA (PENDING) ---
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    if (!applicationData.photoFile)
-      return alert("Please upload your passport photo.");
+    if (!portalSettings.isOpen) return alert("Portal is currently closed.");
+    if (!passportFile) return alert("Please upload a passport photograph!");
 
-    setIsSubmitting(true);
+    setLoading(true);
     try {
       const timestamp = Date.now();
+      const photoUrl = await uploadFile(passportFile, `apps/${timestamp}/passport`);
 
-      // Upload Photo
-      const photoUrl = await uploadFile(
-        applicationData.photoFile,
-        `apps/${timestamp}/photo`
-      );
-      
-      let resumeUrl = "";
-      if (applicationData.resumeFile) {
-        resumeUrl = await uploadFile(
-          applicationData.resumeFile,
-          `apps/${timestamp}/resume`
-        );
-      }
-
-      // Removing file objects before Firestore storage
-      const { photoFile, resumeFile, ...cleanData } = applicationData;
-
-      const docRef = await addDoc(collection(firestore, "applications"), {
-        ...cleanData,
-        photoUrl,
-        resumeUrl,
+      const finalRecord = {
+        fullName: formData.fullName,
+        email: formData.email.toLowerCase().trim(),
+        phone: formData.phone,
+        gender: formData.gender,
+        stateOrigin: formData.stateOrigin,
+        lgaOrigin: formData.lgaOrigin,
+        stateResidence: formData.stateResidence,
+        lgaResidence: formData.lgaResidence,
+        residentialAddress: formData.residentialAddress,
+        selectedCourse: formData.selectedCourse,
+        qualifications: qualifications,
+        photoUrl: photoUrl,
         status: "Pending Payment",
         paymentStatus: "Unpaid",
         appliedAt: serverTimestamp(),
-      });
+      };
 
-      setApplicationDocId(docRef.id);
-      setShowPaymentStep(true);
+      const docRef = await addDoc(collection(firestore, "applications"), finalRecord);
+      setApplicationId(docRef.id);
+      setStep("payment");
     } catch (error) {
-      console.error("Submission Error:", error);
-      alert("Submission Error: " + error.message);
+      console.error(error);
+      alert("Error: " + error.message);
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-  // --- STEP 2: UPDATE AFTER PAYMENT SUCCESS ---
+  // --- STEP 2: VERIFY PAYMENT ---
+  const triggerPaystack = () => {
+    setLoading(true);
+    const handler = window.PaystackPop.setup({
+      key: "pk_test_962a83d0a3b1d3c993e245757351a3834bfe91c0", // Replace with live key if needed
+      email: formData.email,
+      amount: 5000 * 100,
+      callback: (response) => handlePaymentSuccess(response.reference),
+      onClose: () => setLoading(false),
+    });
+    handler.openIframe();
+  };
+
   const handlePaymentSuccess = async (reference) => {
-    setIsSubmitting(true);
+    setLoading(true);
     try {
       const admissionID = `AVA-${Math.floor(10000 + Math.random() * 90000)}`;
-      setGeneratedID(admissionID);
-
-      const appRef = doc(firestore, "applications", applicationDocId);
-      await updateDoc(appRef, {
-        admissionID: admissionID,
-        paymentRef: reference?.reference || reference,
-        paymentStatus: "Paid",
+      await updateDoc(doc(firestore, "applications", applicationId), {
         status: "Paid",
+        paymentStatus: "Paid",
+        admissionID: admissionID,
+        paymentRef: reference || "PAY-" + Date.now(),
         paidAt: serverTimestamp(),
       });
 
-      // Open WhatsApp
+      // WhatsApp Notification
       const adminWhatsApp = "2348165372359";
-      const message = `*NEW ADMISSION PAID*%0A%0A*ID:* ${admissionID}%0A*Name:* ${applicationData.name}%0A*Program:* ${applicationData.selectedCourseTitle}`;
+      const message = `*NEW ADMISSION PAID*%0A%0A*ID:* ${admissionID}%0A*Name:* ${formData.fullName}%0A*Program:* ${formData.selectedCourse}`;
       window.open(`https://wa.me/${adminWhatsApp}?text=${message}`, "_blank");
 
-      // CRITICAL: This line hides the payment button and shows the receipt
-      setIsSuccess(true); 
-      setShowPaymentStep(false);
-
+      setStep("success");
     } catch (error) {
-      alert("Database Update Failed but Payment was successful.");
+      alert("Payment successful but record update failed.");
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
-  
+
   const downloadReceipt = async () => {
     const element = receiptRef.current;
     if (!element) return;
     try {
-      setIsSubmitting(true);
-      const canvas = await html2canvas(element, { scale: 3, useCORS: true });
+      setLoading(true);
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
       pdf.addImage(imgData, "PNG", 0, 0, 210, (canvas.height * 210) / canvas.width);
-      pdf.save(`AVA-RECEIPT-${generatedID}.pdf`);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
-    }
+      pdf.save(`AVA-RECEIPT-${applicationId?.substr(0, 5)}.pdf`);
+    } catch (error) { console.error(error); } finally { setLoading(false); }
   };
 
-  if (!showCourseForm) return null;
-
-  return (
-    <div className="position-fixed top-0 start-0 w-100 h-100 px-2 py-4 shadow-lg" style={{ zIndex: 10000, backgroundColor: "rgba(0,0,0,0.92)", overflowY: "auto", display: "block" }}>
-      <div className="card border-0 w-100 mx-auto" style={{ maxWidth: "900px", borderRadius: "24px", overflow: "hidden", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)" }}>
-        <button onClick={() => { setShowCourseForm(false); setIsSuccess(false); }} className="position-absolute top-0 end-0 m-3 btn btn-light rounded-circle shadow-sm d-print-none" style={{ zIndex: 11000 }}><X size={20} /></button>
-
-        <div className="card-body p-0 bg-white">
-          {isSuccess ? (
-            /* --- RECEIPT VIEW --- */
-            <div ref={receiptRef} className="p-4 p-md-5 text-dark text-start bg-white" style={{ border: "15px solid #1a1a1a" }}>
-              <div className="d-flex justify-content-between align-items-center border-bottom border-4 border-danger pb-3 mb-4 text-uppercase">
-                <div className="d-flex align-items-center gap-3">
-                  <img src="/logo.png" alt="Logo" style={{ width: "80px", height: "80px", objectFit: "contain" }} />
-                  <div>
-                    <h2 className="fw-black text-danger mb-0 uppercase" style={{ fontSize: "1.8rem" }}>AREWA VISA ACADEMY</h2>
-                    <p className="small text-muted mb-0 fw-bold uppercase" style={{ fontSize: "10px" }}>Excellence in Global Immigration & Education</p>
-                  </div>
-                </div>
-                <div className="text-end">
-                  <h6 className="fw-bold mb-0 text-uppercase">ADMISSION ID: {generatedID}</h6>
-                  <p className="small text-muted mb-0 font-monospace">DATE: {new Date().toLocaleDateString()}</p>
-                </div>
-              </div>
-
-              <div className="row g-4 mb-4 mt-2 bg-light p-4 rounded-4 mx-0 border">
-                <div className="col-md-3"><img src={photoPreview} alt="Student" style={{ width: "150px", height: "185px", objectFit: "cover" }} className="rounded-3 shadow-lg" /></div>
-                <div className="col-md-6">
-                  <h5 className="fw-black border-bottom border-danger border-opacity-25 pb-2 mb-3 text-uppercase">Candidate Profile</h5>
-                  <table className="table table-sm table-borderless uppercase small">
-                    <tbody>
-                      <tr><td className="fw-bold">Full Name:</td><td>{applicationData.name}</td></tr>
-                      <tr><td className="fw-bold">Program:</td><td className="text-danger">{applicationData.selectedCourseTitle}</td></tr>
-                      <tr><td className="fw-bold">NIN:</td><td>{applicationData.nin}</td></tr>
-                      <tr><td className="fw-bold">WhatsApp:</td><td>{applicationData.whatsapp}</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-                <div className="col-md-3 text-center border-start">
-                  <QRCodeSVG value={`https://arewavisa.com/verify/${generatedID}`} size={110} includeMargin={true} />
-                  <p className="mt-2 fw-bold uppercase" style={{ fontSize: "8px" }}>Verify Authenticity</p>
-                </div>
-              </div>
-
-              <div className="bg-dark p-4 rounded-4 text-white d-flex justify-content-between align-items-center mb-4 shadow-lg">
-                <div><h3 className="fw-black mb-0">PAID: ₦5,000.00</h3><p className="small text-muted mb-0 uppercase tracking-widest">Status: Payment Verified Successful</p></div>
-                <ShieldCheck size={45} className="text-success" />
-              </div>
-
-              <div className="mt-5 d-flex gap-3 justify-content-center d-print-none">
-                <button onClick={downloadReceipt} disabled={isSubmitting} className="btn btn-danger px-5 py-3 rounded-pill fw-black d-flex align-items-center gap-2">
-                  {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <Download size={20} />} PDF DOWNLOAD
-                </button>
-                <button onClick={() => window.location.reload()} className="btn btn-outline-dark px-5 py-3 rounded-pill fw-bold">FINISH</button>
-              </div>
-            </div>
-          ) : !showPaymentStep ? (
-            /* --- FULL APPLICATION FORM --- */
-            <div className="row g-0">
-              <div className="col-md-3 bg-danger p-4 text-white text-center d-flex flex-column justify-content-center">
-                {photoPreview ? <img src={photoPreview} className="mx-auto mb-3 border border-3 border-white rounded-3 shadow-lg" style={{ width: "110px", height: "145px", objectFit: "cover" }} /> : <GraduationCap size={65} className="mx-auto mb-3 opacity-75" />}
-                <h4 className="fw-black text-uppercase tracking-tighter">Admission Portal</h4>
-              </div>
-              <div className="col-md-9 p-4 p-md-5 bg-white text-dark text-start">
-                <form className="row g-3" onSubmit={handleFormSubmit}>
-                  {/* PERSONAL */}
-                  <div className="col-12 border-bottom pb-2"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><User size={16}/> Personal Information</h6></div>
-                  <div className="col-md-6"><label className="form-label small fw-bold">Full Name</label><input type="text" name="name" value={applicationData.name} onChange={handleChange} className="form-control shadow-none" required /></div>
-                  <div className="col-md-6"><label className="form-label small fw-bold">Email</label><input type="email" name="email" value={applicationData.email} onChange={handleChange} className="form-control shadow-none" required /></div>
-                  <div className="col-md-4"><label className="form-label small fw-bold">Gender</label><select name="gender" value={applicationData.gender} onChange={handleChange} className="form-select shadow-none" required><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option></select></div>
-                  <div className="col-md-4"><label className="form-label small fw-bold">Age</label><input type="number" name="age" value={applicationData.age} onChange={handleChange} className="form-control shadow-none" required /></div>
-                  <div className="col-md-4"><label className="form-label small fw-bold">WhatsApp</label><input type="tel" name="whatsapp" value={applicationData.whatsapp} onChange={handleChange} className="form-control shadow-none" required /></div>
-
-                  {/* IDENTITY */}
-                  <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><FileText size={16}/> Identity & Origin</h6></div>
-                  <div className="col-md-6"><label className="form-label small fw-bold">NIN Number</label><input type="text" name="nin" value={applicationData.nin} onChange={handleChange} className="form-control shadow-none" required /></div>
-                  <div className="col-md-6"><label className="form-label small fw-bold">Passport No (Optional)</label><input type="text" name="passportNo" value={applicationData.passportNo} onChange={handleChange} className="form-control shadow-none" /></div>
-                  <div className="col-md-6"><label className="form-label small fw-bold">State of Origin</label><input type="text" name="state" value={applicationData.state} onChange={handleChange} className="form-control shadow-none" required /></div>
-                  <div className="col-md-6"><label className="form-label small fw-bold">LGA</label><input type="text" name="lga" value={applicationData.lga} onChange={handleChange} className="form-control shadow-none" required /></div>
-
-                  {/* CAREER */}
-                  <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><Briefcase size={16}/> Career & Home</h6></div>
-                  <div className="col-md-6"><label className="form-label small fw-bold">Occupation</label><input type="text" name="job" value={applicationData.job} onChange={handleChange} className="form-control shadow-none" /></div>
-                  <div className="col-md-6"><label className="form-label small fw-bold">Job Country</label><input type="text" name="jobCountry" value={applicationData.jobCountry} onChange={handleChange} className="form-control shadow-none" /></div>
-                  <div className="col-12"><label className="form-label small fw-bold">Full Address</label><textarea name="address" value={applicationData.address} onChange={handleChange} className="form-control shadow-none" rows="2" required></textarea></div>
-
-                  {/* SELECTION */}
-                  <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><GraduationCap size={16}/> Program Selection</h6></div>
-                  <div className="col-12"><select className="form-select py-2 shadow-none" name="selectedCourseTitle" value={applicationData.selectedCourseTitle} onChange={handleChange} required><option value="">-- Choose Course --</option>{coursesData?.map((c) => (<option key={c.id} value={c.title}>{c.title}</option>))}</select></div>
-                  <div className="col-md-6"><label className="form-label small fw-bold">Passport Photo</label><input type="file" className="form-control shadow-none" accept="image/*" onChange={handlePhotoChange} required /></div>
-                  <div className="col-md-6"><label className="form-label small fw-bold">Credentials (Optional)</label><input type="file" name="resumeFile" className="form-control shadow-none" onChange={handleFileChange} /></div>
-
-                  <div className="col-12 mt-4">
-                    <button type="submit" disabled={isSubmitting} className="btn btn-warning w-100 py-3 fw-black rounded-pill shadow-lg text-uppercase tracking-widest border-0">
-                      {isSubmitting ? <Loader2 className="animate-spin mx-auto" size={24} /> : <>PROCEED TO PAYMENT <ArrowRight size={20} className="ms-2" /></>}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          ) : (
-            /* --- PAYMENT STEP --- */
-            <div className="p-4 p-md-5 text-center bg-white text-dark animate__animated animate__zoomIn">
-              <Wallet size={55} className="text-danger mb-3 mx-auto" />
-              <h3 className="fw-black mb-1 uppercase tracking-tighter">Tuition Payment</h3>
-              <p className="text-muted">Enrollment for: <strong className="text-danger">{applicationData.name}</strong></p>
-              <div className="py-4 px-4 bg-light rounded-4 mb-4 border-start border-danger border-5 text-start shadow-sm">
-                <span className="text-muted small d-block fw-bold opacity-75 uppercase">Processing Fee</span>
-                <h2 className="display-4 fw-black text-danger mb-0">₦5,000</h2>
-              </div>
-              <div className="payment-btn-container shadow-lg p-4 rounded-4 border bg-white mb-3">
-                <ApplyPayment amount={5000} email={applicationData.email} onSuccessAction={handlePaymentSuccess} isSubmitting={isSubmitting} />
-              </div>
-              {!isSubmitting && <button onClick={() => setShowPaymentStep(false)} className="btn btn-link text-muted mt-3 fw-bold text-decoration-none uppercase small">Back to Review</button>}
-            </div>
-          )}
+  if (!portalSettings.isOpen) {
+    return (
+      <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[10000] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white p-12 rounded-[40px] text-center shadow-2xl">
+          <Lock size={80} className="mx-auto text-red-600 mb-6" />
+          <h1 className="text-3xl font-black text-[#002147] uppercase">Portal Closed</h1>
+          <p className="text-slate-500 mt-4 font-bold">Admission applications are currently disabled.</p>
+          <button onClick={() => setShowCourseForm(false)} className="mt-8 bg-red-600 text-white px-8 py-3 rounded-full font-bold">Exit</button>
         </div>
       </div>
+    );
+  }
+
+  if (step === "payment") {
+    return (
+      <div className="fixed inset-0 bg-slate-900/95 z-[10000] flex items-center justify-center p-6 overflow-y-auto">
+        <div className="max-w-md w-full bg-white rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+          <div className="bg-[#002147] p-10 text-center text-white">
+            <Wallet size={60} className="mx-auto mb-4 text-emerald-400" />
+            <h2 className="text-2xl font-black uppercase tracking-tighter">Tuition Fee</h2>
+          </div>
+          <div className="p-10 text-center">
+            <p className="text-slate-500 font-bold mb-2 uppercase text-xs">Processing application for:</p>
+            <p className="text-[#002147] font-black mb-6 truncate">{formData.fullName}</p>
+            <span className="text-6xl font-black text-[#002147]">₦5,000</span>
+            <button onClick={triggerPaystack} className="w-full mt-8 bg-emerald-600 text-white font-black py-5 rounded-2xl uppercase shadow-xl hover:bg-[#002147] transition-all">
+              {loading ? <Loader2 className="animate-spin mx-auto" /> : "Pay Now"}
+            </button>
+            <button onClick={() => setStep("form")} className="mt-4 text-slate-400 font-bold text-xs uppercase hover:text-red-600">Back to Edit</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === "success") {
+    return (
+      <div className="fixed inset-0 bg-slate-200 z-[10000] flex flex-col items-center justify-start p-4 md:p-10 overflow-y-auto">
+        <div ref={receiptRef} className="w-full max-w-[800px] bg-white p-6 md:p-12 shadow-2xl border-[12px] border-[#002147] mb-6 relative">
+          <div className="flex justify-between items-start mb-8">
+            <div className="flex items-center gap-4 text-left">
+              <img src={schoolLogo} alt="Logo" className="w-20 h-20 object-contain" />
+              <div>
+                <h1 className="text-2xl font-black text-[#002147]">AREWA VISA ACADEMY</h1>
+                <p className="text-[10px] text-red-600 font-black uppercase tracking-[0.2em]">Excellence in Global Immigration</p>
+              </div>
+            </div>
+            <QRCodeSVG value={applicationId} size={80} />
+          </div>
+          
+          <div className="flex flex-col md:flex-row gap-8 border-y-2 py-8">
+            <img src={passportPreview} className="w-32 h-40 object-cover rounded-xl border-4 border-slate-100 mx-auto md:mx-0" alt="Student" />
+            <div className="flex-1 space-y-4">
+              <div>
+                <p className="text-[10px] font-black uppercase text-slate-400">Student Name</p>
+                <p className="text-xl font-black text-[#002147] uppercase">{formData.fullName}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] font-black uppercase text-slate-400">Program</p>
+                  <p className="text-sm font-bold text-slate-700">{formData.selectedCourse}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase text-slate-400">Status</p>
+                  <p className="text-sm font-black text-emerald-600 uppercase">Paid - Success</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p className="mt-6 text-[10px] text-slate-400 font-bold uppercase">Official Receipt: {new Date().toLocaleString()}</p>
+        </div>
+        <div className="flex gap-4">
+          <button onClick={downloadReceipt} className="bg-emerald-600 text-white px-8 py-4 rounded-xl font-black flex items-center gap-2 shadow-lg hover:scale-105 transition-all">
+            <Download size={20} /> PDF RECEIPT
+          </button>
+          <button onClick={() => window.location.reload()} className="bg-[#002147] text-white px-8 py-4 rounded-xl font-black shadow-lg transition-all">FINISH</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-[#F0F4F8] z-[10000] overflow-y-auto py-10 px-4 md:px-20">
+      <div className="max-w-5xl mx-auto bg-white shadow-2xl rounded-[40px] overflow-hidden border border-slate-100 relative">
+        <button onClick={() => setShowCourseForm(false)} className="absolute top-6 right-6 z-50 bg-white/20 hover:bg-white/40 p-2 rounded-full text-white backdrop-blur-md">
+           <X size={24} />
+        </button>
+
+        {/* HEADER */}
+        <div className="bg-[#002147] p-12 text-white flex justify-between items-center relative overflow-hidden">
+          <div className="z-10 flex items-center gap-6">
+            <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-2xl p-2 border border-white/20 flex items-center justify-center">
+              <img src={schoolLogo} alt="Logo" className="w-full h-full object-contain" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-black uppercase tracking-tighter">Admission Form</h1>
+              <p className="text-red-500 font-black mt-2 uppercase text-[10px] tracking-[0.3em]">Arewa Visa Academy Portal</p>
+            </div>
+          </div>
+          <School size={150} className="opacity-10 absolute -right-10 -bottom-10" />
+        </div>
+
+        <form onSubmit={handleFormSubmit} className="p-10 md:p-16 space-y-12 text-left">
+          {/* CANDIDATE PROFILE */}
+          <section className="space-y-8">
+            <div className="flex items-center gap-4 border-b-4 border-slate-100 pb-4">
+              <User className="text-red-600" />
+              <h2 className="text-[#002147] text-xl font-black uppercase italic">Candidate Profile</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+              <div className="flex flex-col items-center">
+                <div className="w-44 h-52 bg-slate-50 border-4 border-dashed border-slate-200 rounded-[2rem] relative flex items-center justify-center overflow-hidden hover:border-[#002147] transition-all">
+                  {passportPreview ? (
+                    <img src={passportPreview} className="w-full h-full object-cover" alt="Preview" />
+                  ) : (
+                    <div className="text-center">
+                      <Upload className="mx-auto text-slate-300 mb-2" />
+                      <span className="text-[10px] font-black text-slate-400 uppercase">Upload Passport</span>
+                    </div>
+                  )}
+                  <input required type="file" accept="image/*" onChange={handlePassportUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                </div>
+              </div>
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <input required name="fullName" onChange={handleChange} placeholder="Full Name (Surname First)" className="sky-input" />
+                <input required name="email" type="email" onChange={handleChange} placeholder="Email Address" className="sky-input" />
+                <input required name="phone" type="tel" onChange={handleChange} placeholder="Phone Number" className="sky-input" />
+                <select required name="gender" onChange={handleChange} className="sky-input">
+                  <option value="">Select Gender</option>
+                  <option>Male</option>
+                  <option>Female</option>
+                </select>
+                <input required name="stateOrigin" onChange={handleChange} placeholder="State of Origin" className="sky-input" />
+                <input required name="lgaOrigin" onChange={handleChange} placeholder="LGA of Origin" className="sky-input" />
+              </div>
+            </div>
+          </section>
+
+          {/* RESIDENTIAL */}
+          <section className="space-y-8">
+            <div className="flex items-center gap-4 border-b-4 border-slate-100 pb-4">
+              <MapPin className="text-blue-600" />
+              <h2 className="text-[#002147] text-xl font-black uppercase italic">Residence</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <input required name="stateResidence" onChange={handleChange} placeholder="State of Residence" className="sky-input" />
+              <input required name="lgaResidence" onChange={handleChange} placeholder="LGA of Residence" className="sky-input" />
+              <textarea required name="residentialAddress" onChange={handleChange} placeholder="Full Residential Address" className="sky-input md:col-span-2" rows="2" />
+            </div>
+          </section>
+
+          {/* EDUCATION HISTORY */}
+          <section className="space-y-8 bg-slate-50 p-8 rounded-[2rem]">
+            <div className="flex items-center justify-between border-b-2 border-slate-200 pb-4">
+              <div className="flex items-center gap-4">
+                <GraduationCap className="text-emerald-600" />
+                <h2 className="text-[#002147] text-xl font-black uppercase">Education</h2>
+              </div>
+              <button type="button" onClick={addQualification} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-2">
+                <PlusCircle size={16} /> Add More
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {qualifications.map((qual) => (
+                <div key={qual.id} className="p-6 bg-white border-2 border-slate-100 rounded-3xl relative animate-in fade-in zoom-in duration-300">
+                  {qualifications.length > 1 && (
+                    <button type="button" onClick={() => removeQualification(qual.id)} className="absolute top-4 right-4 text-red-500 hover:scale-110">
+                      <Trash2 size={20} />
+                    </button>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <select required value={qual.type} onChange={(e) => handleQualificationChange(qual.id, "type", e.target.value)} className="sky-input !py-3">
+                      <option value="">Qualification</option>
+                      <option>SSCE</option>
+                      <option>ND</option>
+                      <option>HND</option>
+                      <option>Degree</option>
+                      <option>NCE</option>
+                      <option>Master</option>
+                    </select>
+                    <input required placeholder="Institution" value={qual.institution} onChange={(e) => handleQualificationChange(qual.id, "institution", e.target.value)} className="sky-input !py-3" />
+                    <input required placeholder="Course" value={qual.course} onChange={(e) => handleQualificationChange(qual.id, "course", e.target.value)} className="sky-input !py-3" />
+                    <input required placeholder="Year" value={qual.year} onChange={(e) => handleQualificationChange(qual.id, "year", e.target.value)} className="sky-input !py-3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* PROGRAM SELECTION */}
+          <section className="bg-[#002147] p-8 rounded-[2rem] text-white">
+            <label className="text-xs font-black uppercase mb-4 block tracking-widest text-red-500">Select Specialization</label>
+            <select required name="selectedCourse" onChange={handleChange} className="w-full p-5 rounded-2xl bg-white text-[#002147] font-black outline-none shadow-inner">
+              <option value="">Choose Course...</option>
+              {coursesData?.map((c) => (
+                <option key={c.id} value={c.title}>{c.title}</option>
+              ))}
+            </select>
+          </section>
+
+          <button disabled={loading} type="submit" className="w-full bg-red-600 text-white font-black py-8 rounded-[2.5rem] uppercase tracking-[0.2em] shadow-2xl hover:bg-[#002147] transition-all flex items-center justify-center gap-4">
+            {loading ? <Loader2 className="animate-spin" /> : <>Process Application <ArrowRight /></>}
+          </button>
+        </form>
+      </div>
+
+      <style jsx>{`
+        .sky-input {
+          width: 100%;
+          padding: 1rem 1.2rem;
+          background: #f8fafc;
+          border: 2px solid #e2e8f0;
+          border-radius: 1rem;
+          font-weight: 700;
+          font-size: 0.875rem;
+          outline: none;
+          transition: all 0.3s ease;
+        }
+        .sky-input:focus {
+          border-color: #002147;
+          background: white;
+          box-shadow: 0 10px 15px -3px rgba(0, 33, 71, 0.1);
+        }
+        @keyframes zoom-in {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .animate-in { animation: zoom-in 0.3s ease-out; }
+      `}</style>
     </div>
   );
 };
 
-export default CourseApplicationForm;
+const X = ({ size }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+);
+
+export default CourseEnrollment;
