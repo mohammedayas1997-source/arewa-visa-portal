@@ -1,7 +1,7 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
-  important: true, // Wannan zai tilasta wa Tailwind classes su yi aiki ba tare da sun hargitsa Bootstrap ba
+  important: true, 
   theme: {
     extend: {
       colors: {
@@ -18,6 +18,6 @@ export default {
   },
   plugins: [],
   corePlugins: {
-    preflight: false, // WANNAN SHINE MAGANIN HARGTSEWA - Zai hana Tailwind goge adon Bootstrap
+    preflight: false, 
   },
 };
