@@ -52,7 +52,6 @@ const CBIApplicationForm = ({
     "Adamawa": ["Demsa", "Fufore", "Ganye", "Girei", "Gombi", "Guyuk", "Hong", "Jada", "Lamurde", "Madagali", "Maiha", "Mayo-Belwa", "Michika", "Mubi North", "Mubi South", "Numan", "Shelleng", "Song", "Toungo", "Yola North", "Yola South"],
     "Kano": ["Ajingi", "Albasu", "Bagwai", "Bebeji", "Bichi", "Bunkure", "Dala", "Dambatta", "Dawakin Kudu", "Dawakin Tofa", "Doguwa", "Fagge", "Gabasawa", "Garko", "Garun Mallam", "Gaya", "Gezawa", "Gwale", "Gwarzo", "Kabo", "Kano Municipal", "Karaye", "Kibiya", "Kiru", "Kumbotso", "Kunchi", "Kura", "Madobi", "Makoda", "Minjibir", "Nasarawa", "Rano", "Rimin Gado", "Rogo", "Shanono", "Sumaila", "Takai", "Tarauni", "Tofa", "Tsanyawa", "Tudun Wada", "Ungogo", "Warawa", "Wudil"],
     "Lagos": ["Agege", "Ajeromi-Ifelodun", "Alimosho", "Amuwo-Odofin", "Apapa", "Badagry", "Epe", "Eti Osa", "Ibeju-Lekki", "Ifako-Ijaiye", "Ikeja", "Ikorodu", "Kosofe", "Lagos Island", "Lagos Mainland", "Mushin", "Ojo", "Oshodi-Isolo", "Shomolu", "Surulere"],
-    // Sauran states duka suna nan a tsarin Firestore
   };
 
   const handleChange = (e) => {
@@ -107,7 +106,7 @@ const CBIApplicationForm = ({
           position: "relative", borderRadius: "30px", overflow: "hidden",
         }}
       >
-        {/* HEADER */}
+        {/* HEADER TARE DA CLOSE BUTTON */}
         <div className="p-4 bg-dark text-white d-flex justify-content-between align-items-center sticky-top">
           <div className="d-flex align-items-center gap-3 text-start">
             <div className="bg-warning p-2 rounded-circle shadow-sm">
@@ -118,7 +117,16 @@ const CBIApplicationForm = ({
               <small className="opacity-75 d-block fw-bold uppercase" style={{ fontSize: "0.6rem" }}>Residency & Citizenship Investment</small>
             </div>
           </div>
-          <button onClick={() => setShowCBIForm(false)} className="btn btn-link text-white p-0 border-0 shadow-none hover:rotate-90 transition-all">
+          
+          {/* WANNAN SHINE CLOSE BUTTON DIN (X) */}
+          <button 
+            type="button"
+            onClick={() => setShowCBIForm(false)} 
+            className="btn btn-link text-white p-0 border-0 shadow-none"
+            style={{ transition: "all 0.3s" }}
+            onMouseOver={(e) => e.currentTarget.style.transform = "rotate(90deg)"}
+            onMouseOut={(e) => e.currentTarget.style.transform = "rotate(0deg)"}
+          >
             <X size={28} />
           </button>
         </div>

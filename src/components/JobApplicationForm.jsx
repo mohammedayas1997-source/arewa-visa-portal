@@ -78,7 +78,7 @@ const JobApplicationForm = ({
     setIsProcessing(true);
     const handler = window.PaystackPop.setup({
       key: "pk_live_501518dc4688ce1fc18be571fb9b81ab785af677", 
-      email: applicationData.email || "consultant@arewavisa.com",
+      email: applicationData?.email || "consultant@arewavisa.com",
       amount: 100000 * 100,
       currency: "NGN",
       ref: "JOB-" + Math.floor((Math.random() * 1000000000) + 1),
@@ -105,11 +105,12 @@ const JobApplicationForm = ({
 
   const downloadReceipt = async () => {
     const element = receiptRef.current;
+    if (!element) return;
     const canvas = await html2canvas(element, { scale: 3, useCORS: true });
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF("p", "mm", "a4");
     pdf.addImage(imgData, "PNG", 0, 0, 210, (canvas.height * 210) / canvas.width);
-    pdf.save(`JOB-CONSULTATION-RECEIPT-${applicationData.name}.pdf`);
+    pdf.save(`JOB-CONSULTATION-RECEIPT-${applicationData?.name || "Candidate"}.pdf`);
   };
 
   return (
@@ -136,15 +137,15 @@ const JobApplicationForm = ({
 
                 <div className="row g-3 mb-4 bg-light p-3 rounded-4 mx-0">
                   <div className="col-4 text-center">
-                    <img src={photoPreview} style={{ width: "80px", height: "100px", objectFit: "cover" }} className="rounded-3 shadow-lg border border-2 border-white" alt="Applicant" />
+                    <img src={photoPreview || "/placeholder-user.png"} style={{ width: "80px", height: "100px", objectFit: "cover" }} className="rounded-3 shadow-lg border border-2 border-white" alt="Applicant" />
                   </div>
                   <div className="col-8">
                      <h6 className="fw-black border-bottom border-danger pb-1 mb-2 uppercase small">Applicant Profile</h6>
                      <div className="x-small space-y-1" style={{fontSize: '10px'}}>
-                        <p className="mb-1"><strong>NAME:</strong> {applicationData.name}</p>
-                        <p className="mb-1"><strong>PASSPORT:</strong> {applicationData.passportNo}</p>
-                        <p className="mb-1"><strong>JOB:</strong> {applicationData.job}</p>
-                        <p className="mb-1"><strong>DESTINATION:</strong> {applicationData.country}</p>
+                        <p className="mb-1"><strong>NAME:</strong> {applicationData?.name || "N/A"}</p>
+                        <p className="mb-1"><strong>PASSPORT:</strong> {applicationData?.passportNo || "N/A"}</p>
+                        <p className="mb-1"><strong>JOB:</strong> {applicationData?.job || "N/A"}</p>
+                        <p className="mb-1"><strong>DESTINATION:</strong> {applicationData?.country || "N/A"}</p>
                      </div>
                   </div>
                 </div>
@@ -171,8 +172,8 @@ const JobApplicationForm = ({
               ) : (
                 <div className="bg-white/20 p-3 rounded-circle d-inline-block mx-auto mb-3"><UserCheck size={40} /></div>
               )}
-              <h5 className="fw-black text-uppercase italic mb-0">Job Portal</h5>
-              <button onClick={() => setShowForm(false)} className="btn btn-light btn-sm rounded-pill mt-3 fw-bold d-none d-md-inline-block">Cancel</button>
+              <h5 className="fw-black text-uppercase italic mb-0 text-white">Job Portal</h5>
+              <button onClick={() => setShowForm(false)} className="btn btn-light btn-sm rounded-pill mt-3 fw-bold d-none d-md-inline-block text-dark">Cancel</button>
             </div>
 
             {/* FORM */}
@@ -186,51 +187,51 @@ const JobApplicationForm = ({
                 </div>
                 <div className="col-md-6 text-start">
                    <label className="label-style">Full Legal Name</label>
-                   <input type="text" name="name" className="sky-input" required value={applicationData.name} onChange={handleChange} />
+                   <input type="text" name="name" className="sky-input" required value={applicationData?.name || ""} onChange={handleChange} />
                 </div>
 
-                <div className="col-md-6 text-start"><label className="label-style">Email Address</label><input type="email" name="email" className="sky-input" required value={applicationData.email} onChange={handleChange} /></div>
-                <div className="col-md-6 text-start"><label className="label-style">WhatsApp Number</label><input type="tel" name="whatsapp" className="sky-input" required value={applicationData.whatsapp} onChange={handleChange} /></div>
+                <div className="col-md-6 text-start"><label className="label-style">Email Address</label><input type="email" name="email" className="sky-input" required value={applicationData?.email || ""} onChange={handleChange} /></div>
+                <div className="col-md-6 text-start"><label className="label-style">WhatsApp Number</label><input type="tel" name="whatsapp" className="sky-input" required value={applicationData?.whatsapp || ""} onChange={handleChange} /></div>
                 
-                <div className="col-md-6 text-start"><label className="label-style">NIN Number</label><input type="text" name="nin" className="sky-input" required value={applicationData.nin} onChange={handleChange} /></div>
-                <div className="col-md-6 text-start"><label className="label-style">Intl. Passport No.</label><input type="text" name="passportNo" className="sky-input uppercase" required value={applicationData.passportNo} onChange={handleChange} /></div>
+                <div className="col-md-6 text-start"><label className="label-style">NIN Number</label><input type="text" name="nin" className="sky-input" required value={applicationData?.nin || ""} onChange={handleChange} /></div>
+                <div className="col-md-6 text-start"><label className="label-style">Intl. Passport No.</label><input type="text" name="passportNo" className="sky-input uppercase" required value={applicationData?.passportNo || ""} onChange={handleChange} /></div>
 
                 {/* LOCATION SECTION */}
                 <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><MapPin size={18} /> Origin & Location</h6></div>
                 
                 <div className="col-md-4 text-start">
                    <label className="label-style">Current Country</label>
-                   <select className="sky-input" required name="countrySelection" value={applicationData.countrySelection || ""} onChange={handleChange}>
+                   <select className="sky-input" required name="countrySelection" value={applicationData?.countrySelection || ""} onChange={handleChange}>
                       <option value="">-- Select Country --</option>
                       {africaCountries.map(c => <option key={c} value={c}>{c}</option>)}
                    </select>
                 </div>
                 <div className="col-md-4 text-start">
                    <label className="label-style">Postal Code</label>
-                   <input type="text" name="postalCode" className="sky-input" placeholder="000000" value={applicationData.postalCode} onChange={handleChange} />
+                   <input type="text" name="postalCode" className="sky-input" placeholder="000000" value={applicationData?.postalCode || ""} onChange={handleChange} />
                 </div>
                 <div className="col-md-4 text-start">
                    <label className="label-style">State / Region</label>
-                   <select className="sky-input" required name="state" value={applicationData.state || ""} onChange={handleChange}>
+                   <select className="sky-input" required name="state" value={applicationData?.state || ""} onChange={handleChange}>
                       <option value="">Select State</option>
                       {Object.keys(nigeriaData).map(st => <option key={st} value={st}>{st}</option>)}
                    </select>
                 </div>
                 <div className="col-md-6 text-start">
                    <label className="label-style">LGA / District</label>
-                   <select className="sky-input" required name="lga" disabled={!applicationData.state} value={applicationData.lga || ""} onChange={handleChange}>
+                   <select className="sky-input" required name="lga" disabled={!applicationData?.state} value={applicationData?.lga || ""} onChange={handleChange}>
                       <option value="">Select Area</option>
-                      {applicationData.state && nigeriaData[applicationData.state]?.map(lg => <option key={lg} value={lg}>{lg}</option>)}
+                      {applicationData?.state && nigeriaData[applicationData.state]?.map(lg => <option key={lg} value={lg}>{lg}</option>)}
                    </select>
                 </div>
-                <div className="col-md-6 text-start"><label className="label-style">Full Residential Address</label><input type="text" name="address" className="sky-input" required value={applicationData.address} onChange={handleChange} /></div>
+                <div className="col-md-6 text-start"><label className="label-style">Full Residential Address</label><input type="text" name="address" className="sky-input" required value={applicationData?.address || ""} onChange={handleChange} /></div>
 
                 {/* JOB PREFERENCE */}
                 <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><Briefcase size={18} /> Recruitment Details</h6></div>
                 
                 <div className="col-md-6 text-start">
                    <label className="label-style">Target Destination (Global)</label>
-                   <select className="sky-input" required name="country" value={applicationData.country || ""} onChange={handleChange}>
+                   <select className="sky-input" required name="country" value={applicationData?.country || ""} onChange={handleChange}>
                       <option value="">-- Select Destination --</option>
                       <option value="United Kingdom">United Kingdom</option>
                       <option value="Canada">Canada</option>
@@ -244,7 +245,7 @@ const JobApplicationForm = ({
                 </div>
                 <div className="col-md-6 text-start">
                    <label className="label-style">Professional Job Category</label>
-                   <select className="sky-input" required name="job" value={applicationData.job || ""} onChange={handleChange}>
+                   <select className="sky-input" required name="job" value={applicationData?.job || ""} onChange={handleChange}>
                       <option value="">-- Select Category --</option>
                       {jobCategories.map(j => <option key={j} value={j}>{j}</option>)}
                    </select>
@@ -280,9 +281,9 @@ const JobApplicationForm = ({
       </div>
 
       <style jsx>{`
-        .sky-input { width: 100%; padding: 0.8rem 1rem; background: #f8fafc; border: 2px solid #eee; border-radius: 0.8rem; font-weight: 700; font-size: 0.85rem; outline: none; transition: 0.3s; }
+        .sky-input { width: 100%; padding: 0.8rem 1rem; background: #f8fafc; border: 2px solid #eee; border-radius: 0.8rem; font-weight: 700; font-size: 0.85rem; outline: none; transition: 0.3s; color: #1e293b; }
         .sky-input:focus { border-color: #dc3545; background: white; }
-        .label-style { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #64748b; margin-bottom: 4px; display: block; margin-left: 5px; }
+        .label-style { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #64748b; margin-bottom: 4px; display: block; margin-left: 5px; text-align: left; }
         .fw-black { font-weight: 900; }
         .uppercase { text-transform: uppercase; }
         .italic { font-style: italic; }
