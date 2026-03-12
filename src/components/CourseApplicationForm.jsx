@@ -43,7 +43,7 @@ const CourseApplicationForm = ({
   coursesData,
 }) => {
   // --- STATES ---
-  const [step, setStep] = useState("form"); // "form", "payment", "success"
+  const [step, setStep] = useState("form"); 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [generatedID, setGeneratedID] = useState("");
@@ -58,18 +58,18 @@ const CourseApplicationForm = ({
     gender: "",
     age: "",
     nin: "",
-    intlPassportNo: "", // New Optional field
+    intlPassportNo: "", 
     whatsapp: "",
-    stateOrigin: "", // Re-added
-    lgaOrigin: "",   // Re-added
-    stateResidence: "", // Re-added
-    lgaResidence: "",   // Re-added
+    stateOrigin: "", 
+    lgaOrigin: "",   
+    stateResidence: "", 
+    lgaResidence: "",   
     address: "",
     job: "",
     jobCountry: "",
     selectedCourseTitle: "",
     photoFile: null,
-    resumeFile: null, // For Credentials/CV
+    resumeFile: null, 
   });
 
   const [qualifications, setQualifications] = useState([
@@ -160,17 +160,27 @@ const CourseApplicationForm = ({
     }
   };
 
-  // --- STEP 2: PAYSTACK INTEGRATION ---
+  // --- STEP 2: PAYSTACK INTEGRATION FIX ---
   const triggerPaystack = () => {
-    // Correctly setting loading state for the button
-    setIsSubmitting(true);
+    if (!window.PaystackPop) {
+        return alert("Payment gateway is loading, please wait or refresh.");
+    }
+    
+    setIsSubmitting(true); // Fara loading
+
     const handler = window.PaystackPop.setup({
       key: "pk_test_962a83d0a3b1d3c993e245757351a3834bfe91c0", 
       email: applicationData.email,
       amount: 5000 * 100,
-      callback: (response) => handlePaymentSuccess(response.reference),
-      onClose: () => setIsSubmitting(false),
+      currency: "NGN",
+      callback: (response) => {
+        handlePaymentSuccess(response.reference);
+      },
+      onClose: () => {
+        setIsSubmitting(false); // Kashe loading idan an rufe ba tare da an biya ba
+      },
     });
+
     handler.openIframe();
   };
 
@@ -223,20 +233,20 @@ const CourseApplicationForm = ({
       <div className="card border-0 w-100 mx-auto" style={{ maxWidth: "1000px", borderRadius: "24px", overflow: "hidden" }}>
         <button onClick={() => { setShowCourseForm(false); setStep("form"); }} className="position-absolute top-0 end-0 m-3 btn btn-light rounded-circle shadow-sm" style={{ zIndex: 11000 }}><X size={20} /></button>
 
-        <div className="card-body p-0 bg-white">
+        <div className="card-body p-0 bg-white text-start">
           {step === "success" ? (
             <div ref={receiptRef} className="p-4 p-md-5 text-dark text-start bg-white" style={{ border: "15px solid #1a1a1a" }}>
               <div className="d-flex justify-content-between align-items-center border-bottom border-4 border-danger pb-3 mb-4 text-uppercase">
-                <div className="d-flex align-items-center gap-3">
+                <div className="d-flex align-items-center gap-3 text-start">
                   <img src={schoolLogo} alt="Logo" style={{ width: "80px" }} />
-                  <div>
+                  <div className="text-start">
                     <h2 className="fw-black text-danger mb-0 uppercase">AREWA VISA ACADEMY</h2>
                     <p className="small text-muted mb-0 fw-bold uppercase">Digital Solutions Academy</p>
                   </div>
                 </div>
                 <div className="text-end">
-                  <h6 className="fw-bold mb-0 uppercase">ADMISSION ID: {generatedID}</h6>
-                  <p className="small text-muted mb-0 font-monospace">DATE: {new Date().toLocaleDateString()}</p>
+                  <h6 className="fw-bold mb-0 uppercase text-end">ADMISSION ID: {generatedID}</h6>
+                  <p className="small text-muted mb-0 font-monospace text-end text-uppercase">DATE: {new Date().toLocaleDateString()}</p>
                 </div>
               </div>
               <div className="row g-4 mb-4 bg-light p-4 rounded-4 mx-0 border">
@@ -255,7 +265,7 @@ const CourseApplicationForm = ({
                 <div className="col-md-3 text-center border-start"><QRCodeSVG value={generatedID} size={110} /><p className="mt-2 fw-bold uppercase" style={{fontSize: '8px'}}>Verify Authenticity</p></div>
               </div>
               <div className="bg-dark p-4 rounded-4 text-white d-flex justify-content-between align-items-center shadow-lg mb-4">
-                <div><h3 className="fw-black mb-0">PAID: ₦5,000.00</h3><p className="small text-muted mb-0 uppercase tracking-widest">Status: Payment Verified Successful</p></div>
+                <div className="text-start"><h3 className="fw-black mb-0">PAID: ₦5,000.00</h3><p className="small text-muted mb-0 uppercase tracking-widest">Status: Payment Verified Successful</p></div>
                 <ShieldCheck size={45} className="text-success" />
               </div>
               <div className="mt-5 d-flex gap-3 justify-content-center">
@@ -272,7 +282,7 @@ const CourseApplicationForm = ({
                   <h1 className="display-3 fw-black text-dark mb-0">₦5,000</h1>
                </div>
                <button onClick={triggerPaystack} disabled={isSubmitting} className="btn btn-danger btn-lg px-5 py-4 rounded-pill fw-black uppercase tracking-widest shadow-lg">
-                  {isSubmitting ? <Loader2 className="animate-spin mx-auto" /> : "Verify & Pay Now"}
+                  {isSubmitting ? <div className="d-flex align-items-center gap-2"><Loader2 className="animate-spin" /> <span>Connecting Paystack...</span></div> : "Verify & Pay Now"}
                </button>
             </div>
           ) : (
@@ -283,47 +293,47 @@ const CourseApplicationForm = ({
                  <p className="small opacity-75 fw-bold mt-2">Arewa Visa Academy</p>
                </div>
                <div className="col-md-9 p-4 p-md-5 bg-white text-dark text-start">
-                  <form className="row g-4" onSubmit={handleFormSubmit}>
-                     <div className="col-12 border-bottom pb-2"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><User size={18} /> Personal Profile</h6></div>
-                     <div className="col-md-6"><label className="label-style">Full Name</label><input required name="name" onChange={handleChange} className="sky-input" /></div>
-                     <div className="col-md-6"><label className="label-style">Email Address</label><input required type="email" name="email" onChange={handleChange} className="sky-input" /></div>
-                     <div className="col-md-4"><label className="label-style">Gender</label><select required name="gender" onChange={handleChange} className="sky-input"><option value="">Select</option><option>Male</option><option>Female</option></select></div>
-                     <div className="col-md-4"><label className="label-style">WhatsApp</label><input required name="whatsapp" onChange={handleChange} className="sky-input" /></div>
-                     <div className="col-md-4"><label className="label-style">NIN Number</label><input required name="nin" onChange={handleChange} className="sky-input" /></div>
+                  <form className="row g-4 text-start" onSubmit={handleFormSubmit}>
+                     <div className="col-12 border-bottom pb-2 text-start"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><User size={18} /> Personal Profile</h6></div>
+                     <div className="col-md-6 text-start"><label className="label-style">Full Name</label><input required name="name" onChange={handleChange} className="sky-input" /></div>
+                     <div className="col-md-6 text-start"><label className="label-style">Email Address</label><input required type="email" name="email" onChange={handleChange} className="sky-input" /></div>
+                     <div className="col-md-4 text-start"><label className="label-style">Gender</label><select required name="gender" onChange={handleChange} className="sky-input"><option value="">Select</option><option>Male</option><option>Female</option></select></div>
+                     <div className="col-md-4 text-start"><label className="label-style">WhatsApp</label><input required name="whatsapp" onChange={handleChange} className="sky-input" /></div>
+                     <div className="col-md-4 text-start"><label className="label-style">NIN Number</label><input required name="nin" onChange={handleChange} className="sky-input" /></div>
                      
                      {/* Identity and Origin Section */}
-                     <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><Globe size={18} /> Identity & Origin</h6></div>
-                     <div className="col-md-4"><label className="label-style">Intl. Passport No (Optional)</label><input name="intlPassportNo" onChange={handleChange} className="sky-input" placeholder="A00000000" /></div>
-                     <div className="col-md-4"><label className="label-style">State of Origin</label><input required name="stateOrigin" onChange={handleChange} className="sky-input" /></div>
-                     <div className="col-md-4"><label className="label-style">LGA of Origin</label><input required name="lgaOrigin" onChange={handleChange} className="sky-input" /></div>
+                     <div className="col-12 border-bottom pb-2 mt-4 text-start"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><Globe size={18} /> Identity & Origin</h6></div>
+                     <div className="col-md-4 text-start"><label className="label-style">Intl. Passport No (Optional)</label><input name="intlPassportNo" onChange={handleChange} className="sky-input" placeholder="A00000000" /></div>
+                     <div className="col-md-4 text-start"><label className="label-style">State of Origin</label><input required name="stateOrigin" onChange={handleChange} className="sky-input" /></div>
+                     <div className="col-md-4 text-start"><label className="label-style">LGA of Origin</label><input required name="lgaOrigin" onChange={handleChange} className="sky-input" /></div>
 
                      {/* Residential Section */}
-                     <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><MapPin size={18} /> Residential Address</h6></div>
-                     <div className="col-md-6"><label className="label-style">State of Residence</label><input required name="stateResidence" onChange={handleChange} className="sky-input" /></div>
-                     <div className="col-md-6"><label className="label-style">LGA of Residence</label><input required name="lgaResidence" onChange={handleChange} className="sky-input" /></div>
-                     <div className="col-12"><label className="label-style">Full Home Address</label><textarea required name="address" onChange={handleChange} className="sky-input" rows="2"></textarea></div>
+                     <div className="col-12 border-bottom pb-2 mt-4 text-start"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><MapPin size={18} /> Residential Address</h6></div>
+                     <div className="col-md-6 text-start"><label className="label-style">State of Residence</label><input required name="stateResidence" onChange={handleChange} className="sky-input" /></div>
+                     <div className="col-md-6 text-start"><label className="label-style">LGA of Residence</label><input required name="lgaResidence" onChange={handleChange} className="sky-input" /></div>
+                     <div className="col-12 text-start"><label className="label-style">Full Home Address</label><textarea required name="address" onChange={handleChange} className="sky-input" rows="2"></textarea></div>
 
-                     <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><GraduationCap size={18} /> Education History</h6></div>
+                     <div className="col-12 border-bottom pb-2 mt-4 text-start"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><GraduationCap size={18} /> Education History</h6></div>
                      {qualifications.map((qual) => (
-                       <div key={qual.id} className="col-12 p-4 bg-light rounded-4 border position-relative mb-2">
+                       <div key={qual.id} className="col-12 p-4 bg-light rounded-4 border position-relative mb-2 text-start">
                           {qualifications.length > 1 && <button type="button" onClick={() => removeQualification(qual.id)} className="btn btn-link text-danger position-absolute top-0 end-0 p-2"><Trash2 size={18} /></button>}
                           <div className="row g-3">
-                             <div className="col-md-4"><select required value={qual.type} onChange={(e) => handleQualificationChange(qual.id, "type", e.target.value)} className="sky-input"><option value="">Qualification</option><option>SSCE</option><option>ND</option><option>Degree</option><option>Master</option></select></div>
-                             <div className="col-md-4"><input required placeholder="Institution" value={qual.institution} onChange={(e) => handleQualificationChange(qual.id, "institution", e.target.value)} className="sky-input" /></div>
-                             <div className="col-md-4"><input required placeholder="Year" value={qual.year} onChange={(e) => handleQualificationChange(qual.id, "year", e.target.value)} className="sky-input" /></div>
+                             <div className="col-md-4 text-start"><select required value={qual.type} onChange={(e) => handleQualificationChange(qual.id, "type", e.target.value)} className="sky-input"><option value="">Qualification</option><option>SSCE</option><option>ND</option><option>Degree</option><option>Master</option></select></div>
+                             <div className="col-md-4 text-start"><input required placeholder="Institution" value={qual.institution} onChange={(e) => handleQualificationChange(qual.id, "institution", e.target.value)} className="sky-input" /></div>
+                             <div className="col-md-4 text-start"><input required placeholder="Year" value={qual.year} onChange={(e) => handleQualificationChange(qual.id, "year", e.target.value)} className="sky-input" /></div>
                           </div>
                        </div>
                      ))}
                      <button type="button" onClick={addQualification} className="btn btn-outline-danger btn-sm rounded-pill w-auto ms-3 mt-2 font-black uppercase"><PlusCircle size={14} className="me-1"/> Add More</button>
 
-                     <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><FileUp size={18} /> Upload Credentials (Optional)</h6></div>
-                     <div className="col-md-12"><label className="label-style">CV / Academic Documents (PDF/JPG)</label><input type="file" name="resumeFile" onChange={handleFileChange} className="sky-input" accept=".pdf,.jpg,.jpeg,.png" /></div>
+                     <div className="col-12 border-bottom pb-2 mt-4 text-start"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><FileUp size={18} /> Upload Credentials (Optional)</h6></div>
+                     <div className="col-md-12 text-start"><label className="label-style">CV / Academic Documents (PDF/JPG)</label><input type="file" name="resumeFile" onChange={handleFileChange} className="sky-input" accept=".pdf,.jpg,.jpeg,.png" /></div>
 
-                     <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><ArrowRight size={18} /> Final Selection</h6></div>
-                     <div className="col-md-12"><select required name="selectedCourseTitle" onChange={handleChange} className="sky-input font-black uppercase"><option value="">-- Choose Course --</option>{coursesData?.map(c => <option key={c.id} value={c.title}>{c.title}</option>)}</select></div>
-                     <div className="col-md-6"><label className="label-style">Passport Photo</label><input required type="file" accept="image/*" onChange={handlePassportUpload} className="sky-input" /></div>
+                     <div className="col-12 border-bottom pb-2 mt-4 text-start"><h6 className="fw-bold text-danger uppercase small d-flex align-items-center gap-2"><ArrowRight size={18} /> Final Selection</h6></div>
+                     <div className="col-md-12 text-start"><select required name="selectedCourseTitle" onChange={handleChange} className="sky-input font-black uppercase text-start"><option value="">-- Choose Course --</option>{coursesData?.map(c => <option key={c.id} value={c.title}>{c.title}</option>)}</select></div>
+                     <div className="col-md-6 text-start"><label className="label-style">Passport Photo</label><input required type="file" accept="image/*" onChange={handlePassportUpload} className="sky-input" /></div>
                      
-                     <div className="col-12 mt-5">
+                     <div className="col-12 mt-5 text-start">
                         <button type="submit" disabled={isSubmitting} className="btn btn-danger w-100 py-4 fw-black rounded-pill shadow-lg uppercase tracking-widest border-0">
                            {isSubmitting ? <Loader2 className="animate-spin mx-auto" /> : "Proceed to Payment"}
                         </button>
