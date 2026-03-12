@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { db, storage, firestore } from "../firebase"; // Using your existing exports
+import { db, storage, firestore } from "../firebase"; // Tabbatar wadannan suna nan a firebase.js
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   collection,
@@ -67,12 +67,16 @@ const CourseEnrollment = ({ showCourseForm, setShowCourseForm, coursesData }) =>
 
   // --- PORTAL STATUS REALTIME SYNC ---
   useEffect(() => {
+    // Amfani da firestore maimakon db idan firestore ne sunan export din
     const unsub = onSnapshot(
       doc(firestore, "systemSettings", "admissionControl"),
       (snapshot) => {
         if (snapshot.exists()) {
           setPortalSettings(snapshot.data());
         }
+      },
+      (error) => {
+        console.error("Portal Settings Error:", error);
       }
     );
     return () => unsub();
@@ -117,7 +121,8 @@ const CourseEnrollment = ({ showCourseForm, setShowCourseForm, coursesData }) =>
   const uploadFile = async (file, path) => {
     const fRef = ref(storage, path);
     const snapshot = await uploadBytes(fRef, file);
-    return getDownloadURL(snapshot.ref);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    return downloadURL;
   };
 
   // --- STEP 1: SUBMIT DATA (PENDING) ---
@@ -131,6 +136,7 @@ const CourseEnrollment = ({ showCourseForm, setShowCourseForm, coursesData }) =>
       const timestamp = Date.now();
       const photoUrl = await uploadFile(passportFile, `apps/${timestamp}/passport`);
 
+      // Tabbatar dukkan data strings ne/arrays kafin tura Firestore
       const finalRecord = {
         fullName: formData.fullName,
         email: formData.email.toLowerCase().trim(),
@@ -142,7 +148,12 @@ const CourseEnrollment = ({ showCourseForm, setShowCourseForm, coursesData }) =>
         lgaResidence: formData.lgaResidence,
         residentialAddress: formData.residentialAddress,
         selectedCourse: formData.selectedCourse,
-        qualifications: qualifications,
+        qualifications: qualifications.map(q => ({
+          type: q.type,
+          institution: q.institution,
+          course: q.course,
+          year: q.year
+        })),
         photoUrl: photoUrl,
         status: "Pending Payment",
         paymentStatus: "Unpaid",
@@ -153,7 +164,7 @@ const CourseEnrollment = ({ showCourseForm, setShowCourseForm, coursesData }) =>
       setApplicationId(docRef.id);
       setStep("payment");
     } catch (error) {
-      console.error(error);
+      console.error("Submission Error:", error);
       alert("Error: " + error.message);
     } finally {
       setLoading(false);
@@ -164,11 +175,14 @@ const CourseEnrollment = ({ showCourseForm, setShowCourseForm, coursesData }) =>
   const triggerPaystack = () => {
     setLoading(true);
     const handler = window.PaystackPop.setup({
-      key: "pk_test_962a83d0a3b1d3c993e245757351a3834bfe91c0", // Replace with live key if needed
+      key: "pk_test_962a83d0a3b1d3c993e245757351a3834bfe91c0", 
       email: formData.email,
       amount: 5000 * 100,
       callback: (response) => handlePaymentSuccess(response.reference),
-      onClose: () => setLoading(false),
+      onClose: () => {
+        setLoading(false);
+        alert("Payment cancelled.");
+      },
     });
     handler.openIframe();
   };
@@ -185,13 +199,13 @@ const CourseEnrollment = ({ showCourseForm, setShowCourseForm, coursesData }) =>
         paidAt: serverTimestamp(),
       });
 
-      // WhatsApp Notification
       const adminWhatsApp = "2348165372359";
       const message = `*NEW ADMISSION PAID*%0A%0A*ID:* ${admissionID}%0A*Name:* ${formData.fullName}%0A*Program:* ${formData.selectedCourse}`;
       window.open(`https://wa.me/${adminWhatsApp}?text=${message}`, "_blank");
 
       setStep("success");
     } catch (error) {
+      console.error("Update Error:", error);
       alert("Payment successful but record update failed.");
     } finally {
       setLoading(false);
@@ -260,7 +274,6 @@ const CourseEnrollment = ({ showCourseForm, setShowCourseForm, coursesData }) =>
             </div>
             <QRCodeSVG value={applicationId} size={80} />
           </div>
-          
           <div className="flex flex-col md:flex-row gap-8 border-y-2 py-8">
             <img src={passportPreview} className="w-32 h-40 object-cover rounded-xl border-4 border-slate-100 mx-auto md:mx-0" alt="Student" />
             <div className="flex-1 space-y-4">
@@ -296,10 +309,9 @@ const CourseEnrollment = ({ showCourseForm, setShowCourseForm, coursesData }) =>
     <div className="fixed inset-0 bg-[#F0F4F8] z-[10000] overflow-y-auto py-10 px-4 md:px-20">
       <div className="max-w-5xl mx-auto bg-white shadow-2xl rounded-[40px] overflow-hidden border border-slate-100 relative">
         <button onClick={() => setShowCourseForm(false)} className="absolute top-6 right-6 z-50 bg-white/20 hover:bg-white/40 p-2 rounded-full text-white backdrop-blur-md">
-           <X size={24} />
+            <X size={24} />
         </button>
 
-        {/* HEADER */}
         <div className="bg-[#002147] p-12 text-white flex justify-between items-center relative overflow-hidden">
           <div className="z-10 flex items-center gap-6">
             <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-2xl p-2 border border-white/20 flex items-center justify-center">
@@ -314,7 +326,6 @@ const CourseEnrollment = ({ showCourseForm, setShowCourseForm, coursesData }) =>
         </div>
 
         <form onSubmit={handleFormSubmit} className="p-10 md:p-16 space-y-12 text-left">
-          {/* CANDIDATE PROFILE */}
           <section className="space-y-8">
             <div className="flex items-center gap-4 border-b-4 border-slate-100 pb-4">
               <User className="text-red-600" />
@@ -349,7 +360,6 @@ const CourseEnrollment = ({ showCourseForm, setShowCourseForm, coursesData }) =>
             </div>
           </section>
 
-          {/* RESIDENTIAL */}
           <section className="space-y-8">
             <div className="flex items-center gap-4 border-b-4 border-slate-100 pb-4">
               <MapPin className="text-blue-600" />
@@ -362,7 +372,6 @@ const CourseEnrollment = ({ showCourseForm, setShowCourseForm, coursesData }) =>
             </div>
           </section>
 
-          {/* EDUCATION HISTORY */}
           <section className="space-y-8 bg-slate-50 p-8 rounded-[2rem]">
             <div className="flex items-center justify-between border-b-2 border-slate-200 pb-4">
               <div className="flex items-center gap-4">
@@ -401,7 +410,6 @@ const CourseEnrollment = ({ showCourseForm, setShowCourseForm, coursesData }) =>
             </div>
           </section>
 
-          {/* PROGRAM SELECTION */}
           <section className="bg-[#002147] p-8 rounded-[2rem] text-white">
             <label className="text-xs font-black uppercase mb-4 block tracking-widest text-red-500">Select Specialization</label>
             <select required name="selectedCourse" onChange={handleChange} className="w-full p-5 rounded-2xl bg-white text-[#002147] font-black outline-none shadow-inner">
