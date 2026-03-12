@@ -18,10 +18,10 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// EXPORTS - Wadannan sune "Engine" din da zasu sa code dinka yayi aiki
+// EXPORTS - Gyaran da muka yi a nan zai sa Application Form ya shiga Firestore kai tsaye
 export const auth = getAuth(app);
-export const firestore = getFirestore(app); // Na Roles/Login (Firestore)
-export const db = getDatabase(app);        // Na Form/Portal (Realtime DB)
+export const firestore = getFirestore(app); // Wannan shi zai karbi komai na Firestore (Login + Applications)
+export const db = getDatabase(app);        // Wannan na Settings ne kawai
 export const storage = getStorage(app);
 
 export default app;
