@@ -150,33 +150,35 @@ const CourseApplicationForm = ({
   // --- STEP 2: UPDATE AFTER PAYMENT SUCCESS ---
   const handlePaymentSuccess = async (reference) => {
     setIsSubmitting(true);
-    const admissionID = `AVA-${Math.floor(10000 + Math.random() * 90000)}`;
-    setGeneratedID(admissionID);
-
     try {
+      const admissionID = `AVA-${Math.floor(10000 + Math.random() * 90000)}`;
+      setGeneratedID(admissionID);
+
       const appRef = doc(firestore, "applications", applicationDocId);
       await updateDoc(appRef, {
         admissionID: admissionID,
-        paymentRef: reference?.reference || reference || "REF-" + Date.now(),
+        paymentRef: reference?.reference || reference,
         paymentStatus: "Paid",
         status: "Paid",
         paidAt: serverTimestamp(),
       });
 
+      // Open WhatsApp
       const adminWhatsApp = "2348165372359";
-      const message = `*NEW ADMISSION PAID*%0A%0A*ID:* ${admissionID}%0A*Name:* ${applicationData.name}%0A*Program:* ${applicationData.selectedCourseTitle}%0A*Status:* Payment Verified`;
+      const message = `*NEW ADMISSION PAID*%0A%0A*ID:* ${admissionID}%0A*Name:* ${applicationData.name}%0A*Program:* ${applicationData.selectedCourseTitle}`;
       window.open(`https://wa.me/${adminWhatsApp}?text=${message}`, "_blank");
 
-      setIsSuccess(true);
+      // CRITICAL: This line hides the payment button and shows the receipt
+      setIsSuccess(true); 
       setShowPaymentStep(false);
+
     } catch (error) {
-      console.error("Payment Update Error:", error);
-      alert("Payment Success, but Database update failed. Contact support.");
+      alert("Database Update Failed but Payment was successful.");
     } finally {
       setIsSubmitting(false);
     }
   };
-
+  
   const downloadReceipt = async () => {
     const element = receiptRef.current;
     if (!element) return;
