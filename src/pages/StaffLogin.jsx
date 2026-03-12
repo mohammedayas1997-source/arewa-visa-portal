@@ -28,7 +28,7 @@ const AdminLogin = ({ onLogin, onClose }) => {
       
       const user = userCredential.user;
 
-      // 2. Search Firestore by Email (Primary Method)
+      // 2. Search Firestore by Email
       const staffQuery = query(
         collection(firestore, "users"),
         where("email", "==", cleanEmail),
@@ -37,25 +37,22 @@ const AdminLogin = ({ onLogin, onClose }) => {
 
       const querySnapshot = await getDocs(staffQuery);
 
-      const allowedRoles = [
-        "admin",
-        "rector",
-        "instructor",
-        "admission-officer",
-      ];
-
       if (!querySnapshot.empty) {
         const userData = querySnapshot.docs[0].data();
+        const allowedRoles = [
+          "admin",
+          "rector",
+          "instructor",
+          "admission-officer",
+        ];
 
-        // 3. Role Verification
         if (allowedRoles.includes(userData.role?.toLowerCase())) {
-          onLogin(true); // Grant Access
+          onLogin(true);
         } else {
           await signOut(auth);
-          setError("ACCESS DENIED: Insufficient administrative privileges.");
+          setError("ACCESS DENIED: You do not have administrative privileges.");
         }
       } else {
-        // Fallback Method: Search by UID if email query failed
         const backupQuery = query(
           collection(firestore, "users"),
           where("uid", "==", user.uid),
@@ -64,13 +61,7 @@ const AdminLogin = ({ onLogin, onClose }) => {
         const backupSnapshot = await getDocs(backupQuery);
         
         if (!backupSnapshot.empty) {
-            const backupData = backupSnapshot.docs[0].data();
-            if (allowedRoles.includes(backupData.role?.toLowerCase())) {
-                onLogin(true);
-            } else {
-                await signOut(auth);
-                setError("ACCESS DENIED: Insufficient administrative privileges.");
-            }
+            onLogin(true);
         } else {
             await signOut(auth);
             setError("PROFILE ERROR: No administrative record found.");
@@ -95,7 +86,7 @@ const AdminLogin = ({ onLogin, onClose }) => {
   return (
     <div className="min-h-screen d-flex align-items-center justify-content-center bg-dark position-relative" style={{ backgroundColor: "#0a0a0a" }}>
       
-      {/* CLOSE BUTTON (X) */}
+      {/* CLOSE BUTTON */}
       <button 
         onClick={onClose} 
         className="btn btn-light rounded-circle position-absolute top-0 end-0 m-4 shadow-sm border-0 d-flex align-items-center justify-content-center"
@@ -112,18 +103,18 @@ const AdminLogin = ({ onLogin, onClose }) => {
           <div className="bg-danger text-white rounded-circle d-inline-block p-3 mb-3 shadow">
             <Lock size={32} />
           </div>
-          <h4 className="fw-bold text-dark text-uppercase tracking-tighter">AVA Admin Portal</h4>
+          <h4 className="fw-bold text-dark text-uppercase">AVA Admin Portal</h4>
           <p className="text-muted small uppercase fw-bold" style={{ fontSize: '10px' }}>Authorized Personnel Only</p>
         </div>
 
         {error && (
-          <div className="alert alert-danger d-flex align-items-center gap-2 py-2 small border-0 shadow-sm mb-4">
+          <div className="alert alert-danger d-flex align-items-center gap-2 py-2 small border-0 shadow-sm mb-4 text-start">
             <ShieldAlert size={16} /> {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="mb-3">
+          <div className="mb-3 text-start">
             <label className="form-label small fw-bold text-muted mb-1 text-uppercase" style={{ fontSize: '10px' }}>
               Official Email
             </label>
@@ -134,7 +125,7 @@ const AdminLogin = ({ onLogin, onClose }) => {
               <input
                 type="email"
                 className="form-control border-start-0 py-2 shadow-none"
-                placeholder="admin@arewavisa.com"
+                placeholder="name@arewavacademy.edu.ng" // Updated placeholder
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -142,7 +133,7 @@ const AdminLogin = ({ onLogin, onClose }) => {
             </div>
           </div>
           
-          <div className="mb-4">
+          <div className="mb-4 text-start">
             <label className="form-label small fw-bold text-muted mb-1 text-uppercase" style={{ fontSize: '10px' }}>
               Security Password
             </label>
@@ -165,7 +156,6 @@ const AdminLogin = ({ onLogin, onClose }) => {
             type="submit"
             className="btn btn-danger w-100 py-3 rounded-pill fw-bold shadow-lg text-uppercase tracking-widest border-0"
             disabled={loading}
-            style={{ fontSize: '14px' }}
           >
             {loading ? (
               <Loader2 className="animate-spin mx-auto text-white" size={20} />
