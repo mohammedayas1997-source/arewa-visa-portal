@@ -27,7 +27,7 @@ const JobApplicationForm = ({
   setIsSuccess,
   photoPreview,
   setPhotoPreview,
-  applicationData = {}, // MUN SAKA DEFAULT {} DON KARE BLANK SCREEN
+  applicationData = {}, 
   setApplicationData,
   handleChange,
   handlePhotoChange,
@@ -114,16 +114,25 @@ const JobApplicationForm = ({
   };
 
   return (
-    <div className="form-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style={{ zIndex: 9999, backgroundColor: "rgba(0,0,0,0.98)", overflowY: "auto", backdropFilter: "blur(12px)" }}>
-      <div className="card-container card border-0 shadow-lg w-100 position-relative" style={{ maxWidth: "950px", overflow: "hidden" }}>
+    <div className="form-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style={{ zIndex: 99999, backgroundColor: "rgba(0,0,0,0.98)", overflowY: "auto", backdropFilter: "blur(12px)", padding: "0px" }}>
+      <div className="card-container card border-0 shadow-lg w-100 d-flex flex-column" style={{ maxWidth: "950px", overflow: "hidden", backgroundColor: "#fff", height: window.innerWidth < 768 ? "100vh" : "90vh" }}>
         
-        {/* CLOSE BUTTON FOR MOBILE - CLEARER */}
-        <button onClick={() => setShowForm(false)} className="position-absolute top-0 end-0 m-3 btn btn-danger rounded-circle d-md-none" style={{ zIndex: 10001, width: '40px', height: '40px' }}>
-            <X size={20} />
-        </button>
+        {/* HEADER SECTION FOR MOBILE - FIXED AT TOP */}
+        <div className="p-3 bg-danger text-white d-flex justify-content-between align-items-center shadow-sm sticky-top" style={{ zIndex: 10002 }}>
+          <div className="d-flex align-items-center gap-2">
+            <UserCheck size={24} />
+            <div className="text-start">
+              <h6 className="fw-black mb-0 italic uppercase">Job Portal</h6>
+              <small className="x-small opacity-75 fw-bold uppercase" style={{ fontSize: '10px' }}>AVA Recruitment Terminal</small>
+            </div>
+          </div>
+          <button onClick={() => setShowForm(false)} className="btn btn-link text-white p-0 border-0 shadow-none">
+            <X size={28} />
+          </button>
+        </div>
 
         {step === "success" ? (
-          <div className="bg-white p-0 overflow-auto h-100">
+          <div className="bg-white flex-grow-1 overflow-auto">
              <div ref={receiptRef} className="p-4 p-md-5 text-dark text-start bg-white" style={{ border: "10px solid #000" }}>
                 <div className="d-flex justify-content-between align-items-center border-bottom border-4 border-danger pb-3 mb-4">
                   <div className="text-start">
@@ -142,10 +151,10 @@ const JobApplicationForm = ({
                   <div className="col-8">
                      <h6 className="fw-black border-bottom border-danger pb-1 mb-2 uppercase small">Applicant Profile</h6>
                      <div className="x-small space-y-1" style={{fontSize: '10px'}}>
-                        <p className="mb-1"><strong>NAME:</strong> {applicationData?.name || "N/A"}</p>
-                        <p className="mb-1"><strong>PASSPORT:</strong> {applicationData?.passportNo || "N/A"}</p>
-                        <p className="mb-1"><strong>JOB:</strong> {applicationData?.job || "N/A"}</p>
-                        <p className="mb-1"><strong>DESTINATION:</strong> {applicationData?.country || "N/A"}</p>
+                        <p className="mb-1 uppercase"><strong>NAME:</strong> {applicationData?.name || "N/A"}</p>
+                        <p className="mb-1 uppercase"><strong>PASSPORT:</strong> {applicationData?.passportNo || "N/A"}</p>
+                        <p className="mb-1 uppercase"><strong>JOB:</strong> {applicationData?.job || "N/A"}</p>
+                        <p className="mb-1 uppercase"><strong>DESTINATION:</strong> {applicationData?.country || "N/A"}</p>
                      </div>
                   </div>
                 </div>
@@ -164,140 +173,144 @@ const JobApplicationForm = ({
              </div>
           </div>
         ) : (
-          <div className="row g-0 h-100 flex-column flex-md-row">
-            {/* SIDEBAR */}
-            <div className="col-md-3 bg-danger p-4 text-white text-center d-flex flex-column justify-content-center sidebar-header">
-              {photoPreview ? (
-                <img src={photoPreview} className="mx-auto mb-3 border border-3 border-white rounded-4 shadow-lg" style={{ width: "90px", height: "115px", objectFit: "cover" }} alt="Applicant" />
-              ) : (
-                <div className="bg-white/20 p-3 rounded-circle d-inline-block mx-auto mb-3"><UserCheck size={40} /></div>
-              )}
-              <h5 className="fw-black text-uppercase italic mb-0 text-white">Job Portal</h5>
-              <button onClick={() => setShowForm(false)} className="btn btn-light btn-sm rounded-pill mt-3 fw-bold d-none d-md-inline-block text-dark">Cancel</button>
-            </div>
+          <div className="flex-grow-1 overflow-auto form-content">
+            <div className="row g-0 h-100 flex-column flex-md-row">
+              {/* SIDEBAR FOR DESKTOP - HIDDEN IN MOBILE HERO */}
+              <div className="col-md-3 bg-danger p-4 text-white text-center d-none d-md-flex flex-column justify-content-center">
+                {photoPreview ? (
+                  <img src={photoPreview} className="mx-auto mb-3 border border-3 border-white rounded-4 shadow-lg" style={{ width: "120px", height: "150px", objectFit: "cover" }} alt="Applicant" />
+                ) : (
+                  <div className="bg-white/20 p-4 rounded-circle d-inline-block mx-auto mb-3"><UserCheck size={60} /></div>
+                )}
+                <h4 className="fw-black text-uppercase italic">Global Job Portal</h4>
+                <p className="small opacity-75 fw-bold mt-2">Professional Recruitment Terminal</p>
+              </div>
 
-            {/* FORM */}
-            <div className="col-md-9 p-3 p-md-5 bg-white text-dark text-start overflow-auto form-content">
-              <form className="row g-3" onSubmit={(e) => { e.preventDefault(); triggerPaystack(); }}>
-                <div className="col-12 border-bottom pb-2"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><User size={18} /> Candidate Identity</h6></div>
-                
-                <div className="col-md-6 text-start">
-                   <label className="label-style">Passport Photo</label>
-                   <input type="file" required className="sky-input" accept="image/*" onChange={handlePhotoChange} />
-                </div>
-                <div className="col-md-6 text-start">
-                   <label className="label-style">Full Legal Name</label>
-                   <input type="text" name="name" className="sky-input" required value={applicationData?.name || ""} onChange={handleChange} />
-                </div>
+              {/* FORM AREA */}
+              <div className="col-md-9 p-4 p-md-5 bg-white text-dark text-start">
+                <form className="row g-4 pb-5" onSubmit={(e) => { e.preventDefault(); triggerPaystack(); }}>
+                  <div className="col-12 border-bottom pb-2"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><User size={18} /> Candidate Identity</h6></div>
+                  
+                  <div className="col-md-6 text-start">
+                     <label className="label-style">Passport Photo</label>
+                     <input type="file" required className="sky-input" accept="image/*" onChange={handlePhotoChange} />
+                  </div>
+                  <div className="col-md-6 text-start">
+                     <label className="label-style">Full Legal Name</label>
+                     <input type="text" name="name" className="sky-input" required value={applicationData?.name || ""} onChange={handleChange} />
+                  </div>
 
-                <div className="col-md-6 text-start"><label className="label-style">Email Address</label><input type="email" name="email" className="sky-input" required value={applicationData?.email || ""} onChange={handleChange} /></div>
-                <div className="col-md-6 text-start"><label className="label-style">WhatsApp Number</label><input type="tel" name="whatsapp" className="sky-input" required value={applicationData?.whatsapp || ""} onChange={handleChange} /></div>
-                
-                <div className="col-md-6 text-start"><label className="label-style">NIN Number</label><input type="text" name="nin" className="sky-input" required value={applicationData?.nin || ""} onChange={handleChange} /></div>
-                <div className="col-md-6 text-start"><label className="label-style">Intl. Passport No.</label><input type="text" name="passportNo" className="sky-input uppercase" required value={applicationData?.passportNo || ""} onChange={handleChange} /></div>
+                  <div className="col-md-6 text-start"><label className="label-style">Email Address</label><input type="email" name="email" className="sky-input" required value={applicationData?.email || ""} onChange={handleChange} /></div>
+                  <div className="col-md-6 text-start"><label className="label-style">WhatsApp Number</label><input type="tel" name="whatsapp" className="sky-input" required value={applicationData?.whatsapp || ""} onChange={handleChange} /></div>
+                  
+                  <div className="col-md-6 text-start"><label className="label-style">NIN Number</label><input type="text" name="nin" className="sky-input" required value={applicationData?.nin || ""} onChange={handleChange} /></div>
+                  <div className="col-md-6 text-start"><label className="label-style">Intl. Passport No.</label><input type="text" name="passportNo" className="sky-input uppercase" required value={applicationData?.passportNo || ""} onChange={handleChange} /></div>
 
-                {/* LOCATION SECTION */}
-                <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><MapPin size={18} /> Origin & Location</h6></div>
-                
-                <div className="col-md-4 text-start">
-                   <label className="label-style">Current Country</label>
-                   <select className="sky-input" required name="countrySelection" value={applicationData?.countrySelection || ""} onChange={handleChange}>
-                      <option value="">-- Select Country --</option>
-                      {africaCountries.map(c => <option key={c} value={c}>{c}</option>)}
-                   </select>
-                </div>
-                <div className="col-md-4 text-start">
-                   <label className="label-style">Postal Code</label>
-                   <input type="text" name="postalCode" className="sky-input" placeholder="000000" value={applicationData?.postalCode || ""} onChange={handleChange} />
-                </div>
-                <div className="col-md-4 text-start">
-                   <label className="label-style">State / Region</label>
-                   <select className="sky-input" required name="state" value={applicationData?.state || ""} onChange={handleChange}>
-                      <option value="">Select State</option>
-                      {Object.keys(nigeriaData).map(st => <option key={st} value={st}>{st}</option>)}
-                   </select>
-                </div>
-                <div className="col-md-6 text-start">
-                   <label className="label-style">LGA / District</label>
-                   <select className="sky-input" required name="lga" disabled={!applicationData?.state} value={applicationData?.lga || ""} onChange={handleChange}>
-                      <option value="">Select Area</option>
-                      {applicationData?.state && nigeriaData[applicationData.state]?.map(lg => <option key={lg} value={lg}>{lg}</option>)}
-                   </select>
-                </div>
-                <div className="col-md-6 text-start"><label className="label-style">Full Residential Address</label><input type="text" name="address" className="sky-input" required value={applicationData?.address || ""} onChange={handleChange} /></div>
+                  {/* LOCATION SECTION */}
+                  <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><MapPin size={18} /> Origin & Location</h6></div>
+                  
+                  <div className="col-md-4 text-start">
+                     <label className="label-style">Current Country</label>
+                     <select className="sky-input" required name="countrySelection" value={applicationData?.countrySelection || ""} onChange={handleChange}>
+                        <option value="">-- Select Country --</option>
+                        {africaCountries.map(c => <option key={c} value={c}>{c}</option>)}
+                     </select>
+                  </div>
+                  <div className="col-md-4 text-start">
+                     <label className="label-style">Postal Code</label>
+                     <input type="text" name="postalCode" className="sky-input" placeholder="000000" value={applicationData?.postalCode || ""} onChange={handleChange} />
+                  </div>
+                  <div className="col-md-4 text-start">
+                     <label className="label-style">State / Region</label>
+                     <select className="sky-input" required name="state" value={applicationData?.state || ""} onChange={handleChange}>
+                        <option value="">Select State</option>
+                        {Object.keys(nigeriaData).map(st => <option key={st} value={st}>{st}</option>)}
+                     </select>
+                  </div>
+                  <div className="col-md-6 text-start">
+                     <label className="label-style">LGA / District</label>
+                     <select className="sky-input" required name="lga" disabled={!applicationData?.state} value={applicationData?.lga || ""} onChange={handleChange}>
+                        <option value="">Select Area</option>
+                        {applicationData?.state && nigeriaData[applicationData.state]?.map(lg => <option key={lg} value={lg}>{lg}</option>)}
+                     </select>
+                  </div>
+                  <div className="col-12 text-start"><label className="label-style">Full Residential Address</label><textarea name="address" className="sky-input" rows="2" required value={applicationData?.address || ""} onChange={handleChange}></textarea></div>
 
-                {/* JOB PREFERENCE */}
-                <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><Briefcase size={18} /> Recruitment Details</h6></div>
-                
-                <div className="col-md-6 text-start">
-                   <label className="label-style">Target Destination (Global)</label>
-                   <select className="sky-input" required name="country" value={applicationData?.country || ""} onChange={handleChange}>
-                      <option value="">-- Select Destination --</option>
-                      <option value="United Kingdom">United Kingdom</option>
-                      <option value="Canada">Canada</option>
-                      <option value="USA">USA</option>
-                      <option value="Qatar">Qatar</option>
-                      <option value="Saudi Arabia">Saudi Arabia</option>
-                      <option value="Germany">Germany</option>
-                      <option value="Australia">Australia</option>
-                      {africaCountries.map(c => <option key={c} value={c}>{c}</option>)}
-                   </select>
-                </div>
-                <div className="col-md-6 text-start">
-                   <label className="label-style">Professional Job Category</label>
-                   <select className="sky-input" required name="job" value={applicationData?.job || ""} onChange={handleChange}>
-                      <option value="">-- Select Category --</option>
-                      {jobCategories.map(j => <option key={j} value={j}>{j}</option>)}
-                   </select>
-                </div>
+                  {/* JOB PREFERENCE */}
+                  <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><Briefcase size={18} /> Recruitment Details</h6></div>
+                  
+                  <div className="col-md-6 text-start">
+                     <label className="label-style">Target Destination (Global)</label>
+                     <select className="sky-input" required name="country" value={applicationData?.country || ""} onChange={handleChange}>
+                        <option value="">-- Select Destination --</option>
+                        <option value="United Kingdom">United Kingdom</option>
+                        <option value="Canada">Canada</option>
+                        <option value="USA">USA</option>
+                        <option value="Qatar">Qatar</option>
+                        <option value="Saudi Arabia">Saudi Arabia</option>
+                        <option value="Germany">Germany</option>
+                        <option value="Australia">Australia</option>
+                        {africaCountries.map(c => <option key={c} value={c}>{c}</option>)}
+                     </select>
+                  </div>
+                  <div className="col-md-6 text-start">
+                     <label className="label-style">Professional Job Category</label>
+                     <select className="sky-input" required name="job" value={applicationData?.job || ""} onChange={handleChange}>
+                        <option value="">-- Select Category --</option>
+                        {jobCategories.map(j => <option key={j} value={j}>{j}</option>)}
+                     </select>
+                  </div>
 
-                {/* UPLOADS */}
-                <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><FileText size={18} /> Career Documents</h6></div>
-                
-                <div className="col-md-6 text-start">
-                   <label className="label-style">CV / Resume (Mandatory PDF)</label>
-                   <input type="file" required name="cvFile" className="sky-input" accept=".pdf" onChange={handleFileChange} />
-                </div>
-                <div className="col-md-6 text-start">
-                   <label className="label-style">Supporting Documents (Optional)</label>
-                   <input type="file" name="othersFile" className="sky-input" onChange={handleFileChange} />
-                </div>
+                  {/* UPLOADS */}
+                  <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><FileText size={18} /> Career Documents</h6></div>
+                  
+                  <div className="col-md-6 text-start">
+                     <label className="label-style">CV / Resume (Mandatory PDF)</label>
+                     <input type="file" required name="cvFile" className="sky-input" accept=".pdf" onChange={handleFileChange} />
+                  </div>
+                  <div className="col-md-6 text-start">
+                     <label className="label-style">Supporting Documents (Optional)</label>
+                     <input type="file" name="othersFile" className="sky-input" onChange={handleFileChange} />
+                  </div>
 
-                <div className="col-12 mt-4 mb-5">
-                   <div className="bg-dark p-3 p-md-4 rounded-4 text-white d-flex justify-content-between align-items-center shadow-lg">
-                      <div className="text-start">
-                         <p className="x-small uppercase opacity-50 mb-0">Match Fee</p>
-                         <h5 className="fw-black mb-0 italic">₦100,000</h5>
-                      </div>
-                      <button type="submit" disabled={isProcessing} className="btn btn-warning px-4 py-3 rounded-pill fw-black uppercase small border-0 text-dark">
-                        {isProcessing ? <Loader2 className="animate-spin" size={16}/> : "Pay Now"}
-                      </button>
-                   </div>
-                </div>
-              </form>
+                  {/* SUBMIT BUTTON */}
+                  <div className="col-12 mt-5">
+                     <div className="bg-dark p-3 p-md-4 rounded-4 text-white d-flex justify-content-between align-items-center shadow-lg">
+                        <div className="text-start">
+                           <p className="x-small uppercase opacity-50 mb-0">Total Fee</p>
+                           <h4 className="fw-black mb-0 italic">₦100,000</h4>
+                        </div>
+                        <button type="submit" disabled={isProcessing} className="btn btn-warning px-4 py-3 rounded-pill fw-black uppercase small border-0 text-dark">
+                          {isProcessing ? <Loader2 className="animate-spin" size={20}/> : "Pay Now"}
+                        </button>
+                     </div>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         )}
       </div>
 
       <style jsx>{`
-        .sky-input { width: 100%; padding: 0.8rem 1rem; background: #f8fafc; border: 2px solid #eee; border-radius: 0.8rem; font-weight: 700; font-size: 0.85rem; outline: none; transition: 0.3s; color: #1e293b; }
+        .sky-input { width: 100%; padding: 0.8rem 1rem; background: #f8fafc; border: 2px solid #eee; border-radius: 1rem; font-weight: 700; font-size: 0.85rem; outline: none; transition: 0.3s; color: #1e293b; }
         .sky-input:focus { border-color: #dc3545; background: white; }
-        .label-style { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #64748b; margin-bottom: 4px; display: block; margin-left: 5px; text-align: left; }
+        .label-style { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #64748b; margin-bottom: 5px; display: block; text-align: left; }
         .fw-black { font-weight: 900; }
         .uppercase { text-transform: uppercase; }
         .italic { font-style: italic; }
         
+        .form-content::-webkit-scrollbar { width: 5px; }
+        .form-content::-webkit-scrollbar-thumb { background: #dc3545; border-radius: 10px; }
+
         @media (max-width: 767px) {
-          .form-overlay { padding: 0 !important; align-items: flex-start !important; }
-          .card-container { height: 100vh !important; max-height: 100vh !important; border-radius: 0 !important; }
-          .sidebar-header { padding: 20px !important; flex-shrink: 0; }
-          .form-content { height: 100% !important; max-height: none !important; padding-bottom: 100px !important; }
-          .display-3 { font-size: 2.5rem; }
+          .card-container { height: 100vh !important; max-height: 100vh !important; border-radius: 0 !important; width: 100% !important; margin: 0 !important; }
+          .form-content { padding: 20px !important; }
+          .sky-input { padding: 0.7rem 0.9rem; font-size: 0.8rem; }
         }
 
         @media (min-width: 768px) {
-          .card-container { border-radius: 35px; height: auto; max-height: 90vh; }
+          .card-container { border-radius: 35px; max-height: 90vh; }
         }
       `}</style>
     </div>
