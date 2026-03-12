@@ -111,10 +111,12 @@ const CourseApplicationForm = ({
     try {
       const timestamp = Date.now();
 
+      // IMPORTANT: If this fails, it's because of STORAGE Rules
       const photoUrl = await uploadFile(
         applicationData.photoFile,
         `apps/${timestamp}/photo`,
       );
+      
       let resumeUrl = "";
       if (applicationData.resumeFile) {
         resumeUrl = await uploadFile(
@@ -125,6 +127,7 @@ const CourseApplicationForm = ({
 
       const { photoFile, resumeFile, ...cleanData } = applicationData;
 
+      // IMPORTANT: If this fails, it's because of FIRESTORE Rules
       const docRef = await addDoc(collection(firestore, "applications"), {
         ...cleanData,
         photoUrl,
@@ -137,6 +140,7 @@ const CourseApplicationForm = ({
       setApplicationDocId(docRef.id);
       setShowPaymentStep(true);
     } catch (error) {
+      console.error("Submission Error:", error);
       alert("Submission Error: " + error.message);
     } finally {
       setIsSubmitting(false);
@@ -166,6 +170,7 @@ const CourseApplicationForm = ({
       setIsSuccess(true);
       setShowPaymentStep(false);
     } catch (error) {
+      console.error("Payment Update Error:", error);
       alert(
         "Payment was successful, but record update failed. Contact support.",
       );
