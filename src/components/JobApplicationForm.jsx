@@ -45,6 +45,23 @@ const JobApplicationForm = ({
     "Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cabo Verde", "Cameroon", "Central African Republic", "Chad", "Comoros", "Congo (Congo-Brazzaville)", "Congo (Democratic Republic)", "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Ivory Coast", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles", "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania", "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe"
   ];
 
+  // --- TARGET COUNTRIES LIST (As requested) ---
+  const targetCountries = [
+    "Australia", "Canada", "USA", "UK",
+    "-- SCHENGEN AREA --",
+    "Austria", "Belgium", "Bulgaria", "Croatia", "Czechia", "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Iceland", "Italy", "Latvia", "Liechtenstein", "Lithuania", "Luxembourg", "Malta", "Netherlands", "Norway", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Sweden", "Switzerland",
+    "-- ASIA --",
+    "Japan", "South Korea", "Singapore", "Russia",
+    "-- OCEANIA --",
+    "New Zealand",
+    "-- ISLAND NATIONS --",
+    "Mauritius", "Seychelles",
+    "-- BALKAN REGION --",
+    "Albania", "Bosnia and Herzegovina", "Kosovo", "Montenegro", "North Macedonia", "Serbia", "Turkey",
+    "-- MIDDLE EAST (GCC) --",
+    "Qatar", "Kuwait", "Saudi Arabia", "Bahrain", "UAE", "Oman"
+  ];
+
   const jobCategories = [
     "Information Technology (IT)", "Healthcare (Nursing/Medical)", "Engineering", "Construction & Labor", "Driving (Heavy/Light)", "Security Services", "Hospitality & Catering", "Education/Teaching", "Oil & Gas", "Agriculture", "Aviation", "Maritime", "General Office Work"
   ];
@@ -117,7 +134,7 @@ const JobApplicationForm = ({
     <div className="form-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style={{ zIndex: 99999, backgroundColor: "rgba(0,0,0,0.98)", overflowY: "auto", backdropFilter: "blur(12px)", padding: "0px" }}>
       <div className="card-container card border-0 shadow-lg w-100 d-flex flex-column" style={{ maxWidth: "950px", overflow: "hidden", backgroundColor: "#fff", height: window.innerWidth < 768 ? "100vh" : "90vh" }}>
         
-        {/* HEADER SECTION FOR MOBILE - FIXED AT TOP */}
+        {/* HEADER SECTION - FIXED AT TOP */}
         <div className="p-3 bg-danger text-white d-flex justify-content-between align-items-center shadow-sm sticky-top" style={{ zIndex: 10002 }}>
           <div className="d-flex align-items-center gap-2">
             <UserCheck size={24} />
@@ -175,7 +192,7 @@ const JobApplicationForm = ({
         ) : (
           <div className="flex-grow-1 overflow-auto form-content">
             <div className="row g-0 h-100 flex-column flex-md-row">
-              {/* SIDEBAR FOR DESKTOP - HIDDEN IN MOBILE HERO */}
+              {/* SIDEBAR DESKTOP */}
               <div className="col-md-3 bg-danger p-4 text-white text-center d-none d-md-flex flex-column justify-content-center">
                 {photoPreview ? (
                   <img src={photoPreview} className="mx-auto mb-3 border border-3 border-white rounded-4 shadow-lg" style={{ width: "120px", height: "150px", objectFit: "cover" }} alt="Applicant" />
@@ -243,14 +260,11 @@ const JobApplicationForm = ({
                      <label className="label-style">Target Destination (Global)</label>
                      <select className="sky-input" required name="country" value={applicationData?.country || ""} onChange={handleChange}>
                         <option value="">-- Select Destination --</option>
-                        <option value="United Kingdom">United Kingdom</option>
-                        <option value="Canada">Canada</option>
-                        <option value="USA">USA</option>
-                        <option value="Qatar">Qatar</option>
-                        <option value="Saudi Arabia">Saudi Arabia</option>
-                        <option value="Germany">Germany</option>
-                        <option value="Australia">Australia</option>
-                        {africaCountries.map(c => <option key={c} value={c}>{c}</option>)}
+                        {targetCountries.map((c, i) => (
+                          <option key={i} value={c} disabled={c.startsWith("--")}>
+                            {c}
+                          </option>
+                        ))}
                      </select>
                   </div>
                   <div className="col-md-6 text-start">
@@ -273,7 +287,7 @@ const JobApplicationForm = ({
                      <input type="file" name="othersFile" className="sky-input" onChange={handleFileChange} />
                   </div>
 
-                  {/* SUBMIT BUTTON */}
+                  {/* SUBMIT */}
                   <div className="col-12 mt-5">
                      <div className="bg-dark p-3 p-md-4 rounded-4 text-white d-flex justify-content-between align-items-center shadow-lg">
                         <div className="text-start">
