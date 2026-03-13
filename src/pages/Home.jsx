@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-
+import { Link } from "react-router-dom";
 // Firebase
 import { db } from "../firebase";
 import { ref, onValue } from "firebase/database";
@@ -585,16 +585,14 @@ const Home = () => {
               </p>
 
               <div className="d-flex gap-2 flex-wrap">
-                <button
-                  onClick={() => {
-                    setShowCourseForm(true);
-                    setSelectedCourse("general");
-                  }}
-                  className="btn btn-danger px-3 py-2 fw-bold rounded-pill shadow-sm"
-                  style={{ fontSize: "0.9rem" }}
+                <Link
+                  to="/apply-course"
+                  className="btn btn-danger px-3 py-2 fw-bold rounded-pill shadow-sm d-flex align-items-center justify-content-center"
+                  style={{ fontSize: "0.9rem", textDecoration: "none" }}
                 >
                   APPLY TRAINING COURSE
-                </button>
+                </Link>
+              </div>
 
                 {/* STUDENT PORTAL BUTTON - AREWA VISA ACADEMY */}
                 <button
