@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
@@ -28,7 +28,7 @@ const JobApplicationForm = ({
   setIsSuccess,
   photoPreview,
   setPhotoPreview,
-  applicationData = {}, 
+  applicationData, 
   setApplicationData,
   handleChange,
   handlePhotoChange,
@@ -36,10 +36,19 @@ const JobApplicationForm = ({
   handleFinalPayment,
   isSubmitting,
 }) => {
+  // --- LOCAL STATE TO FIX INPUT FREEZING ---
+  const [formData, setFormData] = useState(applicationData || {});
   const [step, setStep] = useState("form");
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentRef, setPaymentRef] = useState("");
   const receiptRef = useRef(null);
+
+  // Sync local state with props when applicationData changes initially
+  useEffect(() => {
+    if (applicationData) {
+      setFormData(applicationData);
+    }
+  }, [applicationData]);
 
   // --- GLOBAL DATA (All LGAs and Countries preserved 100%) ---
   const africaCountries = [
@@ -88,6 +97,15 @@ const JobApplicationForm = ({
     "Zamfara": ["Gusau", "Kaura Namoda", "Talata Mafara"]
   };
 
+  const internalHandleChange = (e) => {
+    if (e.persist) e.persist();
+    const { name, value } = e.target;
+    // Update local state for immediate feedback
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Push update to global state
+    handleChange(e);
+  };
+
   if (!showForm) return null;
 
   const triggerPaystack = () => {
@@ -95,7 +113,7 @@ const JobApplicationForm = ({
     setIsProcessing(true);
     const handler = window.PaystackPop.setup({
       key: "pk_live_501518dc4688ce1fc18be571fb9b81ab785af677", 
-      email: applicationData?.email || "consultant@arewavisa.com",
+      email: formData?.email || "consultant@arewavisa.com",
       amount: 100000 * 100,
       currency: "NGN",
       ref: "JOB-" + Math.floor((Math.random() * 1000000000) + 1),
@@ -127,13 +145,7 @@ const JobApplicationForm = ({
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF("p", "mm", "a4");
     pdf.addImage(imgData, "PNG", 0, 0, 210, (canvas.height * 210) / canvas.width);
-    pdf.save(`JOB-CONSULTATION-RECEIPT-${applicationData?.name || "Candidate"}.pdf`);
-  };
-
-  // Modern Handlers to ensure text appears
-  const onTextChange = (e) => {
-    if (e.persist) e.persist();
-    handleChange(e);
+    pdf.save(`JOB-CONSULTATION-RECEIPT-${formData?.name || "Candidate"}.pdf`);
   };
 
   return (
@@ -142,7 +154,7 @@ const JobApplicationForm = ({
         
         {/* HEADER SECTION */}
         <div className="p-3 bg-danger text-white d-flex justify-content-between align-items-center shadow-sm sticky-top" style={{ zIndex: 10002 }}>
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center gap-2 text-start">
             <UserCheck size={24} />
             <div className="text-start">
               <h6 className="fw-black mb-0 italic uppercase">Job Portal</h6>
@@ -157,7 +169,7 @@ const JobApplicationForm = ({
         {step === "success" ? (
           <div className="bg-white flex-grow-1 overflow-auto">
              <div ref={receiptRef} className="p-4 p-md-5 text-dark text-start bg-white" style={{ border: "10px solid #000" }}>
-                <div className="d-flex justify-content-between align-items-center border-bottom border-4 border-danger pb-3 mb-4">
+                <div className="d-flex justify-content-between align-items-center border-bottom border-4 border-danger pb-3 mb-4 text-start">
                   <div className="text-start">
                     <h2 className="fw-black text-danger mb-0 italic" style={{fontSize: '1.2rem'}}>AREWA VISA ACADEMY</h2>
                     <p className="small text-muted mb-0 fw-bold uppercase">Job Consultation & Placement</p>
@@ -167,17 +179,17 @@ const JobApplicationForm = ({
                   </div>
                 </div>
 
-                <div className="row g-3 mb-4 bg-light p-3 rounded-4 mx-0">
+                <div className="row g-3 mb-4 bg-light p-3 rounded-4 mx-0 text-start">
                   <div className="col-4 text-center">
                     <img src={photoPreview || "/placeholder-user.png"} style={{ width: "80px", height: "100px", objectFit: "cover" }} className="rounded-3 shadow-lg border border-2 border-white" alt="Applicant" />
                   </div>
-                  <div className="col-8">
+                  <div className="col-8 text-start">
                      <h6 className="fw-black border-bottom border-danger pb-1 mb-2 uppercase small">Applicant Profile</h6>
-                     <div className="x-small space-y-1" style={{fontSize: '10px'}}>
-                        <p className="mb-1 uppercase"><strong>NAME:</strong> {applicationData?.name || "N/A"}</p>
-                        <p className="mb-1 uppercase"><strong>PASSPORT:</strong> {applicationData?.passportNo || "N/A"}</p>
-                        <p className="mb-1 uppercase"><strong>JOB:</strong> {applicationData?.job === "OTHER JOB" ? applicationData?.otherJob : applicationData?.job || "N/A"}</p>
-                        <p className="mb-1 uppercase"><strong>DESTINATION:</strong> {applicationData?.country || "N/A"}</p>
+                     <div className="x-small space-y-1 text-start" style={{fontSize: '10px'}}>
+                        <p className="mb-1 uppercase text-start"><strong>NAME:</strong> {formData?.name || "N/A"}</p>
+                        <p className="mb-1 uppercase text-start"><strong>PASSPORT:</strong> {formData?.passportNo || "N/A"}</p>
+                        <p className="mb-1 uppercase text-start"><strong>JOB:</strong> {formData?.job === "OTHER JOB" ? formData?.otherJob : formData?.job || "N/A"}</p>
+                        <p className="mb-1 uppercase text-start"><strong>DESTINATION:</strong> {formData?.country || "N/A"}</p>
                      </div>
                   </div>
                 </div>
@@ -210,8 +222,8 @@ const JobApplicationForm = ({
 
               {/* FORM AREA */}
               <div className="col-md-9 p-4 p-md-5 bg-white text-dark text-start">
-                <form className="row g-4 pb-5" onSubmit={(e) => { e.preventDefault(); triggerPaystack(); }}>
-                  <div className="col-12 border-bottom pb-2"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><User size={18} /> Candidate Identity</h6></div>
+                <form className="row g-4 pb-5 text-start" onSubmit={(e) => { e.preventDefault(); triggerPaystack(); }}>
+                  <div className="col-12 border-bottom pb-2 text-start"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><User size={18} /> Candidate Identity</h6></div>
                   
                   <div className="col-md-6 text-start">
                      <label className="label-style">Passport Photo</label>
@@ -219,51 +231,49 @@ const JobApplicationForm = ({
                   </div>
                   <div className="col-md-6 text-start">
                      <label className="label-style">Full Legal Name</label>
-                     <input type="text" name="name" className="sky-input" required value={applicationData?.name || ""} onChange={onTextChange} />
+                     <input type="text" name="name" className="sky-input" required value={formData?.name || ""} onChange={internalHandleChange} />
                   </div>
 
-                  <div className="col-md-6 text-start"><label className="label-style">Email Address</label><input type="email" name="email" className="sky-input" required value={applicationData?.email || ""} onChange={onTextChange} /></div>
-                  <div className="col-md-6 text-start"><label className="label-style">WhatsApp Number</label><input type="tel" name="whatsapp" className="sky-input" required value={applicationData?.whatsapp || ""} onChange={onTextChange} /></div>
+                  <div className="col-md-6 text-start"><label className="label-style">Email Address</label><input type="email" name="email" className="sky-input" required value={formData?.email || ""} onChange={internalHandleChange} /></div>
+                  <div className="col-md-6 text-start"><label className="label-style">WhatsApp Number</label><input type="tel" name="whatsapp" className="sky-input" required value={formData?.whatsapp || ""} onChange={internalHandleChange} /></div>
                   
-                  <div className="col-md-6 text-start"><label className="label-style">NIN Number</label><input type="text" name="nin" className="sky-input" required value={applicationData?.nin || ""} onChange={onTextChange} /></div>
-                  <div className="col-md-6 text-start"><label className="label-style">Intl. Passport No.</label><input type="text" name="passportNo" className="sky-input uppercase" required value={applicationData?.passportNo || ""} onChange={onTextChange} /></div>
+                  <div className="col-md-6 text-start"><label className="label-style">NIN Number</label><input type="text" name="nin" className="sky-input" required value={formData?.nin || ""} onChange={internalHandleChange} /></div>
+                  <div className="col-md-6 text-start"><label className="label-style">Intl. Passport No.</label><input type="text" name="passportNo" className="sky-input uppercase" required value={formData?.passportNo || ""} onChange={internalHandleChange} /></div>
 
-                  {/* LOCATION SECTION */}
-                  <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><MapPin size={18} /> Origin & Location</h6></div>
+                  <div className="col-12 border-bottom pb-2 mt-4 text-start"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><MapPin size={18} /> Origin & Location</h6></div>
                   
                   <div className="col-md-4 text-start">
                      <label className="label-style">Current Country</label>
-                     <select className="sky-input" required name="countrySelection" value={applicationData?.countrySelection || ""} onChange={onTextChange}>
+                     <select className="sky-input" required name="countrySelection" value={formData?.countrySelection || ""} onChange={internalHandleChange}>
                         <option value="">-- Select Country --</option>
                         {africaCountries.map(c => <option key={c} value={c}>{c}</option>)}
                      </select>
                   </div>
                   <div className="col-md-4 text-start">
                      <label className="label-style">Postal Code</label>
-                     <input type="text" name="postalCode" className="sky-input" placeholder="000000" value={applicationData?.postalCode || ""} onChange={onTextChange} />
+                     <input type="text" name="postalCode" className="sky-input" placeholder="000000" value={formData?.postalCode || ""} onChange={internalHandleChange} />
                   </div>
                   <div className="col-md-4 text-start">
                      <label className="label-style">State / Region</label>
-                     <select className="sky-input" required name="state" value={applicationData?.state || ""} onChange={onTextChange}>
+                     <select className="sky-input" required name="state" value={formData?.state || ""} onChange={internalHandleChange}>
                         <option value="">Select State</option>
                         {Object.keys(nigeriaData).map(st => <option key={st} value={st}>{st}</option>)}
                      </select>
                   </div>
                   <div className="col-md-6 text-start">
                      <label className="label-style">LGA / District</label>
-                     <select className="sky-input" required name="lga" disabled={!applicationData?.state} value={applicationData?.lga || ""} onChange={onTextChange}>
+                     <select className="sky-input" required name="lga" disabled={!formData?.state} value={formData?.lga || ""} onChange={internalHandleChange}>
                         <option value="">Select Area</option>
-                        {applicationData?.state && nigeriaData[applicationData.state]?.map(lg => <option key={lg} value={lg}>{lg}</option>)}
+                        {formData?.state && nigeriaData[formData.state]?.map(lg => <option key={lg} value={lg}>{lg}</option>)}
                      </select>
                   </div>
-                  <div className="col-12 text-start"><label className="label-style">Full Residential Address</label><textarea name="address" className="sky-input" rows="2" required value={applicationData?.address || ""} onChange={onTextChange}></textarea></div>
+                  <div className="col-12 text-start"><label className="label-style">Full Residential Address</label><textarea name="address" className="sky-input" rows="2" required value={formData?.address || ""} onChange={internalHandleChange}></textarea></div>
 
-                  {/* JOB PREFERENCE */}
-                  <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><Briefcase size={18} /> Recruitment Details</h6></div>
+                  <div className="col-12 border-bottom pb-2 mt-4 text-start"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><Briefcase size={18} /> Recruitment Details</h6></div>
                   
                   <div className="col-md-6 text-start">
                      <label className="label-style">Target Destination (Global)</label>
-                     <select className="sky-input" required name="country" value={applicationData?.country || ""} onChange={onTextChange}>
+                     <select className="sky-input" required name="country" value={formData?.country || ""} onChange={internalHandleChange}>
                         <option value="">-- Select Destination --</option>
                         {targetCountries.map((c, i) => (
                           <option key={i} value={c} disabled={c.startsWith("--")}>
@@ -274,14 +284,13 @@ const JobApplicationForm = ({
                   </div>
                   <div className="col-md-6 text-start">
                      <label className="label-style">Professional Job Category</label>
-                     <select className="sky-input" required name="job" value={applicationData?.job || ""} onChange={onTextChange}>
+                     <select className="sky-input" required name="job" value={formData?.job || ""} onChange={internalHandleChange}>
                         <option value="">-- Select Category --</option>
                         {jobCategories.map(j => <option key={j} value={j}>{j}</option>)}
                      </select>
                   </div>
 
-                  {/* CONDITIONAL "OTHER JOB" FIELD */}
-                  {applicationData?.job === "OTHER JOB" && (
+                  {formData?.job === "OTHER JOB" && (
                     <div className="col-12 text-start">
                       <label className="label-style text-danger d-flex align-items-center gap-1">
                         <Edit3 size={12}/> Specify Your Job Title
@@ -293,14 +302,13 @@ const JobApplicationForm = ({
                         style={{ borderColor: '#dc3545' }}
                         placeholder="e.g Tailor, Chef, Plumber..." 
                         required 
-                        value={applicationData?.otherJob || ""} 
-                        onChange={onTextChange} 
+                        value={formData?.otherJob || ""} 
+                        onChange={internalHandleChange} 
                       />
                     </div>
                   )}
 
-                  {/* UPLOADS */}
-                  <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><FileText size={18} /> Career Documents</h6></div>
+                  <div className="col-12 border-bottom pb-2 mt-4 text-start"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><FileText size={18} /> Career Documents</h6></div>
                   
                   <div className="col-md-6 text-start">
                      <label className="label-style">CV / Resume (Mandatory PDF)</label>
@@ -311,8 +319,7 @@ const JobApplicationForm = ({
                      <input type="file" name="othersFile" className="sky-input" onChange={handleFileChange} />
                   </div>
 
-                  {/* SUBMIT */}
-                  <div className="col-12 mt-5">
+                  <div className="col-12 mt-5 text-start">
                      <div className="bg-dark p-3 p-md-4 rounded-4 text-white d-flex justify-content-between align-items-center shadow-lg">
                         <div className="text-start">
                            <p className="x-small uppercase opacity-50 mb-0">Total Fee</p>
@@ -337,16 +344,12 @@ const JobApplicationForm = ({
         .fw-black { font-weight: 900; }
         .uppercase { text-transform: uppercase; }
         .italic { font-style: italic; }
-        
         .form-content::-webkit-scrollbar { width: 5px; }
         .form-content::-webkit-scrollbar-thumb { background: #dc3545; border-radius: 10px; }
-
         @media (max-width: 767px) {
           .card-container { height: 100vh !important; max-height: 100vh !important; border-radius: 0 !important; width: 100% !important; margin: 0 !important; }
-          .form-content { padding: 20px !important; }
           .sky-input { padding: 0.7rem 0.9rem; font-size: 0.8rem; }
         }
-
         @media (min-width: 768px) {
           .card-container { border-radius: 35px; max-height: 90vh; }
         }
