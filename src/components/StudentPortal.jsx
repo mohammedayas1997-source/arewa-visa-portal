@@ -30,6 +30,7 @@ import {
   FileText, Download, Calendar, User, Loader2, Trophy, AlertTriangle,
   Camera, RefreshCcw, Settings, UploadCloud, CheckCircle2, AlertCircle,
   Brush, Hotel, Wind, Plane, Briefcase, Headphones, Ship, Package, Globe2,
+  Sparkles, Heart, Zap, Anchor, Shield, Baby
 } from "lucide-react";
 
 // ==========================================
@@ -84,19 +85,20 @@ const StudentPortal = () => {
   const [examScore, setExamScore] = useState(null);
   const [timeLeft, setTimeLeft] = useState(3600);
 
+  // --- IMPROVED COURSE ICONS & DATA ---
   const availableCourses = [
-    { id: "cleaning_course", name: "Cleaning Course", icon: <Brush size={20} /> },
-    { id: "housekeeping_course", name: "Housekeeping Course", icon: <Hotel size={20} /> },
-    { id: "laundry_service", name: "Laundry Service Course", icon: <Wind size={20} /> },
-    { id: "visa_processing", name: "Visa Processing Course", icon: <FileText size={20} /> },
-    { id: "ticketing_reservation", name: "Ticketing & Reservation", icon: <Plane size={20} /> },
-    { id: "agency_management", name: "Agency Management", icon: <Briefcase size={20} /> },
-    { id: "customer_service", name: "Customer Service Course", icon: <Headphones size={20} /> },
-    { id: "aircraft_cleaner", name: "Aircraft Cleaner Course", icon: <Ship size={20} /> },
-    { id: "security_training", name: "Security Training", icon: <ShieldCheck size={20} /> },
-    { id: "caregiver_nanny", name: "Caregiver - Nanny Course", icon: <Users size={20} /> },
-    { id: "cargo_logistics", name: "Cargo & Logistics Course", icon: <Package size={20} /> },
-    { id: "travel_tourism", name: "Travels and Tourism", icon: <Globe2 size={20} /> },
+    { id: "cleaning_course", name: "Professional Cleaning", icon: <Brush size={32} />, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { id: "housekeeping_course", name: "Executive Housekeeping", icon: <Hotel size={32} />, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+    { id: "laundry_service", name: "Laundry Specialist", icon: <Wind size={32} />, color: "text-sky-400", bg: "bg-sky-400/10" },
+    { id: "visa_processing", name: "Visa Processing", icon: <Globe2 size={32} />, color: "text-indigo-600", bg: "bg-indigo-600/10" },
+    { id: "ticketing_reservation", name: "Ticketing & Reservation", icon: <Plane size={32} />, color: "text-orange-500", bg: "bg-orange-500/10" },
+    { id: "agency_management", name: "Agency Management", icon: <Briefcase size={32} />, color: "text-amber-600", bg: "bg-amber-600/10" },
+    { id: "customer_service", name: "Customer Relations", icon: <Headphones size={32} />, color: "text-purple-500", bg: "bg-purple-500/10" },
+    { id: "aircraft_cleaner", name: "Aircraft Cabin Maintenance", icon: <Zap size={32} />, color: "text-yellow-500", bg: "bg-yellow-500/10" },
+    { id: "security_training", name: "Professional Security", icon: <Shield size={32} />, color: "text-red-600", bg: "bg-red-600/10" },
+    { id: "caregiver_nanny", name: "Caregiver & Nanny", icon: <Baby size={32} />, color: "text-pink-500", bg: "bg-pink-500/10" },
+    { id: "cargo_logistics", name: "Cargo & Logistics", icon: <Package size={32} />, color: "text-cyan-600", bg: "bg-cyan-600/10" },
+    { id: "travel_tourism", name: "Global Travels & Tourism", icon: <Sparkles size={32} />, color: "text-violet-600", bg: "bg-violet-600/10" },
   ];
 
   useEffect(() => {
@@ -268,15 +270,20 @@ const StudentPortal = () => {
     </div>
   );
 
+  // --- 1. LOGIN AFTER COURSE SELECTION CHECK ---
   if (!selectedCourseId) return (
     <div className={`min-h-screen flex items-center justify-center p-6 ${darkMode ? "bg-slate-950" : "bg-gray-100"}`}>
       <div className="max-w-6xl w-full">
-        <h2 className={`text-5xl font-black italic uppercase text-center mb-12 ${darkMode ? "text-white" : "text-slate-900"}`}>Select Specialization</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="text-center mb-16">
+           <h2 className={`text-6xl font-black italic uppercase mb-4 ${darkMode ? "text-white" : "text-slate-900"}`}>CHOOSE YOUR CAREER</h2>
+           <p className="text-blue-500 font-black uppercase tracking-widest italic">Arewa Visa Academy Enrollment Terminal</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {availableCourses.map((c) => (
-            <div key={c.id} onClick={() => handleInitialCourseSelection(c.id)} className={`p-10 rounded-[3rem] border-2 cursor-pointer transition-all hover:scale-105 group ${darkMode ? "bg-slate-900 border-slate-800 hover:border-blue-600" : "bg-white border-white hover:border-blue-600 shadow-xl"}`}>
-              <div className="w-16 h-16 bg-blue-600/10 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">{c.icon}</div>
-              <h3 className={`text-2xl font-black uppercase italic ${darkMode ? "text-white" : "text-slate-900"}`}>{c.name}</h3>
+            <div key={c.id} onClick={() => handleInitialCourseSelection(c.id)} className={`p-8 rounded-[3rem] border-4 cursor-pointer transition-all hover:scale-105 group relative overflow-hidden ${darkMode ? "bg-slate-900 border-slate-800 hover:border-blue-600" : "bg-white border-white hover:border-blue-600 shadow-2xl"}`}>
+              <div className={`w-20 h-20 ${c.bg} ${c.color} rounded-3xl flex items-center justify-center mb-8 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-xl`}>{c.icon}</div>
+              <h3 className={`text-2xl font-black uppercase italic leading-tight ${darkMode ? "text-white" : "text-slate-900"}`}>{c.name}</h3>
+              <div className="mt-6 flex items-center gap-2 text-blue-600 font-black text-[10px] uppercase opacity-0 group-hover:opacity-100 transition-all">Enroll Now <ArrowRight size={14} /></div>
             </div>
           ))}
         </div>
@@ -285,6 +292,8 @@ const StudentPortal = () => {
   );
 
   const currentWeekInfo = weeksData[String(currentWeek)] || {};
+  // Find the selected course icon and name
+  const currentCourse = availableCourses.find(c => c.id === selectedCourseId);
 
   return (
     <div className={`min-h-screen flex font-sans ${darkMode ? "bg-slate-950 text-white" : "bg-gray-50 text-slate-900"} transition-colors duration-300`}>
@@ -327,11 +336,31 @@ const StudentPortal = () => {
         {activeTab === "dashboard" && (
           <div className="space-y-10 animate-in fade-in duration-700">
             <div className="bg-blue-600 p-16 rounded-[4rem] text-white shadow-2xl relative overflow-hidden group">
-              <Award className="absolute -right-10 -bottom-10 w-64 h-64 opacity-10 rotate-12" />
+              <div className="absolute -right-10 -bottom-10 w-80 h-80 opacity-10 rotate-12">{currentCourse?.icon}</div>
               <div className="relative z-10">
-                <h2 className="text-6xl font-black italic tracking-tighter mb-4 uppercase">{selectedCourseId?.replace("_", " ")}</h2>
-                <p className="text-lg font-bold opacity-80 max-w-xl">Welcome to Arewa Visa Academy, {studentData?.fullName}. Processing Week {currentWeek} module.</p>
+                <div className="flex items-center gap-4 mb-6">
+                    <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">{currentCourse?.icon}</div>
+                    <span className="px-6 py-2 bg-white/10 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/20">Specialization Locked</span>
+                </div>
+                <h2 className="text-6xl font-black italic tracking-tighter mb-4 uppercase">{currentCourse?.name}</h2>
+                <p className="text-lg font-bold opacity-80 max-w-xl">Welcome back, {studentData?.fullName}. Your are currently synced to the global recruitment roadmap.</p>
               </div>
+            </div>
+            
+            {/* Dashboard Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+               <div className={`p-10 rounded-[3rem] border ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-white shadow-xl"}`}>
+                  <p className="text-[10px] font-black text-blue-600 uppercase mb-4 tracking-widest">Enrollment Status</p>
+                  <h3 className="text-3xl font-black italic uppercase">Verified Candidate</h3>
+               </div>
+               <div className={`p-10 rounded-[3rem] border ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-white shadow-xl"}`}>
+                  <p className="text-[10px] font-black text-emerald-600 uppercase mb-4 tracking-widest">Active Roadmap</p>
+                  <h3 className="text-3xl font-black italic uppercase">Week {currentWeek} of 16</h3>
+               </div>
+               <div className={`p-10 rounded-[3rem] border ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-white shadow-xl"}`}>
+                  <p className="text-[10px] font-black text-red-600 uppercase mb-4 tracking-widest">Midterm Authority</p>
+                  <h3 className="text-3xl font-black italic uppercase">{hasPassedMidterm ? "Authorized" : "Awaiting Evaluation"}</h3>
+               </div>
             </div>
           </div>
         )}
@@ -388,14 +417,38 @@ const StudentPortal = () => {
 
         {activeTab === "discussions" && (
           <div className="animate-in fade-in duration-500">
-            {viewState === "list" && (<div className="grid grid-cols-1 md:grid-cols-3 gap-8">{availableCourses.map((c) => (<div key={c.id} onClick={() => { setSelectedCourse(c); setViewState("selection"); }} className={`p-10 rounded-[2.5rem] border cursor-pointer hover:border-blue-600 transition-all ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-xl"}`}><div className="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-blue-500/30">{c.icon}</div><h4 className="text-2xl font-black italic uppercase">{c.name}</h4></div>))}</div>)}
-            {viewState === "selection" && (<div className="flex flex-col md:flex-row items-center justify-center gap-10 min-h-[50vh]"><button onClick={() => { setSelectedPath("Path 1"); setViewState("forum"); }} className="p-16 bg-blue-600 text-white rounded-[4rem] font-black italic text-5xl uppercase shadow-2xl">Path 1</button><button onClick={() => { setSelectedPath("Path 2"); setViewState("forum"); }} className="p-16 bg-slate-900 text-white rounded-[4rem] font-black italic text-5xl uppercase shadow-2xl">Path 2</button></div>)}
-            {viewState === "forum" && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                <div className={`p-10 rounded-[3rem] border sticky top-0 h-fit ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-xl"}`}><form onSubmit={async (e) => { e.preventDefault(); if (!newPost.title || !newPost.content) return; await addDoc(collection(db, "forum_threads"), { ...newPost, studentName: studentData?.fullName || "Student", studentId: auth.currentUser.uid, courseId: selectedCourse.id, studentType: selectedPath, createdAt: serverTimestamp() }); setNewPost({ title: "", content: "" }); }} className="space-y-4"><input className="s-input" placeholder="SUBJECT" value={newPost.title} onChange={(e) => setNewPost({ ...newPost, title: e.target.value })} /><textarea className="s-input h-40 pt-4" placeholder="DETAILS..." value={newPost.content} onChange={(e) => setNewPost({ ...newPost, content: e.target.value })} /><button className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Transmit Post</button></form></div>
-                <div className="lg:col-span-2 space-y-6">{forumThreads.map((t) => (<div key={t.id} className={`p-10 rounded-[3rem] border ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-sm"}`}><h3 className="text-2xl font-black italic uppercase mb-4 tracking-tighter">"{t.title}"</h3><p className="opacity-60 text-sm leading-relaxed mb-8">{t.content}</p><span className="text-[10px] font-black text-blue-600 uppercase">By {t.studentName}</span></div>))}</div>
-              </div>
-            )}
+            <div className="mb-10 p-10 bg-blue-600 rounded-[3rem] text-white flex items-center justify-between shadow-2xl relative overflow-hidden">
+                <div className="relative z-10">
+                    <h2 className="text-4xl font-black italic uppercase mb-2">{currentCourse?.name} Forum</h2>
+                    <p className="font-bold opacity-70">Collaborate with other students in this specialization.</p>
+                </div>
+                <MessageSquare size={100} className="absolute right-[-20px] bottom-[-20px] opacity-10 rotate-12" />
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+               <div className={`p-10 rounded-[3rem] border h-fit sticky top-10 ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-xl"}`}>
+                  <h4 className="text-[10px] font-black text-blue-600 uppercase mb-6 tracking-widest">Post New Thread</h4>
+                  <form onSubmit={async (e) => { e.preventDefault(); if (!newPost.title || !newPost.content) return; await addDoc(collection(db, "forum_threads"), { ...newPost, studentName: studentData?.fullName || "Student", studentId: auth.currentUser.uid, courseId: selectedCourseId, createdAt: serverTimestamp() }); setNewPost({ title: "", content: "" }); }} className="space-y-4">
+                     <input className="s-input" placeholder="SUBJECT" value={newPost.title} onChange={(e) => setNewPost({ ...newPost, title: e.target.value })} />
+                     <textarea className="s-input h-40 pt-4" placeholder="DETAILS..." value={newPost.content} onChange={(e) => setNewPost({ ...newPost, content: e.target.value })} />
+                     <button className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Transmit Post</button>
+                  </form>
+               </div>
+               <div className="lg:col-span-2 space-y-6">
+                  {forumThreads.filter(t => t.courseId === selectedCourseId).map((t) => (
+                     <div key={t.id} className={`p-10 rounded-[3rem] border ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-sm"}`}>
+                        <div className="flex items-start gap-4 mb-6">
+                           <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black italic">{t.studentName[0]}</div>
+                           <div>
+                              <h3 className="text-2xl font-black italic uppercase tracking-tighter">"{t.title}"</h3>
+                              <p className="text-[9px] font-black text-blue-600 uppercase opacity-60">By {t.studentName} • {formatDate(t.createdAt)}</p>
+                           </div>
+                        </div>
+                        <p className="opacity-70 text-sm leading-relaxed mb-6 font-bold">{t.content}</p>
+                     </div>
+                  ))}
+               </div>
+            </div>
           </div>
         )}
 

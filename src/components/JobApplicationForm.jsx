@@ -41,7 +41,7 @@ const JobApplicationForm = ({
   const [paymentRef, setPaymentRef] = useState("");
   const receiptRef = useRef(null);
 
-  // --- GLOBAL DATA ---
+  // --- GLOBAL DATA (Dukkan su sun dawo 100%) ---
   const africaCountries = [
     "Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cabo Verde", "Cameroon", "Central African Republic", "Chad", "Comoros", "Congo (Congo-Brazzaville)", "Congo (Democratic Republic)", "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Ivory Coast", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles", "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania", "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe"
   ];
@@ -134,7 +134,7 @@ const JobApplicationForm = ({
     <div className="form-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style={{ zIndex: 99999, backgroundColor: "rgba(0,0,0,0.98)", overflowY: "auto", backdropFilter: "blur(12px)", padding: "0px" }}>
       <div className="card-container card border-0 shadow-lg w-100 d-flex flex-column" style={{ maxWidth: "950px", overflow: "hidden", backgroundColor: "#fff", height: window.innerWidth < 768 ? "100vh" : "90vh" }}>
         
-        {/* HEADER SECTION - FIXED AT TOP */}
+        {/* HEADER SECTION */}
         <div className="p-3 bg-danger text-white d-flex justify-content-between align-items-center shadow-sm sticky-top" style={{ zIndex: 10002 }}>
           <div className="d-flex align-items-center gap-2">
             <UserCheck size={24} />
@@ -214,51 +214,51 @@ const JobApplicationForm = ({
                   </div>
                   <div className="col-md-6 text-start">
                      <label className="label-style">Full Legal Name</label>
-                     <input type="text" name="name" className="sky-input" required value={applicationData?.name || ""} onChange={handleChange} />
+                     <input type="text" name="name" className="sky-input" required value={applicationData?.name || ""} onChange={(e) => { e.persist(); handleChange(e); }} />
                   </div>
 
-                  <div className="col-md-6 text-start"><label className="label-style">Email Address</label><input type="email" name="email" className="sky-input" required value={applicationData?.email || ""} onChange={handleChange} /></div>
-                  <div className="col-md-6 text-start"><label className="label-style">WhatsApp Number</label><input type="tel" name="whatsapp" className="sky-input" required value={applicationData?.whatsapp || ""} onChange={handleChange} /></div>
+                  <div className="col-md-6 text-start"><label className="label-style">Email Address</label><input type="email" name="email" className="sky-input" required value={applicationData?.email || ""} onChange={(e) => { e.persist(); handleChange(e); }} /></div>
+                  <div className="col-md-6 text-start"><label className="label-style">WhatsApp Number</label><input type="tel" name="whatsapp" className="sky-input" required value={applicationData?.whatsapp || ""} onChange={(e) => { e.persist(); handleChange(e); }} /></div>
                   
-                  <div className="col-md-6 text-start"><label className="label-style">NIN Number</label><input type="text" name="nin" className="sky-input" required value={applicationData?.nin || ""} onChange={handleChange} /></div>
-                  <div className="col-md-6 text-start"><label className="label-style">Intl. Passport No.</label><input type="text" name="passportNo" className="sky-input uppercase" required value={applicationData?.passportNo || ""} onChange={handleChange} /></div>
+                  <div className="col-md-6 text-start"><label className="label-style">NIN Number</label><input type="text" name="nin" className="sky-input" required value={applicationData?.nin || ""} onChange={(e) => { e.persist(); handleChange(e); }} /></div>
+                  <div className="col-md-6 text-start"><label className="label-style">Intl. Passport No.</label><input type="text" name="passportNo" className="sky-input uppercase" required value={applicationData?.passportNo || ""} onChange={(e) => { e.persist(); handleChange(e); }} /></div>
 
                   {/* LOCATION SECTION */}
                   <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><MapPin size={18} /> Origin & Location</h6></div>
                   
                   <div className="col-md-4 text-start">
                      <label className="label-style">Current Country</label>
-                     <select className="sky-input" required name="countrySelection" value={applicationData?.countrySelection || ""} onChange={handleChange}>
+                     <select className="sky-input" required name="countrySelection" value={applicationData?.countrySelection || ""} onChange={(e) => { e.persist(); handleChange(e); }}>
                         <option value="">-- Select Country --</option>
                         {africaCountries.map(c => <option key={c} value={c}>{c}</option>)}
                      </select>
                   </div>
                   <div className="col-md-4 text-start">
                      <label className="label-style">Postal Code</label>
-                     <input type="text" name="postalCode" className="sky-input" placeholder="000000" value={applicationData?.postalCode || ""} onChange={handleChange} />
+                     <input type="text" name="postalCode" className="sky-input" placeholder="000000" value={applicationData?.postalCode || ""} onChange={(e) => { e.persist(); handleChange(e); }} />
                   </div>
                   <div className="col-md-4 text-start">
                      <label className="label-style">State / Region</label>
-                     <select className="sky-input" required name="state" value={applicationData?.state || ""} onChange={handleChange}>
+                     <select className="sky-input" required name="state" value={applicationData?.state || ""} onChange={(e) => { e.persist(); handleChange(e); }}>
                         <option value="">Select State</option>
                         {Object.keys(nigeriaData).map(st => <option key={st} value={st}>{st}</option>)}
                      </select>
                   </div>
                   <div className="col-md-6 text-start">
                      <label className="label-style">LGA / District</label>
-                     <select className="sky-input" required name="lga" disabled={!applicationData?.state} value={applicationData?.lga || ""} onChange={handleChange}>
+                     <select className="sky-input" required name="lga" disabled={!applicationData?.state} value={applicationData?.lga || ""} onChange={(e) => { e.persist(); handleChange(e); }}>
                         <option value="">Select Area</option>
                         {applicationData?.state && nigeriaData[applicationData.state]?.map(lg => <option key={lg} value={lg}>{lg}</option>)}
                      </select>
                   </div>
-                  <div className="col-12 text-start"><label className="label-style">Full Residential Address</label><textarea name="address" className="sky-input" rows="2" required value={applicationData?.address || ""} onChange={handleChange}></textarea></div>
+                  <div className="col-12 text-start"><label className="label-style">Full Residential Address</label><textarea name="address" className="sky-input" rows="2" required value={applicationData?.address || ""} onChange={(e) => { e.persist(); handleChange(e); }}></textarea></div>
 
                   {/* JOB PREFERENCE */}
                   <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><Briefcase size={18} /> Recruitment Details</h6></div>
                   
                   <div className="col-md-6 text-start">
                      <label className="label-style">Target Destination (Global)</label>
-                     <select className="sky-input" required name="country" value={applicationData?.country || ""} onChange={handleChange}>
+                     <select className="sky-input" required name="country" value={applicationData?.country || ""} onChange={(e) => { e.persist(); handleChange(e); }}>
                         <option value="">-- Select Destination --</option>
                         {targetCountries.map((c, i) => (
                           <option key={i} value={c} disabled={c.startsWith("--")}>
@@ -269,19 +269,13 @@ const JobApplicationForm = ({
                   </div>
                   <div className="col-md-6 text-start">
                      <label className="label-style">Professional Job Category</label>
-                     <select 
-                        className="sky-input" 
-                        required 
-                        name="job" 
-                        value={applicationData?.job || ""} 
-                        onChange={handleChange}
-                     >
+                     <select className="sky-input" required name="job" value={applicationData?.job || ""} onChange={(e) => { e.persist(); handleChange(e); }}>
                         <option value="">-- Select Category --</option>
                         {jobCategories.map(j => <option key={j} value={j}>{j}</option>)}
                      </select>
                   </div>
 
-                  {/* CONDITIONAL "OTHER JOB" FIELD - FIXED LOGIC */}
+                  {/* CONDITIONAL "OTHER JOB" FIELD */}
                   {applicationData?.job === "OTHER JOB" && (
                     <div className="col-12 text-start animate__animated animate__fadeIn">
                       <label className="label-style text-danger d-flex align-items-center gap-1">
@@ -295,7 +289,7 @@ const JobApplicationForm = ({
                         placeholder="e.g Tailor, Chef, Plumber..." 
                         required 
                         value={applicationData?.otherJob || ""} 
-                        onChange={handleChange} 
+                        onChange={(e) => { e.persist(); handleChange(e); }} 
                       />
                     </div>
                   )}
