@@ -30,6 +30,7 @@ import {
   FileText, Download, Calendar, User, Loader2, Trophy, AlertTriangle,
   Camera, RefreshCcw, Settings, UploadCloud, CheckCircle2, AlertCircle,
   Brush, Hotel, Wind, Plane, Briefcase, Headphones, Ship, Package, Globe2,
+  CheckCircle as CheckCircleIcon, ArrowRight // Added missing icons
 } from "lucide-react";
 
 // ==========================================
@@ -284,8 +285,6 @@ const StudentPortal = () => {
     </div>
   );
 
-  const currentWeekInfo = weeksData[String(currentWeek)] || {};
-
   return (
     <div className={`min-h-screen flex font-sans ${darkMode ? "bg-slate-950 text-white" : "bg-gray-50 text-slate-900"} transition-colors duration-300`}>
       <aside className={`fixed lg:sticky top-0 z-50 h-screen w-80 border-r flex flex-col transition-transform ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-gray-100"} ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
@@ -302,17 +301,14 @@ const StudentPortal = () => {
           ))}
           <div className="pt-8 pb-4 text-[8px] font-black text-gray-500 uppercase tracking-widest px-2">Roadmap Progress</div>
           <div className="space-y-1 pb-10 px-2">
-            {Array.from({ length: 16 }, (_, i) => i + 1).map((w) => {
-              const weekInfo = weeksData[String(w)];
-              return (
+            {Array.from({ length: 16 }, (_, i) => i + 1).map((w) => (
                 <div key={w} onClick={() => !isWeekLocked(w) && setCurrentWeek(w)} className={`px-4 py-3 rounded-xl flex flex-col transition-all ${isWeekLocked(w) ? "opacity-30 cursor-not-allowed" : "hover:bg-blue-50/10 cursor-pointer"} ${currentWeek === w ? "bg-blue-600/10 border border-blue-600/20" : ""}`}>
                   <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-3"><div className={`px-2 h-6 rounded-lg flex items-center justify-center text-[9px] font-black ${w === 8 || w === 16 ? "bg-red-600 text-white min-w-[70px]" : isWeekLocked(w) ? "bg-red-100 text-red-600" : "bg-emerald-100 text-emerald-600"}`}>{w === 8 || w === 16 ? "EXAMS WEEK" : w}</div><span className="text-[10px] font-black uppercase">Week {w}</span></div>
                     {isWeekLocked(w) ? <Lock size={10} className="text-red-500" /> : <CheckCircle size={10} className="text-emerald-500" />}
                   </div>
                 </div>
-              );
-            })}
+            ))}
           </div>
         </nav>
         <div className="p-6 border-t border-slate-800 space-y-2">
@@ -353,12 +349,12 @@ const StudentPortal = () => {
               <div className={`p-10 rounded-[3rem] border-4 ${darkMode ? "bg-slate-900 border-red-500/20" : "bg-white border-red-500/20 shadow-2xl"}`}>
                 <div className="flex justify-between items-center mb-8"><div className="flex items-center gap-4"><ShieldCheck className="text-red-600" size={48} /><div><h2 className="text-4xl font-black italic uppercase">Week {currentWeek} Exam Protocol</h2><p className="font-black text-xs text-red-500 uppercase tracking-widest">Time Restricted: 60 Minutes</p></div></div>{examActive && <div className="px-8 py-4 bg-red-600 text-white rounded-2xl font-black text-2xl font-mono shadow-xl animate-pulse">{formatTimer(timeLeft)}</div>}</div>
                 {!examActive && !examScore ? (
-                  <div className="p-10 bg-black/5 rounded-[2rem] border border-white/5"><h4 className="text-xl font-black uppercase mb-6 flex items-center gap-2"><AlertTriangle className="text-orange-500" /> Assessment Rules</h4><div className="space-y-4 opacity-80 font-bold mb-10 whitespace-pre-wrap">{currentWeekInfo.examRules || "Standard academic protocols apply for certification."}</div><button onClick={() => setExamActive(true)} className="w-full py-5 bg-red-600 text-white rounded-2xl font-black uppercase italic text-xl shadow-2xl">Start Evaluation</button></div>
+                  <div className="p-10 bg-black/5 rounded-[2rem] border border-white/5"><h4 className="text-xl font-black uppercase mb-6 flex items-center gap-2"><AlertTriangle className="text-orange-500" /> Assessment Rules</h4><div className="space-y-4 opacity-80 font-bold mb-10 whitespace-pre-wrap">{weeksData[String(currentWeek)]?.examRules || "Standard academic protocols apply for certification."}</div><button onClick={() => setExamActive(true)} className="w-full py-5 bg-red-600 text-white rounded-2xl font-black uppercase italic text-xl shadow-2xl">Start Evaluation</button></div>
                 ) : examScore !== null ? (
                   <div className="text-center py-16 animate-in zoom-in"><Trophy className="mx-auto mb-8 text-yellow-500" size={100} /><h2 className="text-3xl font-black uppercase italic mb-12">Performance Report</h2><div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto px-6 mb-12"><div className="p-8 bg-blue-600 rounded-[2rem] text-white"><p className="text-[10px] font-black uppercase mb-2">Grade</p><h4 className="text-6xl font-black italic">{examScore.score}%</h4></div><div className="p-8 bg-white dark:bg-slate-900 rounded-[2rem] border"><p className="text-[10px] font-black text-gray-400 uppercase mb-2">Accuracy</p><h4 className="text-5xl font-black text-emerald-500">{examScore.correctAnswers}/{examScore.totalQuestions}</h4></div><div className="p-8 bg-white dark:bg-slate-900 rounded-[2rem] border"><p className="text-[10px] font-black text-gray-400 uppercase mb-2">Status</p><h4 className={`text-3xl font-black uppercase ${examScore.passed ? "text-blue-600" : "text-red-600"}`}>{examScore.passed ? "Authorized" : "Denied"}</h4></div></div></div>
                 ) : (
                   <div className="space-y-12 h-[600px] overflow-y-auto px-4 custom-scrollbar">
-                    {currentWeekInfo.exams?.map((q, idx) => (
+                    {weeksData[String(currentWeek)]?.exams?.map((q, idx) => (
                       <div key={idx} className="p-8 bg-black/5 rounded-[2rem] border border-white/5"><p className="text-xl font-black mb-6">{idx + 1}. {q.question}</p><div className="grid grid-cols-1 md:grid-cols-3 gap-4">{["A", "B", "C"].map((opt) => (<button key={opt} onClick={() => setAnswers({ ...answers, [idx]: opt })} className={`p-5 rounded-xl font-black border-2 transition-all ${answers[idx] === opt ? "bg-blue-600 border-blue-600 text-white" : "border-transparent bg-black/10"}`}>{opt}: {q[`option${opt}`]}</button>))}</div></div>
                     ))}
                     <button onClick={handleExamSubmit} className="w-full py-6 bg-emerald-600 text-white rounded-[2rem] font-black uppercase text-xl sticky bottom-0">Finalize Evaluation</button>
@@ -367,8 +363,8 @@ const StudentPortal = () => {
               </div>
             ) : (
               <>
-                <div className="bg-black aspect-video rounded-[3rem] overflow-hidden shadow-2xl relative border-4 border-white/5">{isWeekLocked(currentWeek) ? (<div className="absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center text-center p-10"><Lock size={64} className="text-red-600 mb-6 animate-pulse" /><h3 className="text-3xl font-black uppercase italic">Temporal Lock Active</h3></div>) : (<iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${currentWeekInfo.videoId}`} frameBorder="0" allowFullScreen></iframe>)}</div>
-                <div className={`p-10 rounded-[3rem] border ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white shadow-xl"}`}><h3 className="text-3xl font-black uppercase italic mb-6">{currentWeekInfo.title || "Academy Module"}</h3><div className="grid md:grid-cols-2 gap-6"><div className="p-8 bg-blue-600 rounded-[2.5rem] text-white"><h5 className="font-black text-[10px] uppercase mb-4 flex items-center gap-2"><FileText size={18} /> Module Material</h5><a href={currentWeekInfo.pdfNode} target="_blank" rel="noreferrer" className="block w-full py-4 bg-white text-blue-600 rounded-2xl font-black text-center text-[10px] uppercase">Access Resource</a></div><div className={`p-8 rounded-[2.5rem] border ${darkMode ? "bg-white/5" : "bg-gray-50"}`}><h5 className="text-[10px] font-black text-blue-600 uppercase mb-4 flex items-center gap-2"><Clock size={18} /> Assignment</h5><p className="text-sm font-bold opacity-70">{currentWeekInfo.assignment || "Review node materials and prepare for evaluation."}</p></div></div></div>
+                <div className="bg-black aspect-video rounded-[3rem] overflow-hidden shadow-2xl relative border-4 border-white/5">{isWeekLocked(currentWeek) ? (<div className="absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center text-center p-10"><Lock size={64} className="text-red-600 mb-6 animate-pulse" /><h3 className="text-3xl font-black uppercase italic">Temporal Lock Active</h3></div>) : (<iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${weeksData[String(currentWeek)]?.videoId}`} frameBorder="0" allowFullScreen></iframe>)}</div>
+                <div className={`p-10 rounded-[3rem] border ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white shadow-xl"}`}><h3 className="text-3xl font-black uppercase italic mb-6">{weeksData[String(currentWeek)]?.title || "Academy Module"}</h3><div className="grid md:grid-cols-2 gap-6"><div className="p-8 bg-blue-600 rounded-[2.5rem] text-white"><h5 className="font-black text-[10px] uppercase mb-4 flex items-center gap-2"><FileText size={18} /> Module Material</h5><a href={weeksData[String(currentWeek)]?.pdfNode} target="_blank" rel="noreferrer" className="block w-full py-4 bg-white text-blue-600 rounded-2xl font-black text-center text-[10px] uppercase">Access Resource</a></div><div className={`p-8 rounded-[2.5rem] border ${darkMode ? "bg-white/5" : "bg-gray-50"}`}><h5 className="text-[10px] font-black text-blue-600 uppercase mb-4 flex items-center gap-2"><Clock size={18} /> Assignment</h5><p className="text-sm font-bold opacity-70">{weeksData[String(currentWeek)]?.assignment || "Review node materials and prepare for evaluation."}</p></div></div></div>
               </>
             )}
           </div>
@@ -392,7 +388,7 @@ const StudentPortal = () => {
             {viewState === "selection" && (<div className="flex flex-col md:flex-row items-center justify-center gap-10 min-h-[50vh]"><button onClick={() => { setSelectedPath("Path 1"); setViewState("forum"); }} className="p-16 bg-blue-600 text-white rounded-[4rem] font-black italic text-5xl uppercase shadow-2xl">Path 1</button><button onClick={() => { setSelectedPath("Path 2"); setViewState("forum"); }} className="p-16 bg-slate-900 text-white rounded-[4rem] font-black italic text-5xl uppercase shadow-2xl">Path 2</button></div>)}
             {viewState === "forum" && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                <div className={`p-10 rounded-[3rem] border sticky top-0 h-fit ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-xl"}`}><form onSubmit={async (e) => { e.preventDefault(); if (!newPost.title || !newPost.content) return; await addDoc(collection(db, "forum_threads"), { ...newPost, studentName: studentData?.fullName || "Student", studentId: auth.currentUser.uid, courseId: selectedCourse.id, studentType: selectedPath, createdAt: serverTimestamp() }); setNewPost({ title: "", content: "" }); }} className="space-y-4"><input className="s-input" placeholder="SUBJECT" value={newPost.title} onChange={(e) => setNewPost({ ...newPost, title: e.target.value })} /><textarea className="s-input h-40 pt-4" placeholder="DETAILS..." value={newPost.content} onChange={(e) => setNewPost({ ...newPost, content: e.target.value })} /><button className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Transmit Post</button></form></div>
+                <div className={`p-10 rounded-[3rem] border sticky top-0 h-fit ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-xl"}`}><form onSubmit={async (e) => { e.preventDefault(); if (!newPost.title || !newPost.content) return; await addDoc(collection(db, "forum_threads"), { ...newPost, studentName: studentData?.fullName || "Student", studentId: auth.currentUser.uid, courseId: selectedCourse?.id, studentType: selectedPath, createdAt: serverTimestamp() }); setNewPost({ title: "", content: "" }); }} className="space-y-4"><input className="s-input" placeholder="SUBJECT" value={newPost.title} onChange={(e) => setNewPost({ ...newPost, title: e.target.value })} /><textarea className="s-input h-40 pt-4" placeholder="DETAILS..." value={newPost.content} onChange={(e) => setNewPost({ ...newPost, content: e.target.value })} /><button className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Transmit Post</button></form></div>
                 <div className="lg:col-span-2 space-y-6">{forumThreads.map((t) => (<div key={t.id} className={`p-10 rounded-[3rem] border ${darkMode ? "bg-slate-900 border-white/5" : "bg-white shadow-sm"}`}><h3 className="text-2xl font-black italic uppercase mb-4 tracking-tighter">"{t.title}"</h3><p className="opacity-60 text-sm leading-relaxed mb-8">{t.content}</p><span className="text-[10px] font-black text-blue-600 uppercase">By {t.studentName}</span></div>))}</div>
               </div>
             )}
