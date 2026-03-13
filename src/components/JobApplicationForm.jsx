@@ -18,7 +18,8 @@ import {
   Download,
   UploadCloud,
   Mail,
-  Camera
+  Camera,
+  Edit3
 } from "lucide-react";
 
 const JobApplicationForm = ({
@@ -45,7 +46,7 @@ const JobApplicationForm = ({
     "Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cabo Verde", "Cameroon", "Central African Republic", "Chad", "Comoros", "Congo (Congo-Brazzaville)", "Congo (Democratic Republic)", "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Ivory Coast", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles", "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania", "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe"
   ];
 
-  // --- TARGET COUNTRIES LIST (As requested) ---
+  // --- TARGET COUNTRIES LIST ---
   const targetCountries = [
     "Australia", "Canada", "USA", "UK",
     "-- SCHENGEN AREA --",
@@ -63,7 +64,7 @@ const JobApplicationForm = ({
   ];
 
   const jobCategories = [
-    "Information Technology (IT)", "Healthcare (Nursing/Medical)", "Engineering", "Construction & Labor", "Driving (Heavy/Light)", "Security Services", "Hospitality & Catering", "Education/Teaching", "Oil & Gas", "Agriculture", "Aviation", "Maritime", "General Office Work"
+    "Information Technology (IT)", "Healthcare (Nursing/Medical)", "Engineering", "Construction & Labor", "Driving (Heavy/Light)", "Security Services", "Hospitality & Catering", "Education/Teaching", "Oil & Gas", "Agriculture", "Aviation", "Maritime", "General Office Work", "OTHER JOB"
   ];
 
   const nigeriaData = {
@@ -170,7 +171,7 @@ const JobApplicationForm = ({
                      <div className="x-small space-y-1" style={{fontSize: '10px'}}>
                         <p className="mb-1 uppercase"><strong>NAME:</strong> {applicationData?.name || "N/A"}</p>
                         <p className="mb-1 uppercase"><strong>PASSPORT:</strong> {applicationData?.passportNo || "N/A"}</p>
-                        <p className="mb-1 uppercase"><strong>JOB:</strong> {applicationData?.job || "N/A"}</p>
+                        <p className="mb-1 uppercase"><strong>JOB:</strong> {applicationData?.otherJob || applicationData?.job || "N/A"}</p>
                         <p className="mb-1 uppercase"><strong>DESTINATION:</strong> {applicationData?.country || "N/A"}</p>
                      </div>
                   </div>
@@ -274,6 +275,24 @@ const JobApplicationForm = ({
                         {jobCategories.map(j => <option key={j} value={j}>{j}</option>)}
                      </select>
                   </div>
+
+                  {/* CONDITIONAL "OTHER JOB" FIELD */}
+                  {applicationData?.job === "OTHER JOB" && (
+                    <div className="col-12 text-start animate__animated animate__fadeIn">
+                      <label className="label-style text-danger d-flex align-items-center gap-1">
+                        <Edit3 size={12}/> Specify Your Job Title
+                      </label>
+                      <input 
+                        type="text" 
+                        name="otherJob" 
+                        className="sky-input border-danger" 
+                        placeholder="Type your specific job title here..." 
+                        required 
+                        value={applicationData?.otherJob || ""} 
+                        onChange={handleChange} 
+                      />
+                    </div>
+                  )}
 
                   {/* UPLOADS */}
                   <div className="col-12 border-bottom pb-2 mt-4"><h6 className="fw-black text-danger uppercase italic small d-flex align-items-center gap-2"><FileText size={18} /> Career Documents</h6></div>
