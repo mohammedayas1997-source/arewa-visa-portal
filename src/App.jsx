@@ -173,6 +173,16 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          <Route 
+            path="/apply-course" 
+            element={
+              <CourseApplicationForm 
+                showCourseForm={true} // Wannan zai sa ya fito a buɗe
+                setShowCourseForm={() => window.location.href = "/"} // Idan an rufe ya koma Home
+                coursesData={coursesData} 
+              />
+            } 
+          />
         </Routes>
       </div>
     </Router>
