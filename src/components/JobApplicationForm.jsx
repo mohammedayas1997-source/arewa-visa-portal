@@ -46,7 +46,6 @@ const JobApplicationForm = ({
     "Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cabo Verde", "Cameroon", "Central African Republic", "Chad", "Comoros", "Congo (Congo-Brazzaville)", "Congo (Democratic Republic)", "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Ivory Coast", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles", "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania", "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe"
   ];
 
-  // --- TARGET COUNTRIES LIST ---
   const targetCountries = [
     "Australia", "Canada", "USA", "UK",
     "-- SCHENGEN AREA --",
@@ -171,7 +170,7 @@ const JobApplicationForm = ({
                      <div className="x-small space-y-1" style={{fontSize: '10px'}}>
                         <p className="mb-1 uppercase"><strong>NAME:</strong> {applicationData?.name || "N/A"}</p>
                         <p className="mb-1 uppercase"><strong>PASSPORT:</strong> {applicationData?.passportNo || "N/A"}</p>
-                        <p className="mb-1 uppercase"><strong>JOB:</strong> {applicationData?.otherJob || applicationData?.job || "N/A"}</p>
+                        <p className="mb-1 uppercase"><strong>JOB:</strong> {applicationData?.job === "OTHER JOB" ? applicationData?.otherJob : applicationData?.job || "N/A"}</p>
                         <p className="mb-1 uppercase"><strong>DESTINATION:</strong> {applicationData?.country || "N/A"}</p>
                      </div>
                   </div>
@@ -270,13 +269,19 @@ const JobApplicationForm = ({
                   </div>
                   <div className="col-md-6 text-start">
                      <label className="label-style">Professional Job Category</label>
-                     <select className="sky-input" required name="job" value={applicationData?.job || ""} onChange={handleChange}>
+                     <select 
+                        className="sky-input" 
+                        required 
+                        name="job" 
+                        value={applicationData?.job || ""} 
+                        onChange={handleChange}
+                     >
                         <option value="">-- Select Category --</option>
                         {jobCategories.map(j => <option key={j} value={j}>{j}</option>)}
                      </select>
                   </div>
 
-                  {/* CONDITIONAL "OTHER JOB" FIELD */}
+                  {/* CONDITIONAL "OTHER JOB" FIELD - FIXED LOGIC */}
                   {applicationData?.job === "OTHER JOB" && (
                     <div className="col-12 text-start animate__animated animate__fadeIn">
                       <label className="label-style text-danger d-flex align-items-center gap-1">
@@ -285,8 +290,9 @@ const JobApplicationForm = ({
                       <input 
                         type="text" 
                         name="otherJob" 
-                        className="sky-input border-danger" 
-                        placeholder="Type your specific job title here..." 
+                        className="sky-input" 
+                        style={{ borderColor: '#dc3545' }}
+                        placeholder="e.g Tailor, Chef, Plumber..." 
                         required 
                         value={applicationData?.otherJob || ""} 
                         onChange={handleChange} 
@@ -326,7 +332,7 @@ const JobApplicationForm = ({
       </div>
 
       <style jsx>{`
-        .sky-input { width: 100%; padding: 0.8rem 1rem; background: #f8fafc; border: 2px solid #eee; border-radius: 1rem; font-weight: 700; font-size: 0.85rem; outline: none; transition: 0.3s; color: #1e293b; }
+        .sky-input { width: 100%; padding: 0.8rem 1rem; background: #f8fafc; border: 2px solid #eee; border-radius: 0.8rem; font-weight: 700; font-size: 0.85rem; outline: none; transition: 0.3s; color: #1e293b; }
         .sky-input:focus { border-color: #dc3545; background: white; }
         .label-style { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #64748b; margin-bottom: 5px; display: block; text-align: left; }
         .fw-black { font-weight: 900; }

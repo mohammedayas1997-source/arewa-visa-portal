@@ -13,6 +13,7 @@ import {
   Camera,
   Fingerprint,
   UploadCloud,
+  Edit3
 } from "lucide-react";
 
 const CBIApplicationForm = ({
@@ -35,6 +36,7 @@ const CBIApplicationForm = ({
     postalCode: "",
     address: "",
     targetCountry: "",
+    otherTargetCountry: "", // Sabon fili don Others
     programCategory: "",
     additionalInfo: "",
     photoFile: null,
@@ -45,6 +47,24 @@ const CBIApplicationForm = ({
   // --- GLOBAL DATA ---
   const africaCountries = [
     "Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cabo Verde", "Cameroon", "Central African Republic", "Chad", "Comoros", "Congo (Congo-Brazzaville)", "Congo (Democratic Republic)", "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Ivory Coast", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles", "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania", "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe"
+  ];
+
+  // --- TARGET COUNTRIES LIST (As requested) ---
+  const targetCountriesList = [
+    "Australia", "Canada", "USA", "Uk",
+    "-- SCHENGEN AREA --",
+    "Austria", "Belgium", "Bulgaria", "Croatia", "Czechia", "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Iceland", "Italy", "Latvia", "Liechtenstein", "Lithuania", "Luxembourg", "Malta", "Netherlands", "Norway", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Sweden", "Switzerland",
+    "-- ASIA --",
+    "Japan", "South Korea", "Singapore", "Russia",
+    "-- OCEANIA --",
+    "New Zealand",
+    "-- ISLAND NATIONS --",
+    "Mauritius", "Seychelles",
+    "-- BALKAN REGION --",
+    "Albania", "Bosnia and Herzegovina", "Kosovo", "Montenegro", "North Macedonia", "Serbia", "Turkey",
+    "-- MIDDLE EAST (GCC) --",
+    "Qatar", "Kuwait", "Saudi Arabia", "Bahrain", "uae", "Oman",
+    "Others"
   ];
 
   const nigeriaData = {
@@ -76,8 +96,8 @@ const CBIApplicationForm = ({
         setCbiData({
           name: "", email: "", whatsapp: "", nin: "", country: "Nigeria",
           state: "", lga: "", postalCode: "", address: "", targetCountry: "",
-          programCategory: "", additionalInfo: "", photoFile: null,
-          passportFile: null, othersFile: null,
+          otherTargetCountry: "", programCategory: "", additionalInfo: "", 
+          photoFile: null, passportFile: null, othersFile: null,
         });
       }, 4000);
     } catch (error) {
@@ -106,7 +126,7 @@ const CBIApplicationForm = ({
           position: "relative", borderRadius: "30px", overflow: "hidden",
         }}
       >
-        {/* HEADER TARE DA CLOSE BUTTON */}
+        {/* HEADER */}
         <div className="p-4 bg-dark text-white d-flex justify-content-between align-items-center sticky-top">
           <div className="d-flex align-items-center gap-3 text-start">
             <div className="bg-warning p-2 rounded-circle shadow-sm">
@@ -117,8 +137,6 @@ const CBIApplicationForm = ({
               <small className="opacity-75 d-block fw-bold uppercase" style={{ fontSize: "0.6rem" }}>Residency & Citizenship Investment</small>
             </div>
           </div>
-          
-          {/* WANNAN SHINE CLOSE BUTTON DIN (X) */}
           <button 
             type="button"
             onClick={() => setShowCBIForm(false)} 
@@ -225,9 +243,29 @@ const CBIApplicationForm = ({
                 <label className="label-style">Target Country</label>
                 <select name="targetCountry" className="form-select sky-input" value={cbiData.targetCountry} onChange={handleChange} required>
                   <option value="">Choose Country...</option>
-                  {["Antigua & Barbuda", "Dominica", "Grenada", "St Kitts & Nevis", "St. Lucia", "Türkiye", "Vanuatu", "Malta", "Portugal", "Canada"].map(c => <option key={c} value={c}>{c}</option>)}
+                  {targetCountriesList.map((c, idx) => (
+                    <option key={idx} value={c} disabled={c.startsWith("--")}>
+                      {c}
+                    </option>
+                  ))}
                 </select>
               </div>
+
+              {/* CONDITIONAL "OTHERS" FIELD FOR TARGET COUNTRY */}
+              {cbiData.targetCountry === "Others" && (
+                <div className="col-md-6 animate__animated animate__fadeIn">
+                  <label className="label-style text-warning"><Edit3 size={12}/> Specify Your Target Country</label>
+                  <input 
+                    type="text" 
+                    name="otherTargetCountry" 
+                    className="form-control sky-input border-warning" 
+                    placeholder="Type country name..." 
+                    required 
+                    value={cbiData.otherTargetCountry} 
+                    onChange={handleChange} 
+                  />
+                </div>
+              )}
 
               <div className="col-md-6">
                 <label className="label-style">Program Category</label>
@@ -285,16 +323,17 @@ const CBIApplicationForm = ({
         </div>
       </div>
       <style>{`
-        .sky-input { width: 100%; padding: 0.8rem 1.2rem; background: #f8fafc; border: 2px solid #eee; border-radius: 1rem; font-weight: 700; font-size: 0.85rem; outline: none; transition: 0.3s; }
+        .sky-input { width: 100%; padding: 0.8rem 1.2rem; background: #f8fafc; border: 2px solid #eee; border-radius: 1rem; font-weight: 700; font-size: 0.85rem; outline: none; transition: 0.3s; color: #1e293b; }
         .sky-input:focus { border-color: #ffc107; background: white; }
-        .label-style { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #64748b; margin-bottom: 5px; display: block; margin-left: 5px; letter-spacing: 0.05em; }
+        .label-style { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #64748b; margin-bottom: 5px; display: block; margin-left: 5px; letter-spacing: 0.05em; text-align: left; }
         .fw-black { font-weight: 900; }
         .italic { font-style: italic; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #ffc107; border-radius: 10px; }
         @media (max-width: 768px) {
-           .modal-content { height: 95vh; margin: 0; }
-           .p-md-5 { padding: 1.5rem !important; }
+           .modal-content { height: 100vh; margin: 0; border-radius: 0; }
+           .p-md-5 { padding: 1rem !important; }
+           .sky-input { padding: 0.7rem 1rem; }
         }
       `}</style>
     </div>
