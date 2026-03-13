@@ -84,6 +84,9 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // --- ADDED COURSESDATA TO PREVENT BLANK SCREEN ERROR ---
+  const [coursesData, setCoursesData] = useState([]);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsAuthenticated(!!user);
@@ -143,6 +146,18 @@ function App() {
           {/* THE NEW APPLICATION LINK */}
           <Route path="/apply" element={<ApplyFormWrapper />} />
           
+          {/* APPLY COURSE LINK - MOVED UP TO PREVENT REDIRECT ERROR */}
+          <Route 
+            path="/apply-course" 
+            element={
+              <CourseApplicationForm 
+                showCourseForm={true} 
+                setShowCourseForm={() => window.location.href = "/"} 
+                coursesData={coursesData} 
+              />
+            } 
+          />
+
           <Route path="/login" element={<StudentLoginWithClose />} />
           <Route path="/student-login" element={<StudentLoginWithClose />} />
           <Route path="/admin-gateway" element={<StaffLoginWithClose />} />
@@ -164,7 +179,6 @@ function App() {
           <Route path="/admin/grading/:courseId" element={<ProtectedRoute requiredRole="admin"><AdminGrading /></ProtectedRoute>} />
           <Route path="/admin-portal" element={<ProtectedRoute requiredRole="admin"><AdminDashboard approveAndSendCertificate={approveAndSendCertificate} QRCodeSVG={QRCodeSVG} /></ProtectedRoute>} />
           <Route path="/instructor-hub" element={<ProtectedRoute requiredRole="instructor"><InstructorHub isAdmin={false} /></ProtectedRoute>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
           <Route 
             path="/super-portal" 
             element={
@@ -173,16 +187,9 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          <Route 
-            path="/apply-course" 
-            element={
-              <CourseApplicationForm 
-                showCourseForm={true} // Wannan zai sa ya fito a buɗe
-                setShowCourseForm={() => window.location.href = "/"} // Idan an rufe ya koma Home
-                coursesData={coursesData} 
-              />
-            } 
-          />
+          
+          {/* Wildcard MUST BE LAST */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </Router>
