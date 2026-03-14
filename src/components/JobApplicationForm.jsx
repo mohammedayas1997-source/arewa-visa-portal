@@ -100,9 +100,7 @@ const JobApplicationForm = ({
   const internalHandleChange = (e) => {
     if (e.persist) e.persist();
     const { name, value } = e.target;
-    // Update local state for immediate feedback
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Push update to global state
     handleChange(e);
   };
 
@@ -114,7 +112,7 @@ const JobApplicationForm = ({
     const handler = window.PaystackPop.setup({
       key: "pk_live_501518dc4688ce1fc18be571fb9b81ab785af677", 
       email: formData?.email || "consultant@arewavisa.com",
-      amount: 100000 * 100,
+      amount: 20000 * 100, // Updated to 20,000 Naira
       currency: "NGN",
       ref: "JOB-" + Math.floor((Math.random() * 1000000000) + 1),
       callback: (response) => {
@@ -196,7 +194,7 @@ const JobApplicationForm = ({
 
                 <div className="bg-dark p-3 rounded-4 text-white d-flex justify-content-between align-items-center shadow-lg">
                   <div className="text-start">
-                    <h4 className="fw-black mb-0">₦100,000</h4>
+                    <h4 className="fw-black mb-0">₦20,000</h4>
                     <p className="x-small text-muted mb-0 uppercase">Verified Secure</p>
                   </div>
                   <CheckCircle size={30} className="text-success" />
@@ -323,7 +321,7 @@ const JobApplicationForm = ({
                      <div className="bg-dark p-3 p-md-4 rounded-4 text-white d-flex justify-content-between align-items-center shadow-lg">
                         <div className="text-start">
                            <p className="x-small uppercase opacity-50 mb-0">Total Fee</p>
-                           <h4 className="fw-black mb-0 italic">₦100,000</h4>
+                           <h4 className="fw-black mb-0 italic">₦20,000</h4>
                         </div>
                         <button type="submit" disabled={isProcessing} className="btn btn-warning px-4 py-3 rounded-pill fw-black uppercase small border-0 text-dark">
                           {isProcessing ? <Loader2 className="animate-spin" size={20}/> : "Pay Now"}
