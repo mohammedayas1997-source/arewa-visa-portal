@@ -585,13 +585,16 @@ const Home = () => {
               </p>
 
               <div className="d-flex gap-2 flex-wrap">
-                <Link
-                  to="/apply-course"
-                  className="btn btn-danger px-3 py-2 fw-bold rounded-pill shadow-sm d-flex align-items-center justify-content-center"
-                  style={{ fontSize: "0.9rem", textDecoration: "none" }}
+                <button
+                  onClick={() => {
+                    setShowCourseForm(true);
+                    setSelectedCourse("general");
+                  }}
+                  className="btn btn-danger px-3 py-2 fw-bold rounded-pill shadow-sm"
+                  style={{ fontSize: "0.9rem" }}
                 >
                   APPLY TRAINING COURSE
-                </Link>
+                </button>
 
                 {/* STUDENT PORTAL BUTTON - AREWA VISA ACADEMY */}
                 <button
@@ -1326,12 +1329,11 @@ const Home = () => {
                 >
                   APPLY FOR GLOBAL CITIZENSHIP NOW
                 </button>
-             </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
-
       {/* FLIGHT SYSTEM */}
       <div className="flight-system-wrapper">
         <FlightBookingSystem
@@ -1357,7 +1359,6 @@ const Home = () => {
           setCurrentPrice={setCurrentPrice}
         />
       </div>
-
       {/* INFO STRIP */}
       <section
         className="py-5 shadow-sm w-100"
@@ -1392,7 +1393,6 @@ const Home = () => {
           </div>
         </div>
       </section>
-      
       <section className="py-5 bg-light">
         <div className="container">
           <div className="text-center mb-5">
