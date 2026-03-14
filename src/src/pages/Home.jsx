@@ -1326,11 +1326,12 @@ const Home = () => {
                 >
                   APPLY FOR GLOBAL CITIZENSHIP NOW
                 </button>
-              </div>
+             </div>
             </div>
           </div>
         </div>
       </section>
+
       {/* FLIGHT SYSTEM */}
       <div className="flight-system-wrapper">
         <FlightBookingSystem
@@ -1356,6 +1357,7 @@ const Home = () => {
           setCurrentPrice={setCurrentPrice}
         />
       </div>
+
       {/* INFO STRIP */}
       <section
         className="py-5 shadow-sm w-100"
@@ -1390,6 +1392,7 @@ const Home = () => {
           </div>
         </div>
       </section>
+      
       <section className="py-5 bg-light">
         <div className="container">
           <div className="text-center mb-5">
